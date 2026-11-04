@@ -52,11 +52,14 @@ class KodoumoImporter @Inject constructor(
             for (category in KodoumoClient.categories) {
                 for (page in 1..pagesPerCategory) {
                     _status.value = Status.Running(imported, labelOf(category))
-                    val (items, pages) = runCatching { client.category(category, page) }.getOrElse {
+                    val result = runCatching { client.category(category, page) }
+                    val error = result.exceptionOrNull()
+                    if (error != null) {
                         failures++
-                        Log.w(TAG, "category $category page $page failed", it)
+                        Log.w(TAG, "category $category page $page failed", error)
                         break
                     }
+                    val (items, pages) = result.getOrThrow()
                     for (item in items) {
                         // Only finished evaluations with a real age rating may reach a child.
                         if (item.underEvaluation || item.age == null) continue
