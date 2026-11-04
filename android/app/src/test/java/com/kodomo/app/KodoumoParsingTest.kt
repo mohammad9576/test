@@ -41,6 +41,31 @@ class KodoumoParsingTest {
     }
 
     @Test
+    fun realKodoumoIndicatorNamesAreRecognised() {
+        val client = KodoumoClient(okhttp3.OkHttpClient(), kotlinx.serialization.json.Json)
+        val json = kotlinx.serialization.json.Json.parseToJsonElement(
+            """{"data":{"id":66344,"reviewsTitle":"ماهی اخمو","reviewsLatinName":"The Pout-Pout Fish",
+            "reviewsAgeCategory":"<div category=\"+10\"><img width=\"40\"> <span class=\"age-tax\">7+ </span></div>","reviewsDurationTime":"92 دقیقه",
+            "genres":["ماجراجویی"],"under_evaluation":false,
+            "shakhesHa":[{"name":"violence-rate","rate":0,"label":"خشونت","color":"red","shakhesText":"فانتزی"},
+              {"name":"danger-section","rate":1,"label":"ترس","color":"red","shakhesText":"دلهره"},
+              {"name":"Social-anomalies","rate":1,"label":"ناهنجاری‌ اجتماعی","color":"red","shakhesText":"تمسخر"},
+              {"name":"Positive-message","rate":5,"label":"پیام مثبت","color":"green","shakhesText":"دوستی"},
+              {"name":"Positive-pattern","rate":4,"label":"الگو پذیری","color":"green","shakhesText":"پشتکار"}],
+            "reviewsGallery":{"images":["https://kodoumo.ir/a.jpg"]}}}""",
+        ) as kotlinx.serialization.json.JsonObject
+        val r = client.parseReview(json)
+        assertEquals(66344L, r.id)
+        assertEquals(7, r.age)
+        assertEquals(
+            listOf("violence" to 0, "fear" to 1, "social_anomalies" to 1, "positive_messages" to 5, "positive_pattern" to 4),
+            r.indicators.map { it.name to it.rate },
+        )
+        assertEquals(listOf(true, true, true, false, false), r.indicators.map { it.negative })
+        assertEquals(null, r.trailerScript)
+    }
+
+    @Test
     fun htmlIsCleaned() {
         assertEquals("سلام\nدنیا «خوب»", "<p>سلام</p><b>دنیا</b>&nbsp;&#8220;خوب&#8221;".stripHtml())
     }

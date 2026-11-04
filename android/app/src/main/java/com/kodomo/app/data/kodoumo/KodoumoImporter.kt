@@ -115,12 +115,13 @@ class KodoumoImporter @Inject constructor(
     /** Maps the site's 0..5 indicator bars to the Kodomo rating (1..5; 0 = «none» becomes the minimum 1). */
     private fun toEntity(category: String, item: KodoumoListItem, r: KodoumoReview): ContentEntity {
         fun level(vararg names: String): Int? = r.indicators.firstOrNull { it.name in names }?.rate
-        val violence = (level("violence") ?: 1).coerceIn(1, 5)
-        val fear = (level("fear") ?: 1).coerceIn(1, 5)
-        val abnormality = (level("social_anomalies", "abnormality") ?: 1).coerceIn(1, 5)
-        val positive = (level("positive_messages") ?: 3).coerceIn(1, 5)
-        val pattern = (level("positive_pattern") ?: 3).coerceIn(1, 5)
-        val educational = (level("educational") ?: level("positive_messages") ?: 3).coerceIn(1, 5)
+        // kodoumo.ir uses 0..5 bars; 0 means «not present» and is kept as 0 so charts match the site exactly.
+        val violence = (level("violence") ?: 0).coerceIn(0, 5)
+        val fear = (level("fear") ?: 0).coerceIn(0, 5)
+        val abnormality = (level("social_anomalies", "abnormality") ?: 0).coerceIn(0, 5)
+        val positive = (level("positive_messages") ?: 0).coerceIn(0, 5)
+        val pattern = (level("positive_pattern") ?: 0).coerceIn(0, 5)
+        val educational = (level("educational") ?: level("positive_messages") ?: 0).coerceIn(0, 5)
         val age = r.age ?: item.age ?: 12
         val positives = r.indicators.filter { !it.negative && it.text.isNotBlank() }.map { "${it.label}: ${it.text}" }
         val negatives = r.indicators.filter { it.negative && it.rate > 0 && it.text.isNotBlank() }.map { "${it.label}: ${it.text}" }

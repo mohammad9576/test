@@ -195,7 +195,7 @@ class KodoumoClient @Inject constructor(private val http: OkHttpClient, private 
             val t = "$n $label"
             return when {
                 "خشونت" in t || "violen" in t -> "violence"
-                "ترس" in t || "fear" in t -> "fear"
+                "ترس" in t || "fear" in t || "danger" in t -> "fear"
                 "ناهنجار" in t || "anomal" in t -> "social_anomalies"
                 "پیام" in t || "message" in t -> "positive_messages"
                 "الگو" in t || "pattern" in t -> "positive_pattern"
