@@ -26,6 +26,7 @@ data class SessionState(
     val apiBaseUrl: String?,
     val lastSyncMillis: Long,
     val allowedApps: Set<String>,
+    val lastKodoumoSyncMillis: Long,
 )
 
 @Singleton
@@ -39,6 +40,7 @@ class SessionPreferences @Inject constructor(@ApplicationContext private val con
         val API_BASE_URL = stringPreferencesKey("api_base_url")
         val LAST_SYNC = longPreferencesKey("last_sync")
         val ALLOWED_APPS = stringSetPreferencesKey("allowed_apps")
+        val KODOUMO_SYNC = longPreferencesKey("kodoumo_sync")
     }
 
     val state: Flow<SessionState> = context.sessionStore.data.map { p ->
@@ -50,6 +52,7 @@ class SessionPreferences @Inject constructor(@ApplicationContext private val con
             apiBaseUrl = p[Keys.API_BASE_URL],
             lastSyncMillis = p[Keys.LAST_SYNC] ?: 0L,
             allowedApps = p[Keys.ALLOWED_APPS] ?: emptySet(),
+            lastKodoumoSyncMillis = p[Keys.KODOUMO_SYNC] ?: 0L,
         )
     }
 
@@ -75,6 +78,8 @@ class SessionPreferences @Inject constructor(@ApplicationContext private val con
         val current = it[Keys.ALLOWED_APPS] ?: emptySet()
         it[Keys.ALLOWED_APPS] = if (allowed) current + packageName else current - packageName
     }
+
+    suspend fun setLastKodoumoSync(millis: Long) = context.sessionStore.edit { it[Keys.KODOUMO_SYNC] = millis }
 
     suspend fun setLastSync(millis: Long) = context.sessionStore.edit { it[Keys.LAST_SYNC] = millis }
 }

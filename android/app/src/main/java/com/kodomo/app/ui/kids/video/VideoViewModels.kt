@@ -36,6 +36,7 @@ class VideoListViewModel @Inject constructor(
     val category = MutableStateFlow<String?>(null)
 
     private val allowed = contentRepository.observeAllowedForChild(childId, ContentType.VIDEO)
+        .map { list -> list.filter { it.playableUrl != null } }
 
     val categories: StateFlow<List<String>> = combine(allowed, query) { items, _ -> items.map { it.category }.distinct() }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
@@ -71,12 +72,12 @@ class VideoPlayerViewModel @Inject constructor(
         viewModelScope.launch {
             val item = contentRepository.getItem(contentId)
             val local = downloadRepository.localFileFor(contentId)
-            _state.value = State(item = item, source = local ?: item?.mediaUrl, offline = local != null)
+            _state.value = State(item = item, source = local ?: item?.playableUrl, offline = local != null)
         }
     }
 
     fun download() {
-        val url = _state.value.item?.mediaUrl ?: return
+        val url = _state.value.item?.mediaUrl?.takeIf { com.kodomo.app.domain.model.VideoSource.parse(it) is com.kodomo.app.domain.model.VideoSource.Direct } ?: return
         if (_state.value.downloadProgress != null || _state.value.offline) return
         viewModelScope.launch {
             downloadRepository.download(contentId, url)

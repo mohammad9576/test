@@ -46,6 +46,7 @@ class ParentHubViewModel @Inject constructor(
     val deviceOwner: DeviceOwnerManager,
     private val screenTime: ScreenTimeManager,
     liveUsageSocket: LiveUsageSocket,
+    private val kodoumo: com.kodomo.app.data.kodoumo.KodoumoImporter,
 ) : ViewModel() {
     private fun <T> stateOf(flow: kotlinx.coroutines.flow.Flow<T>, initial: T) = flow.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), initial)
 
@@ -84,13 +85,18 @@ class ParentHubViewModel @Inject constructor(
 
     val ratedContent: StateFlow<List<ContentItem>> = stateOf(
         combine(
-            contentRepository.observeByType(ContentType.VIDEO),
-            contentRepository.observeByType(ContentType.BOOK),
-            contentRepository.observeByType(ContentType.MUSIC),
-            contentRepository.observeByType(ContentType.LEARNING),
-        ) { a, b, c, d -> a + b + c + d },
+            listOf(
+                ContentType.VIDEO, ContentType.BOOK, ContentType.MUSIC, ContentType.LEARNING,
+                ContentType.BOOK_REVIEW, ContentType.GAME_REVIEW, ContentType.TOY_REVIEW,
+            ).map { contentRepository.observeByType(it) },
+        ) { lists -> lists.toList().flatMap { it }.sortedByDescending { it.sourceUrl != null } },
         emptyList(),
     )
+
+    val kodoumoStatus = kodoumo.status
+    val kodoumoCount: StateFlow<Int> = stateOf(kodoumo.importedCount, 0)
+
+    fun syncKodoumo() = viewModelScope.launch { kodoumo.sync() }
 
     val articles: StateFlow<List<ContentItem>> = stateOf(contentRepository.observeByType(ContentType.ARTICLE), emptyList())
     val weekendIdeas: StateFlow<List<ContentItem>> = stateOf(contentRepository.observeByType(ContentType.WEEKEND_IDEA), emptyList())

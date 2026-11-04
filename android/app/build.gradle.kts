@@ -98,6 +98,7 @@ dependencies {
     implementation(libs.androidx.camera.lifecycle)
     implementation(libs.androidx.camera.view)
     implementation(libs.mlkit.pose)
+    implementation(libs.coil.compose)
 
     implementation(libs.okhttp)
     implementation(libs.okhttp.logging)

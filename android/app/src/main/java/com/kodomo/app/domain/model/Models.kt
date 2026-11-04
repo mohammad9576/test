@@ -99,7 +99,16 @@ data class ContentItem(
     val peerDislikes: Int,
     val interests: Set<Interest>,
     val author: String,
-)
+    /** Poster / cover image (remote). */
+    val imageUrl: String? = null,
+    /** Official trailer (e.g. the Aparat embed published with the kodoumo.ir review). */
+    val trailerUrl: String? = null,
+    /** Original review page (kodoumo.ir) the rating was imported from. */
+    val sourceUrl: String? = null,
+) {
+    /** What the kids player should play: the parent-approved full video, otherwise the trailer. */
+    val playableUrl: String? get() = mediaUrl ?: trailerUrl
+}
 
 data class ContentPage(val contentId: String, val index: Int, val text: String, val emoji: String)
 

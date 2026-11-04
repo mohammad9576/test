@@ -14,7 +14,7 @@ sealed interface VideoSource {
     enum class Platform(val label: String) { APARAT("آپارات"), YOUTUBE("یوتیوب"), TELEWEBION("تلوبیون") }
 
     companion object {
-        private val aparat = Regex("""aparat\.com/(?:v/|video/video/embed/videohash/)([A-Za-z0-9]+)""")
+        private val aparat = Regex("""aparat\.com/(?:v/|embed/|video/video/embed/videohash/)([A-Za-z0-9]+)""")
         private val youtube = Regex("""(?:youtube(?:-nocookie)?\.com/(?:watch\?(?:.*&)?v=|embed/|shorts/|live/)|youtu\.be/)([A-Za-z0-9_-]{11})""")
         private val telewebion = Regex("""telewebion\.com/(?:episode|embed)/(?:0x)?([A-Za-z0-9]+)""")
 

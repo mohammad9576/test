@@ -50,6 +50,7 @@ fun ContentEntity.toDomain() = ContentItem(
     rating = KodomoRating(minAge, maxAge, violence, fear, educational, abnormality, creativity, familyValues),
     positives = positives, negatives = negatives, expertReview = expertReview, expertName = expertName,
     peerLikes = peerLikes, peerDislikes = peerDislikes, interests = interests, author = author,
+    imageUrl = imageUrl, trailerUrl = trailerUrl, sourceUrl = sourceUrl,
 )
 
 fun ContentItem.toEntity() = ContentEntity(
@@ -59,6 +60,7 @@ fun ContentItem.toEntity() = ContentEntity(
     educational = rating.educational, abnormality = rating.abnormality, creativity = rating.creativity,
     familyValues = rating.familyValues, positives = positives, negatives = negatives, expertReview = expertReview,
     expertName = expertName, peerLikes = peerLikes, peerDislikes = peerDislikes, interests = interests, author = author,
+    imageUrl = imageUrl, trailerUrl = trailerUrl, sourceUrl = sourceUrl,
 )
 
 fun ContentPageEntity.toDomain() = ContentPage(contentId, pageIndex, text, emoji)

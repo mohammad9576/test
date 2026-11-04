@@ -31,7 +31,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.kodomo.app.core.util.fa
 import com.kodomo.app.domain.model.ActivityCategory
 import com.kodomo.app.domain.model.ContentItem
-import com.kodomo.app.ui.components.EmojiCover
+import com.kodomo.app.ui.components.ContentCover
 import com.kodomo.app.ui.components.EmptyState
 import com.kodomo.app.ui.components.KidScreenScaffold
 import com.kodomo.app.ui.components.KodomoCard
@@ -87,13 +87,15 @@ fun VideoListScreen(onBack: () -> Unit, onPlay: (String) -> Unit, viewModel: Vid
 private fun VideoCard(video: ContentItem, downloaded: Boolean, onClick: () -> Unit) {
     KodomoCard(onClick = onClick) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            EmojiCover(video.emoji, video.colorStart, video.colorEnd, Modifier.size(width = 110.dp, height = 130.dp), emojiSize = 52)
+            ContentCover(video, Modifier.size(width = 110.dp, height = 150.dp), emojiSize = 52)
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(video.title, style = MaterialTheme.typography.titleMedium)
                 Text("مدت زمان: ${video.durationMinutes.fa()} دقیقه", style = MaterialTheme.typography.bodySmall)
                 Text("رده سنی: +${video.rating.minAge.fa()} سال", style = MaterialTheme.typography.bodySmall)
                 Text(video.category, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                if (video.sourceUrl?.startsWith("https://kodoumo.ir") == true) Text("✅ تأییدشده توسط کدومو", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                if (video.mediaUrl == null && video.trailerUrl != null) Text("🎞️ پیش‌نمایش", style = MaterialTheme.typography.labelSmall)
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text("👍 ${video.peerLikes.fa()}", style = MaterialTheme.typography.labelMedium)
                     Text("👎 ${video.peerDislikes.fa()}", style = MaterialTheme.typography.labelMedium)

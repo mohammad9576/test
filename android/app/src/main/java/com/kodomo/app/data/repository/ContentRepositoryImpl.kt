@@ -90,6 +90,8 @@ class ContentRepositoryImpl @Inject constructor(
 
     override fun observeLikedIds(childId: Long): Flow<Set<String>> = feedbackDao.observeLikedIds(childId).map { it.toSet() }
 
+    override suspend fun setMediaUrl(contentId: String, url: String?) = contentDao.setMediaUrl(contentId, url?.trim()?.ifBlank { null })
+
     override suspend fun toggleLike(childId: Long, contentId: String) {
         val existing = feedbackDao.get(childId, contentId)
         if (existing?.liked == true) {

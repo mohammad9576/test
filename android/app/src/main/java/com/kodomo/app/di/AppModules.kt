@@ -55,7 +55,9 @@ object CoreModule {
 
     @Provides @Singleton
     fun provideDatabase(@ApplicationContext context: Context): KodomoDatabase =
-        Room.databaseBuilder(context, KodomoDatabase::class.java, KodomoDatabase.NAME).build()
+        Room.databaseBuilder(context, KodomoDatabase::class.java, KodomoDatabase.NAME)
+            .addMigrations(KodomoDatabase.MIGRATION_1_2)
+            .build()
 
     @Provides @Singleton
     fun provideJson(): Json = Json {

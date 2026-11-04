@@ -113,6 +113,15 @@ abstract class ContentDao {
     @Upsert
     abstract suspend fun upsertPages(pages: List<ContentPageEntity>)
 
+    @Query("UPDATE content SET mediaUrl = :url WHERE id = :id")
+    abstract suspend fun setMediaUrl(id: String, url: String?)
+
+    @Query("SELECT mediaUrl FROM content WHERE id = :id")
+    abstract suspend fun mediaUrl(id: String): String?
+
+    @Query("SELECT COUNT(*) FROM content WHERE sourceUrl LIKE 'https://kodoumo.ir%'")
+    abstract fun observeImportedCount(): Flow<Int>
+
     @Query("SELECT * FROM content_pages WHERE contentId = :contentId ORDER BY pageIndex")
     abstract suspend fun pages(contentId: String): List<ContentPageEntity>
 

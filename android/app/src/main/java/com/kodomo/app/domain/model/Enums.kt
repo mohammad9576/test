@@ -40,6 +40,9 @@ enum class ContentType(val label: String) {
     EXPLORE("کشف محتوا"),
     ARTICLE("مقاله والدین"),
     WEEKEND_IDEA("دورهمی آخر هفته"),
+    BOOK_REVIEW("کتاب (ارزیابی کدومو)"),
+    GAME_REVIEW("بازی دیجیتال"),
+    TOY_REVIEW("اسباب‌بازی و بازی رومیزی"),
 }
 
 enum class ActivityCategory(val label: String, val emoji: String) {

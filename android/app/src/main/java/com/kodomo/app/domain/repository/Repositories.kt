@@ -67,6 +67,7 @@ interface ContentRepository {
     fun observeChildFeedback(childId: Long, contentId: String): Flow<Boolean?>
     fun observeLikedIds(childId: Long): Flow<Set<String>>
     suspend fun toggleLike(childId: Long, contentId: String)
+    suspend fun setMediaUrl(contentId: String, url: String?)
 }
 
 interface DownloadRepository {

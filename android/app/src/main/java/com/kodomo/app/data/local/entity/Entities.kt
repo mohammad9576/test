@@ -92,6 +92,9 @@ data class ContentEntity(
     val peerDislikes: Int,
     val interests: Set<Interest>,
     val author: String,
+    val imageUrl: String? = null,
+    val trailerUrl: String? = null,
+    val sourceUrl: String? = null,
 )
 
 @Entity(
