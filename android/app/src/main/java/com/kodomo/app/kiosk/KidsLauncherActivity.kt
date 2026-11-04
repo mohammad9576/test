@@ -75,7 +75,24 @@ class KidsLauncherActivity : ComponentActivity(), KioskController {
         if (hasFocus && inKidSpace) applyImmersive(true)
     }
 
+    override fun launchExternalApp(intent: Intent): Boolean {
+        // Screen pinning (no Device Owner) blocks every other app – lift it; the app guard keeps the child in bounds.
+        if (deviceOwnerManager.isInLockTask && !deviceOwnerManager.isDeviceOwner) deviceOwnerManager.exitLockTask(this)
+        return runCatching { startActivity(intent) }.isSuccess
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (inKidSpace) {
+            applyImmersive(true)
+            lifecycleScope.launch {
+                if (session.current().kioskEnabled) deviceOwnerManager.enterLockTask(this@KidsLauncherActivity, allowedApps)
+            }
+        }
+    }
+
     override fun enterKidSpace() {
+        if (KioskPermissions.hasUsageAccess(this)) AppGuardService.start(this)
         inKidSpace = true
         applyImmersive(true)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -85,6 +102,7 @@ class KidsLauncherActivity : ComponentActivity(), KioskController {
     }
 
     override fun exitKidSpace() {
+        AppGuardService.stop(this)
         inKidSpace = false
         applyImmersive(false)
         setBedtimeDim(false)

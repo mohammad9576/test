@@ -49,6 +49,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import javax.inject.Inject
+import kotlinx.coroutines.launch
 
 @HiltViewModel
 class KidSpaceViewModel @Inject constructor(
@@ -78,6 +79,8 @@ class KidSpaceScope(
     val voice: MascotVoice,
     val requestParentExit: () -> Unit,
     val setActivity: (ActivityCategory, String, String?) -> Unit,
+    /** Confetti + success jingle over the whole kids space. */
+    val celebrate: () -> Unit = {},
 ) {
     /** Speaks [text] when the age tier wants voice guidance for every event (toddlers). */
     fun guide(text: String) {
@@ -106,6 +109,8 @@ fun KidSpaceFrame(childId: Long, onParentExit: () -> Unit, content: @Composable 
     val kiosk = LocalKioskController.current
     var showGate by remember { mutableStateOf<GatePurpose?>(null) }
     var warning by remember { mutableStateOf<MascotLine?>(null) }
+    var party by remember { mutableStateOf(0) }
+    val partyScope = androidx.compose.runtime.rememberCoroutineScope()
 
     LaunchedEffect(childId) {
         kiosk.enterKidSpace()
@@ -135,13 +140,19 @@ fun KidSpaceFrame(childId: Long, onParentExit: () -> Unit, content: @Composable 
             voice = vm.voice,
             requestParentExit = { showGate = GatePurpose.EXIT },
             setActivity = vm::setActivity,
+            celebrate = {
+                party++
+                partyScope.launch { com.kodomo.app.ui.fx.Sfx.success() }
+            },
         )
     }
 
     KidsTheme(spec = spec, darkMode = current.darkMode) {
         CompositionLocalProvider(LocalKidSpace provides scope) {
             Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+                com.kodomo.app.ui.fx.KidsBackground(spec.group, current.darkMode)
                 content()
+                if (party > 0) com.kodomo.app.ui.fx.ConfettiBurst(party)
                 if (state.child?.id == childId && state.lock != ScreenTimeManager.LockReason.NONE) {
                     LockOverlay(
                         child = current,

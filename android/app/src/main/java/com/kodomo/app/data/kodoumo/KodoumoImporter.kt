@@ -120,7 +120,7 @@ class KodoumoImporter @Inject constructor(
         val abnormality = (level("social_anomalies", "abnormality") ?: 1).coerceIn(1, 5)
         val positive = (level("positive_messages") ?: 3).coerceIn(1, 5)
         val pattern = (level("positive_pattern") ?: 3).coerceIn(1, 5)
-        val educational = (level("educational", "positive_messages") ?: 3).coerceIn(1, 5)
+        val educational = (level("educational") ?: level("positive_messages") ?: 3).coerceIn(1, 5)
         val age = r.age ?: item.age ?: 12
         val positives = r.indicators.filter { !it.negative && it.text.isNotBlank() }.map { "${it.label}: ${it.text}" }
         val negatives = r.indicators.filter { it.negative && it.rate > 0 && it.text.isNotBlank() }.map { "${it.label}: ${it.text}" }

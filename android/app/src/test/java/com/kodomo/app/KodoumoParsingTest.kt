@@ -25,6 +25,22 @@ class KodoumoParsingTest {
     }
 
     @Test
+    fun indicatorsAreReadFromReviewPayload() {
+        val client = KodoumoClient(okhttp3.OkHttpClient(), kotlinx.serialization.json.Json)
+        val json = kotlinx.serialization.json.Json.parseToJsonElement(
+            """{"status":true,"data":{"reviewsID":66344,"reviewsTitle":"ماهی اخمو","reviewsAgeCategory":"<span class=\"age-tax\">7+ </span>",
+            "shakhesHa":[{"name":"violence","label":"خشونت","rate":"2","color":"red","shakhesText":"<p>فانتزی</p>"},
+                         {"name":"fear","label":"ترس","rate":3,"color":"red","shakhesText":"دلهره"},
+                         {"label":"پیام مثبت","rate":"4","color":"green","shakhesText":"دوستی"}],
+            "reviewsGallery":{"images":["https://kodoumo.ir/a.jpg"],"video":{"number":"1","src":"https://www.aparat.com/embed/XyZ12?data[rnddiv]=1"}}}}""",
+        ) as kotlinx.serialization.json.JsonObject
+        val r = client.parseReview(json)
+        assertEquals(7, r.age)
+        assertEquals(listOf("violence" to 2, "fear" to 3, "positive_messages" to 4), r.indicators.map { it.name to it.rate })
+        assertTrue(r.trailerScript!!.contains("aparat.com/embed/XyZ12"))
+    }
+
+    @Test
     fun htmlIsCleaned() {
         assertEquals("سلام\nدنیا «خوب»", "<p>سلام</p><b>دنیا</b>&nbsp;&#8220;خوب&#8221;".stripHtml())
     }

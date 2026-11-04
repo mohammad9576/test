@@ -185,6 +185,7 @@ fun LessonScreen(contentId: String, onBack: () -> Unit, viewModel: LessonViewMod
             Text(step.text, style = MaterialTheme.typography.titleLarge, textAlign = TextAlign.Center)
             OutlinedButton(onClick = { space.voice.speak(step.text) }) { Text("🔊 برایم بخوان") }
             if (completed) {
+                androidx.compose.runtime.LaunchedEffect(Unit) { space.celebrate() }
                 MascotSpeech("آفرین! این درس را کامل کردی و ۴ ستاره گرفتی ⭐", MascotMood.EXCITED)
                 KodomoPrimaryButton("بازگشت", onClick = onBack)
             } else {

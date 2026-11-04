@@ -35,6 +35,13 @@ object VoicePhrases {
     const val JACKS_START = "دست‌ها بالا، پاها باز! مثل پروانه!"
     const val PAINT_SAVED = "نقاشی‌ات در گالری خاطرات ذخیره شد! 🎨"
     const val COLORING_DONE = "هورااا! همه‌ی تصویر رنگی شد!"
+    const val GOAL = "گُل! چه شوت قشنگی!"
+    const val SAVED_BY_KEEPER = "دروازه‌بان گرفت! دوباره امتحان کن!"
+    const val GREAT_SAVE = "عجب مهاری! آفرین دروازه‌بان!"
+    const val PONG_POINT = "امتیاز برای تو!"
+    const val PONG_ROBOT_POINT = "امتیاز برای ربات! ادامه بده!"
+    const val YOU_WIN = "تو برنده شدی! قهرمانی!"
+    const val NICE_TRY = "بازی خوبی بود! دفعه‌ی بعد می‌بری!"
 
     val simonCommands = listOf(
         "دست‌هات رو ببر بالا و پایین!", "سه بار بپر!", "دور خودت بچرخ!", "مثل خرگوش بپر!",
@@ -71,7 +78,7 @@ object VoicePhrases {
                 PROJECT_DONE, GAME_DONE, NOT_ENOUGH_STARS, FEEDBACK_MEDAL, FEEDBACK_THANKS, LIKED, DISLIKED,
                 SIMON_READY, SIMON_GOOD, SIMON_NOT_FOOLED, SIMON_SHOULD_MOVE, SIMON_FOOLED, BODY_STEP_BACK, BODY_READY,
                 BALLOON_JUMP, STAR_CLOUD, FREEZE_DANCE, FREEZE_NOW, FREEZE_MOVED, FREEZE_GREAT, POSE_HOLD, POSE_DONE,
-                JACKS_START, PAINT_SAVED, COLORING_DONE,
+                JACKS_START, PAINT_SAVED, COLORING_DONE, GOAL, SAVED_BY_KEEPER, GREAT_SAVE, PONG_POINT, PONG_ROBOT_POINT, YOU_WIN, NICE_TRY,
             ),
         )
         addAll(simonCommands)

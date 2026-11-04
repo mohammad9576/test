@@ -23,6 +23,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.foundation.clickable
+import androidx.compose.runtime.setValue
+import kotlinx.coroutines.launch
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -201,11 +205,38 @@ private fun DrawScope.drawRobot(s: Float, mood: MascotMood, blink: Float, glow: 
 /** Mascot with a speech bubble; used across the kids space for guidance and emotional feedback. */
 @Composable
 fun MascotSpeech(text: String, mood: MascotMood, modifier: Modifier = Modifier, mascotSize: Dp = 96.dp) {
+    val jump = androidx.compose.runtime.remember { androidx.compose.animation.core.Animatable(0f) }
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    var tapped by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    val bubble = androidx.compose.runtime.remember(text) { androidx.compose.animation.core.Animatable(0f) }
+    androidx.compose.runtime.LaunchedEffect(text) { bubble.animateTo(1f, androidx.compose.animation.core.spring(dampingRatio = 0.45f, stiffness = 250f)) }
     Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        KodomoMascot(mood = mood, size = mascotSize)
+        KodomoMascot(
+            mood = if (tapped) MascotMood.EXCITED else mood,
+            size = mascotSize,
+            modifier = Modifier
+                .graphicsLayer { translationY = -jump.value * 60f; rotationZ = jump.value * 12f }
+                .clickable(
+                    interactionSource = androidx.compose.runtime.remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                    indication = null,
+                ) {
+                    scope.launch {
+                        tapped = true
+                        launch { com.kodomo.app.ui.fx.Sfx.pop() }
+                        jump.animateTo(1f, androidx.compose.animation.core.tween(180))
+                        jump.animateTo(0f, androidx.compose.animation.core.spring(dampingRatio = 0.3f, stiffness = 300f))
+                        tapped = false
+                    }
+                },
+        )
         Box(
             modifier = Modifier
                 .weight(1f)
+                .graphicsLayer {
+                    scaleX = 0.7f + 0.3f * bubble.value
+                    scaleY = 0.7f + 0.3f * bubble.value
+                    alpha = bubble.value.coerceIn(0f, 1f)
+                }
                 .shadow(2.dp, RoundedCornerShape(20.dp, 20.dp, 20.dp, 4.dp))
                 .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(20.dp, 20.dp, 20.dp, 4.dp))
                 .padding(horizontal = 14.dp, vertical = 12.dp),

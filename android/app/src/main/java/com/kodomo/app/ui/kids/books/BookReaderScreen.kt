@@ -152,6 +152,7 @@ fun BookReaderScreen(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
                     ) {
+                        androidx.compose.runtime.LaunchedEffect(Unit) { space.celebrate() }
                         KodomoMascot(MascotMood.EXCITED, size = 180.dp)
                         Text("پایان قصه! 🎉", style = MaterialTheme.typography.headlineMedium)
                         Text("۳ ستاره گرفتی ⭐⭐⭐", style = MaterialTheme.typography.titleLarge)

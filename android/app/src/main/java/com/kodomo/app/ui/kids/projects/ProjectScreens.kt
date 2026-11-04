@@ -247,6 +247,7 @@ fun ProjectWizardScreen(projectId: Long, onBack: () -> Unit, viewModel: ProjectW
                 else -> PhotoStep { jpeg ->
                     viewModel.completeWithPhoto(jpeg) { medal ->
                         celebrated = medal
+                        space.celebrate()
                         space.voice.speak(VoicePhrases.PROJECT_DONE)
                     }
                 }

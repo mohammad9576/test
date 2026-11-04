@@ -84,7 +84,16 @@ class KodoumoClient @Inject constructor(private val http: OkHttpClient, private 
 
     suspend fun review(slug: String): KodoumoReview {
         val root = get("$BASE/reviews/${URLEncoder.encode(java.net.URLDecoder.decode(slug, "UTF-8"), "UTF-8")}").obj
-        val d = (root["data"] as? JsonObject) ?: root
+        return parseReview(root)
+    }
+
+    /** Parses a review payload; `data` may be an object or a one-element array depending on the endpoint version. */
+    internal fun parseReview(root: JsonObject): KodoumoReview {
+        val d = when (val data = root["data"]) {
+            is JsonObject -> data
+            is JsonArray -> data.firstOrNull() as? JsonObject ?: root
+            else -> root
+        }
         val gallery = d["reviewsGallery"] as? JsonObject
         return KodoumoReview(
             id = d["reviewsID"].long ?: d["id"].long ?: 0L,
@@ -104,7 +113,7 @@ class KodoumoClient @Inject constructor(private val http: OkHttpClient, private 
             sayToChildren = d["reviewsSayToChildren"].str.stripHtml(),
             story = d["reviewsItemStory"].str.stripHtml(),
             itemDetail = d["reviewsItemDetail"].str.stripHtml(),
-            indicators = (d["shakhesHa"] as? JsonArray).orEmpty().mapNotNull { (it as? JsonObject)?.toIndicator() },
+            indicators = findIndicators(d),
             galleryImages = (gallery?.get("images") as? JsonArray).orEmpty().map { it.str }.filter { it.startsWith("http") },
             trailerScript = (gallery?.get("video") as? JsonObject)?.get("src")?.str?.ifBlank { null },
             underEvaluation = d["under_evaluation"].bool,
@@ -129,14 +138,38 @@ class KodoumoClient @Inject constructor(private val http: OkHttpClient, private 
         )
     }
 
-    private fun JsonObject.toIndicator(): KodoumoIndicator? {
-        val name = this["name"].str.ifBlank { return null }
+    /**
+     * Indicator bars («شاخص‌های اثر»). Normally `shakhesHa: [{name,label,rate,color,shakhesText}]`, but the list may be
+     * keyed by name or nested; every object in the payload that carries a rate and a known name/label is accepted.
+     */
+    private fun findIndicators(d: JsonObject): List<KodoumoIndicator> {
+        val found = linkedMapOf<String, KodoumoIndicator>()
+        fun visit(e: JsonElement, keyHint: String?) {
+            when (e) {
+                is JsonArray -> e.forEach { visit(it, null) }
+                is JsonObject -> {
+                    toIndicator(e, keyHint)?.let { found.putIfAbsent(it.name, it) }
+                    e.forEach { (k, v) -> if (v is JsonObject || v is JsonArray) visit(v, k) }
+                }
+                else -> Unit
+            }
+        }
+        (d["shakhesHa"] ?: d["shakhes"])?.let { visit(it, null) }
+        if (found.isEmpty()) visit(d, null)
+        return found.values.toList()
+    }
+
+    private fun toIndicator(o: JsonObject, keyHint: String?): KodoumoIndicator? {
+        val rateElement = o["rate"] ?: o["value"] ?: o["score"] ?: return null
+        val label = (o["label"] ?: o["title"]).str.stripHtml()
+        val name = normalizeIndicator(o["name"].str.ifBlank { keyHint.orEmpty() }, label) ?: return null
+        val color = o["color"].str
         return KodoumoIndicator(
             name = name,
-            label = this["label"].str,
-            rate = (this["rate"].int ?: 0).coerceIn(0, 5),
-            negative = this["color"].str == "red",
-            text = this["shakhesText"].str.stripHtml(),
+            label = label.ifBlank { defaultLabels[name].orEmpty() },
+            rate = (rateElement.int ?: 0).coerceIn(0, 5),
+            negative = if (color.isNotBlank()) color == "red" else name in negativeIndicators,
+            text = (o["shakhesText"] ?: o["text"] ?: o["description"]).str.stripHtml(),
         )
     }
 
@@ -147,6 +180,30 @@ class KodoumoClient @Inject constructor(private val http: OkHttpClient, private 
         val categories = listOf("animations", "movies", "serials", "books", "console-games", "mobile-games", "toys")
 
         private val digits = Regex("\\d+")
+
+        private val negativeIndicators = setOf("violence", "fear", "social_anomalies")
+        private val defaultLabels = mapOf(
+            "violence" to "خشونت", "fear" to "ترس", "social_anomalies" to "ناهنجاری اجتماعی",
+            "positive_messages" to "پیام مثبت", "positive_pattern" to "الگو پذیری", "educational" to "نکات آموزشی", "easy_use" to "سهولت استفاده",
+        )
+
+        /** Maps English keys or Persian labels of an indicator to a canonical name. */
+        internal fun normalizeIndicator(name: String, label: String): String? {
+            val n = name.lowercase().trim()
+            val known = setOf("violence", "fear", "social_anomalies", "positive_messages", "positive_pattern", "educational", "easy_use")
+            if (n in known) return n
+            val t = "$n $label"
+            return when {
+                "خشونت" in t || "violen" in t -> "violence"
+                "ترس" in t || "fear" in t -> "fear"
+                "ناهنجار" in t || "anomal" in t -> "social_anomalies"
+                "پیام" in t || "message" in t -> "positive_messages"
+                "الگو" in t || "pattern" in t -> "positive_pattern"
+                "آموزش" in t || "educat" in t -> "educational"
+                "سهولت" in t || "easy" in t -> "easy_use"
+                else -> null
+            }
+        }
 
         /** URL path segment of a review type (anime lives under animations/, games under games/). */
         fun pathOf(typeSlug: String) = when (typeSlug) {

@@ -20,6 +20,9 @@ interface KioskController {
 
     /** Asks Android to make Kodomo the default launcher (boot lands in Kodomo). */
     fun requestDefaultHome()
+
+    /** Opens a parent-approved app from the kids space (temporarily lifting screen pinning when needed). */
+    fun launchExternalApp(intent: android.content.Intent): Boolean
 }
 
 val LocalKioskController = staticCompositionLocalOf<KioskController> {

@@ -147,6 +147,7 @@ fun DashboardTab(viewModel: ParentHubViewModel, modifier: Modifier = Modifier) {
                 }
             }
         }
+        item { GuardSetupCard() }
         item {
             KodomoCard(Modifier.fillMaxWidth().padding16()) {
                 SectionTitle("قفل امن کیوسک (Zero-Escape)")
@@ -227,3 +228,51 @@ private fun ThresholdSlider(label: String, value: Int, onChange: (Int) -> Unit) 
 }
 
 private fun Modifier.padding16(): Modifier = this.padding(horizontal = 16.dp, vertical = 6.dp)
+
+/**
+ * Checklist of the special permissions that keep the child inside Kodomo without Device Owner:
+ * default launcher, usage access (app guard), display over other apps (return to Kodomo), Xiaomi extras.
+ */
+@Composable
+private fun GuardSetupCard() {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val kiosk = LocalKioskController.current
+    var usage by remember { mutableStateOf(com.kodomo.app.kiosk.KioskPermissions.hasUsageAccess(context)) }
+    var overlay by remember { mutableStateOf(com.kodomo.app.kiosk.KioskPermissions.canDrawOverlays(context)) }
+    androidx.lifecycle.compose.LifecycleEventEffect(androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+        usage = com.kodomo.app.kiosk.KioskPermissions.hasUsageAccess(context)
+        overlay = com.kodomo.app.kiosk.KioskPermissions.canDrawOverlays(context)
+    }
+    fun open(intent: android.content.Intent) {
+        runCatching { context.startActivity(intent) }.onFailure {
+            runCatching { context.startActivity(com.kodomo.app.kiosk.KioskPermissions.appDetailsIntent(context)) }
+        }
+    }
+    KodomoCard(Modifier.fillMaxWidth().padding16()) {
+        SectionTitle("نگهبان برنامه‌ها")
+        Text(
+            "برای اینکه کودک با دکمه‌ی خانه، برنامه‌های اخیر یا بستن یک بازی از محیط کودک بیرون نرود و زمانش دقیق کنترل شود، این مجوزها را یک بار فعال کنید:",
+            style = MaterialTheme.typography.bodySmall,
+        )
+        PermissionRow("۱. دسترسی به آمار استفاده (Usage access)", usage) { open(com.kodomo.app.kiosk.KioskPermissions.usageAccessIntent(context)) }
+        PermissionRow("۲. نمایش روی سایر برنامه‌ها", overlay) { open(com.kodomo.app.kiosk.KioskPermissions.overlayIntent(context)) }
+        if (com.kodomo.app.kiosk.KioskPermissions.isXiaomi) {
+            PermissionRow("۳. شیائومی: «اجرای خودکار» و «باز کردن پنجره‌ها هنگام اجرا در پس‌زمینه»", null) {
+                open(com.kodomo.app.kiosk.KioskPermissions.xiaomiPermissionsIntent(context))
+            }
+        }
+        PermissionRow("لانچر پیش‌فرض", null) { kiosk.requestDefaultHome() }
+    }
+}
+
+@Composable
+private fun PermissionRow(label: String, granted: Boolean?, onClick: () -> Unit) {
+    Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            (if (granted == true) "✅ " else if (granted == false) "⚠️ " else "• ") + label,
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.weight(1f),
+        )
+        if (granted != true) TextButton(onClick = onClick) { Text("تنظیم") }
+    }
+}

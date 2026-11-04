@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -35,6 +36,9 @@ import com.kodomo.app.ui.components.rememberCameraPermission
 import com.kodomo.app.ui.kids.LocalKidSpace
 import com.kodomo.app.ui.kids.TrackActivity
 import com.kodomo.app.ui.kids.games.art.ColoringGame
+import com.kodomo.app.ui.kids.games.arcade.GoalkeeperGame
+import com.kodomo.app.ui.kids.games.arcade.PenaltyGame
+import com.kodomo.app.ui.kids.games.arcade.PingPongGame
 import com.kodomo.app.ui.kids.games.art.FreeDrawGame
 import com.kodomo.app.ui.kids.games.pose.FreezeDanceGame
 import com.kodomo.app.ui.kids.games.pose.JumpPopGame
@@ -85,12 +89,14 @@ fun MotionGameScreen(game: MotionGame, onBack: () -> Unit, viewModel: MotionGame
     KidScreenScaffold(title = game.title, onBack = onBack) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
             val result = finished
+            if (result != null) com.kodomo.app.ui.fx.ConfettiBurst(result)
             if (result != null) {
                 Column(
                     Modifier.fillMaxSize().padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
                 ) {
+                    LaunchedEffect(result) { com.kodomo.app.ui.fx.Sfx.success() }
                     KodomoMascot(MascotMood.EXCITED, size = 180.dp)
                     Text("امتیاز: ${result.first.fa()}", style = MaterialTheme.typography.headlineMedium)
                     Text("⭐".repeat(result.second), style = MaterialTheme.typography.displaySmall)
@@ -112,6 +118,9 @@ fun MotionGameScreen(game: MotionGame, onBack: () -> Unit, viewModel: MotionGame
                         when (game) {
                             MotionGame.TILT_RESCUE -> TiltRescueGame(onFinish)
                             MotionGame.SHAKE_CLEAN -> ShakeCleanGame(onFinish)
+                            MotionGame.PING_PONG -> PingPongGame(onFinish)
+                            MotionGame.PENALTY -> PenaltyGame(onFinish)
+                            MotionGame.GOALKEEPER -> GoalkeeperGame(onFinish)
                             MotionGame.JUMP_POP -> JumpPopGame(onFinish)
                             MotionGame.STAR_CATCH -> StarCatchGame(onFinish)
                             MotionGame.POSE_MATCH -> PoseMatchGame(onFinish)

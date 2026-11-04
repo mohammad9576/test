@@ -86,6 +86,7 @@ fun FeedbackScreen(contentId: String, onDone: () -> Unit, viewModel: FeedbackVie
                 onClick = {
                     viewModel.submit(liked == true, comment) { medal ->
                         thanks = if (medal) VoicePhrases.FEEDBACK_MEDAL else VoicePhrases.FEEDBACK_THANKS
+                        space.celebrate()
                         space.voice.speak(thanks.orEmpty())
                     }
                 },

@@ -51,7 +51,21 @@ fun KodomoNavHost(navController: NavHostController, startDestination: String) {
         navController.navigate(Routes.PROFILES) { popUpTo(0) { inclusive = true } }
     }
 
-    NavHost(navController = navController, startDestination = startDestination) {
+    NavHost(
+        navController = navController,
+        startDestination = startDestination,
+        enterTransition = {
+            androidx.compose.animation.slideInHorizontally(androidx.compose.animation.core.tween(380)) { -it / 3 } +
+                androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(380)) +
+                androidx.compose.animation.scaleIn(androidx.compose.animation.core.tween(380), initialScale = 0.94f)
+        },
+        exitTransition = { androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(220)) },
+        popEnterTransition = { androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(300)) + androidx.compose.animation.scaleIn(androidx.compose.animation.core.tween(300), initialScale = 1.04f) },
+        popExitTransition = {
+            androidx.compose.animation.slideOutHorizontally(androidx.compose.animation.core.tween(300)) { it / 3 } +
+                androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(300))
+        },
+    ) {
         composable(Routes.ONBOARDING) { OnboardingScreen(onFinished = toProfiles) }
 
         composable(Routes.PROFILES) {

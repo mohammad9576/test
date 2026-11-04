@@ -121,6 +121,7 @@ fun RewardsScreen(onBack: () -> Unit, viewModel: RewardsViewModel = hiltViewMode
                             onClick = {
                                 viewModel.redeem(reward) { ok ->
                                     message = if (ok) VoicePhrases.rewardRequested(reward.title) else VoicePhrases.NOT_ENOUGH_STARS
+                                    if (ok) space.celebrate()
                                     space.voice.speak(message.orEmpty())
                                 }
                             },

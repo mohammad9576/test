@@ -1,5 +1,6 @@
 package com.kodomo.app.ui.components
 
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
@@ -46,6 +47,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.graphicsLayer
+import kotlinx.coroutines.launch
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -80,10 +83,16 @@ fun EmojiCover(emoji: String, colorStart: Long, colorEnd: Long, modifier: Modifi
 fun Modifier.bouncyClick(onClick: () -> Unit): Modifier {
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
-    val scale by animateFloatAsState(if (pressed) 0.93f else 1f, spring(dampingRatio = 0.45f), label = "bounce")
+    val scale by animateFloatAsState(if (pressed) 0.9f else 1f, spring(dampingRatio = 0.4f, stiffness = 600f), label = "bounce")
+    val haptics = androidx.compose.ui.platform.LocalHapticFeedback.current
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
     return this
         .scale(scale)
-        .clickable(interactionSource = interaction, indication = null, onClick = onClick)
+        .clickable(interactionSource = interaction, indication = null) {
+            haptics.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
+            scope.launch { com.kodomo.app.ui.fx.Sfx.pop() }
+            onClick()
+        }
 }
 
 /** Home-screen module tile, sized by the active [com.kodomo.app.domain.engine.AgeUiSpec]. */
@@ -95,11 +104,35 @@ fun ModuleTile(
     modifier: Modifier = Modifier,
     subtitle: String? = null,
     badge: String? = null,
+    index: Int = 0,
     onClick: () -> Unit,
 ) {
     val spec = LocalAgeUiSpec.current
+    // pop-in entrance (staggered by position) + a gentle idle wiggle of the icon and a light sweep across the card
+    val appear = remember { androidx.compose.animation.core.Animatable(0f) }
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        kotlinx.coroutines.delay(index * 70L)
+        appear.animateTo(1f, spring(dampingRatio = 0.5f, stiffness = 300f))
+    }
+    val idle = androidx.compose.animation.core.rememberInfiniteTransition(label = "tile")
+    val wiggle by idle.animateFloat(
+        -6f, 6f,
+        androidx.compose.animation.core.infiniteRepeatable(androidx.compose.animation.core.tween(1_400 + index * 90), androidx.compose.animation.core.RepeatMode.Reverse),
+        label = "wiggle",
+    )
+    val shine by idle.animateFloat(
+        -1f, 2f,
+        androidx.compose.animation.core.infiniteRepeatable(androidx.compose.animation.core.tween(3_800, delayMillis = index * 250, easing = androidx.compose.animation.core.LinearEasing)),
+        label = "shine",
+    )
     Box(
         modifier = modifier
+            .graphicsLayer {
+                val a = appear.value
+                scaleX = 0.6f + 0.4f * a
+                scaleY = 0.6f + 0.4f * a
+                alpha = a.coerceIn(0f, 1f)
+            }
             .height(spec.cardHeightDp.dp)
             .shadow(6.dp, RoundedCornerShape(spec.cornerRadiusDp.dp), ambientColor = Color(colors.second), spotColor = Color(colors.second))
             .clip(RoundedCornerShape(spec.cornerRadiusDp.dp))
@@ -107,8 +140,18 @@ fun ModuleTile(
             .bouncyClick(onClick)
             .padding(12.dp),
     ) {
+        androidx.compose.foundation.Canvas(Modifier.matchParentSize()) {
+            val x = size.width * shine
+            drawRect(
+                Brush.linearGradient(
+                    listOf(Color.Transparent, Color.White.copy(alpha = 0.28f), Color.Transparent),
+                    start = androidx.compose.ui.geometry.Offset(x - size.width * 0.3f, 0f),
+                    end = androidx.compose.ui.geometry.Offset(x, size.height),
+                ),
+            )
+        }
         Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-            Text(emoji, fontSize = spec.iconSizeSp.sp)
+            Text(emoji, fontSize = spec.iconSizeSp.sp, modifier = Modifier.graphicsLayer { rotationZ = wiggle })
             if (spec.showCardLabels) {
                 Spacer(Modifier.height(6.dp))
                 Text(
@@ -233,7 +276,7 @@ fun KidScreenScaffold(
 ) {
     Scaffold(
         modifier = modifier,
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = Color.Transparent,
         topBar = {
             CenterAlignedTopAppBar(
                 title = { Text(title, style = MaterialTheme.typography.titleLarge) },
@@ -241,7 +284,7 @@ fun KidScreenScaffold(
                     IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "بازگشت") }
                 },
                 actions = { actions() },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = MaterialTheme.colorScheme.background),
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.Transparent),
             )
         },
         content = content,

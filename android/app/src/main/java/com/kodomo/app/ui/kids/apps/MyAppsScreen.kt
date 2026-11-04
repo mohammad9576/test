@@ -55,10 +55,13 @@ class MyAppsViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     /** Starts an approved app while keeping the screen-time clock running under the «برنامه‌ها» category. */
-    fun open(app: InstalledApp, onMissing: () -> Unit, start: (android.content.Intent) -> Unit) {
+    fun open(app: InstalledApp, onMissing: () -> Unit, start: (android.content.Intent) -> Boolean) {
         val intent = apps.launchIntent(app.packageName) ?: return onMissing()
         screenTime.enterExternalApp(app.label, app.packageName)
-        start(intent)
+        if (!start(intent)) {
+            screenTime.resume()
+            onMissing()
+        }
     }
 }
 
@@ -67,6 +70,7 @@ fun MyAppsScreen(onBack: () -> Unit, viewModel: MyAppsViewModel = hiltViewModel(
     val space = LocalKidSpace.current
     val context = LocalContext.current
     val apps by viewModel.allowed.collectAsStateWithLifecycle()
+    val kiosk = com.kodomo.app.kiosk.LocalKioskController.current
     TrackActivity(ActivityCategory.APP, "برنامه‌های من")
 
     KidScreenScaffold(title = "برنامه‌های من", onBack = onBack) { padding ->
@@ -93,8 +97,8 @@ fun MyAppsScreen(onBack: () -> Unit, viewModel: MyAppsViewModel = hiltViewModel(
                             space.guide(app.label)
                             viewModel.open(
                                 app,
-                                onMissing = { Toast.makeText(context, "این برنامه دیگر روی گوشی نیست.", Toast.LENGTH_SHORT).show() },
-                                start = { context.startActivity(it) },
+                                onMissing = { Toast.makeText(context, "این برنامه باز نشد.", Toast.LENGTH_SHORT).show() },
+                                start = { kiosk.launchExternalApp(it) },
                             )
                         }
                         .padding(12.dp),

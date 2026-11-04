@@ -238,6 +238,7 @@ fun ColoringGame(onFinish: (Int) -> Unit, viewModel: ArtViewModel = hiltViewMode
                                 if (!celebrated && fills.all { it != null }) {
                                     celebrated = true
                                     space.voice.speak(VoicePhrases.COLORING_DONE)
+                                    space.celebrate()
                                 }
                             }
                         }

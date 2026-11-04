@@ -191,8 +191,10 @@ fun KidHomeScreen(onOpen: (String) -> Unit, childId: Long, viewModel: KidHomeVie
                     .padding(10.dp),
             )
         }
-        items(modules, key = { it.route }) { module ->
+        items(modules.size, key = { modules[it].route }) { i ->
+            val module = modules[i]
             ModuleTile(
+                index = i,
                 title = module.title,
                 emoji = module.emoji,
                 colors = module.colors,
