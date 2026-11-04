@@ -67,11 +67,14 @@ class DeviceOwnerManager @Inject constructor(@ApplicationContext private val con
         )
     }
 
-    /** Applies the full Device Owner policy set. Returns false when Kodomo is not the device owner. */
-    fun applyKioskPolicies(): Boolean {
+    /**
+     * Applies the full Device Owner policy set. [allowedPackages] are the parent-approved apps that may be opened from
+     * inside the kiosk (they must be whitelisted for lock task too). Returns false when Kodomo is not the device owner.
+     */
+    fun applyKioskPolicies(allowedPackages: Collection<String> = emptyList()): Boolean {
         if (!isDeviceOwner) return false
         return runCatching {
-            dpm.setLockTaskPackages(adminComponent, arrayOf(context.packageName))
+            dpm.setLockTaskPackages(adminComponent, (listOf(context.packageName) + allowedPackages).distinct().toTypedArray())
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 dpm.setLockTaskFeatures(adminComponent, DevicePolicyManager.LOCK_TASK_FEATURE_NONE)
             }
@@ -104,9 +107,9 @@ class DeviceOwnerManager @Inject constructor(@ApplicationContext private val con
     }
 
     /** Pins Kodomo on screen. With Device Owner this is silent and inescapable; otherwise Android shows its pinning prompt. */
-    fun enterLockTask(activity: Activity) {
+    fun enterLockTask(activity: Activity, allowedPackages: Collection<String> = emptyList()) {
         if (isInLockTask) return
-        if (isDeviceOwner && !isLockTaskPermitted) applyKioskPolicies()
+        if (isDeviceOwner && !isLockTaskPermitted) applyKioskPolicies(allowedPackages)
         runCatching { activity.startLockTask() }.onFailure { Log.w(TAG, "startLockTask failed", it) }
     }
 

@@ -63,7 +63,7 @@ fun ReportsTab(viewModel: ParentHubViewModel, modifier: Modifier = Modifier) {
     val week by viewModel.weekUsage.collectAsStateWithLifecycle()
     val timelineRaw by viewModel.timeline.collectAsStateWithLifecycle()
     val timeline = remember(timelineRaw) { mergeTimeline(timelineRaw).filter { it.category != ActivityCategory.HOME || it.durationSeconds >= 60 } }
-    val tracked = listOf(ActivityCategory.VIDEO, ActivityCategory.BOOK, ActivityCategory.GAME, ActivityCategory.MUSIC, ActivityCategory.LEARNING, ActivityCategory.SCHOOL, ActivityCategory.EXPLORE, ActivityCategory.BROWSER, ActivityCategory.PROJECT)
+    val tracked = listOf(ActivityCategory.VIDEO, ActivityCategory.BOOK, ActivityCategory.GAME, ActivityCategory.MUSIC, ActivityCategory.LEARNING, ActivityCategory.SCHOOL, ActivityCategory.EXPLORE, ActivityCategory.BROWSER, ActivityCategory.PROJECT, ActivityCategory.ART, ActivityCategory.APP)
     val timeFormat = remember { DateTimeFormatter.ofPattern("HH:mm") }
 
     LazyColumn(modifier, contentPadding = PaddingValues(bottom = 24.dp)) {

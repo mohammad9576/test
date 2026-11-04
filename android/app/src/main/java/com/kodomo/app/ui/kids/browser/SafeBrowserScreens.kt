@@ -179,7 +179,7 @@ fun EncyclopediaArticleScreen(articleId: Int, onBack: () -> Unit, viewModel: Enc
             KodomoCard(Modifier.fillMaxWidth()) {
                 Text(e.body, style = MaterialTheme.typography.bodyLarge)
             }
-            OutlinedButton(onClick = { space.voice.speak("${e.title}. ${e.body}") }) { Text("🔊 برایم بخوان") }
+            OutlinedButton(onClick = { space.voice.speakAll(listOf(e.title, e.body)) }) { Text("🔊 برایم بخوان") }
             Spacer(Modifier.height(24.dp))
         }
     }

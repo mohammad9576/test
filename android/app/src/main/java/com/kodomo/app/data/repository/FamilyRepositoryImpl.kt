@@ -66,7 +66,7 @@ class FamilyRepositoryImpl @Inject constructor(private val db: KodomoDatabase) :
                 ),
             )
             db.settingsDao().upsert(
-                ParentalSettings.defaults(id, dailyLimitMinutes.coerceIn(ParentalSettings.MIN_LIMIT - 10, ParentalSettings.MAX_LIMIT)).toEntity(),
+                ParentalSettings.defaults(id, dailyLimitMinutes.coerceIn(ParentalSettings.MIN_LIMIT, ParentalSettings.MAX_LIMIT)).toEntity(),
             )
             id
         }

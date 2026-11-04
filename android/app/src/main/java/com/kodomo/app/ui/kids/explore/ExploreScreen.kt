@@ -62,7 +62,7 @@ class ExploreViewModel @Inject constructor(savedState: SavedStateHandle, private
 
 /** Social-style but 100% curated discovery feed – no outbound links, no user-generated content. */
 @Composable
-fun ExploreScreen(onBack: () -> Unit, viewModel: ExploreViewModel = hiltViewModel()) {
+fun ExploreScreen(onBack: () -> Unit, onOpen: (String) -> Unit, viewModel: ExploreViewModel = hiltViewModel()) {
     val space = LocalKidSpace.current
     val feed by viewModel.feed.collectAsStateWithLifecycle()
     val liked by viewModel.liked.collectAsStateWithLifecycle()
@@ -81,7 +81,10 @@ fun ExploreScreen(onBack: () -> Unit, viewModel: ExploreViewModel = hiltViewMode
             }
             items(feed, key = { it.id }) { post ->
                 val tall = post.id.hashCode() % 2 == 0
-                KodomoCard(Modifier.fillMaxWidth()) {
+                KodomoCard(Modifier.fillMaxWidth(), onClick = {
+                    space.guide(post.title)
+                    onOpen(post.id)
+                }) {
                     EmojiCover(post.emoji, post.colorStart, post.colorEnd, Modifier.fillMaxWidth().height(if (tall) 150.dp else 100.dp), emojiSize = if (tall) 64 else 46, corner = 16.dp)
                     Text(post.title, style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 8.dp))
                     if (space.spec.showCardLabels) Text(post.description, style = MaterialTheme.typography.bodySmall)
@@ -91,7 +94,7 @@ fun ExploreScreen(onBack: () -> Unit, viewModel: ExploreViewModel = hiltViewMode
                         }
                         Text((post.peerLikes + if (post.id in liked) 1 else 0).fa(), style = MaterialTheme.typography.labelMedium)
                         Column(Modifier.weight(1f)) {}
-                        IconButton(onClick = { space.voice.speak("${post.title}. ${post.description}") }) {
+                        IconButton(onClick = { space.voice.speakAll(listOf(post.title, post.description)) }) {
                             Icon(Icons.Rounded.VolumeUp, contentDescription = "بخوان")
                         }
                     }

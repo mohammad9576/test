@@ -113,6 +113,7 @@ class ScreenTimeManager @Inject constructor(
     }
 
     fun endSession() {
+        externalAppActive = false
         scope.launch {
             mutex.withLock {
                 ticker?.cancel()
@@ -123,7 +124,17 @@ class ScreenTimeManager @Inject constructor(
         }
     }
 
+    /** True while the child uses a parent-approved external app; time keeps counting under the APP category. */
+    @Volatile var externalAppActive: Boolean = false
+        private set
+
+    fun enterExternalApp(label: String, packageName: String) {
+        externalAppActive = true
+        setActivity(ActivityCategory.APP, label, packageName)
+    }
+
     fun pause() {
+        if (externalAppActive) return
         scope.launch {
             mutex.withLock {
                 ticker?.cancel()
@@ -135,6 +146,10 @@ class ScreenTimeManager @Inject constructor(
     }
 
     fun resume() {
+        if (externalAppActive) {
+            externalAppActive = false
+            setActivity(ActivityCategory.HOME, "خانه")
+        }
         scope.launch {
             mutex.withLock {
                 val child = _state.value.child ?: return@withLock

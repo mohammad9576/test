@@ -118,10 +118,10 @@ fun KidSpaceFrame(childId: Long, onParentExit: () -> Unit, content: @Composable 
                 is ScreenTimeManager.Event.FiveMinuteWarning -> {
                     val line = vm.dialogue.fiveMinuteWarning(event.child)
                     warning = line
-                    vm.voice.speak(line.text)
+                    vm.voice.speakLine(line)
                 }
-                is ScreenTimeManager.Event.TimeUp -> vm.voice.speak(vm.dialogue.timeIsUp(event.child).text)
-                is ScreenTimeManager.Event.Bedtime -> vm.voice.speak(vm.dialogue.bedtime(event.child).text)
+                is ScreenTimeManager.Event.TimeUp -> vm.voice.speakLine(vm.dialogue.timeIsUp(event.child))
+                is ScreenTimeManager.Event.Bedtime -> vm.voice.speakLine(vm.dialogue.bedtime(event.child))
             }
         }
     }

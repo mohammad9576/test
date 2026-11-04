@@ -103,7 +103,7 @@ private fun modulesFor(child: Child): List<HomeModule> {
     val group = child.ageGroup()
     val all = buildList {
         add(HomeModule("فیلم و انیمیشن", "محتوای امن و رده‌بندی‌شده", "🎬", 0xFFBFE3FF to 0xFF5AA9E6, Routes.kidVideos(id)))
-        add(HomeModule("بازی حرکتی", "بازی با بدن و حسگرها", "🤸", 0xFFFFD1DC to 0xFFF28AA6, Routes.kidGames(id)))
+        add(HomeModule("بازی و نقاشی", "بازی با بدن، حسگرها و نقاشی", "🤸", 0xFFFFD1DC to 0xFFF28AA6, Routes.kidGames(id)))
         add(HomeModule("کتاب", "صوتی، با صدای والد، خودم می‌خوانم", "📚", 0xFFFFE6A7 to 0xFFFFB648, Routes.kidBooks(id)))
         add(HomeModule("موسیقی", "آهنگ‌های شاد و آرام", "🎵", 0xFFE2D6FF to 0xFF9B7FE6, Routes.kidMusic(id)))
         if (group != AgeGroup.TODDLER) {
@@ -117,6 +117,7 @@ private fun modulesFor(child: Child): List<HomeModule> {
             add(HomeModule("مرورگر امن من", "جستجو در دانشنامه‌ی کودک", "🌍", 0xFFC6F0EA to 0xFF2BAEA0, Routes.kidBrowser(id)))
             add(HomeModule("پروژه‌های من", "کاردستی ۵ مرحله‌ای", "✂️", 0xFFF3DCC8 to 0xFFB57A4A, Routes.kidProjects(id)))
         }
+        add(HomeModule("برنامه‌های من", "بازی‌ها و برنامه‌های مجاز", "📱", 0xFFE3DAFF to 0xFF7E57C2, Routes.kidApps(id)))
         add(HomeModule("پاداش‌ها", "ستاره، مدال و جایزه‌ی خانوادگی", "🏆", 0xFFFFF1C7 to 0xFFFFC83D, Routes.kidRewards(id)))
         if (group != AgeGroup.TODDLER) add(HomeModule("علایق من", "انتخاب موضوع‌های مورد علاقه", "💚", 0xFFDDF7E8 to 0xFF3FA977, Routes.kidInterests(id)))
     }
@@ -136,7 +137,7 @@ fun KidHomeScreen(onOpen: (String) -> Unit, childId: Long, viewModel: KidHomeVie
 
     BackHandler(enabled = true) { }
     TrackActivity(ActivityCategory.HOME, "خانه")
-    LaunchedEffect(child.id) { space.voice.speak(greeting.text) }
+    LaunchedEffect(child.id) { space.voice.speakLine(greeting) }
 
     val bounce = rememberInfiniteTransition(label = "avatar")
     val avatarScale by bounce.animateFloat(1f, if (spec.gamified) 1.06f else 1f, infiniteRepeatable(tween(900), RepeatMode.Reverse), label = "s")

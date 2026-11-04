@@ -1,5 +1,6 @@
 package com.kodomo.app.ui.kids.projects
 
+import com.kodomo.app.domain.engine.VoicePhrases
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -246,7 +247,7 @@ fun ProjectWizardScreen(projectId: Long, onBack: () -> Unit, viewModel: ProjectW
                 else -> PhotoStep { jpeg ->
                     viewModel.completeWithPhoto(jpeg) { medal ->
                         celebrated = medal
-                        space.voice.speak("آفرین ${space.child.name}! پروژه‌ات عالی شد!")
+                        space.voice.speak(VoicePhrases.PROJECT_DONE)
                     }
                 }
             }

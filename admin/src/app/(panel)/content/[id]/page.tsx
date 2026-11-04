@@ -124,7 +124,7 @@ export default function ContentEditorPage() {
 
       <section className="card space-y-3">
         <h2 className="font-black">فایل رسانه</h2>
-        <input className="input" dir="ltr" placeholder="https://..." value={draft.mediaUrl ?? ''} onChange={(e) => set('mediaUrl', e.target.value)} />
+        <input className="input" dir="ltr" placeholder="لینک آپارات، یوتیوب یا تلوبیون، یا فایل مستقیم https://...mp4" value={draft.mediaUrl ?? ''} onChange={(e) => set('mediaUrl', e.target.value)} />
         <input type="file" accept="video/*,audio/*" disabled={uploading} onChange={(e) => e.target.files?.[0] && upload(e.target.files[0])} />
         {uploading && <p className="text-sm text-slate-500">در حال بارگذاری در MinIO...</p>}
       </section>

@@ -85,6 +85,7 @@ fun FamilyTab(
     onAddChild: () -> Unit,
     onOpenGallery: () -> Unit,
     onOpenCloud: () -> Unit,
+    onOpenAllowedApps: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val family by viewModel.family.collectAsStateWithLifecycle()
@@ -117,6 +118,7 @@ fun FamilyTab(
         }
         item { OutlinedButton(onClick = onAddChild, modifier = Modifier.fillMaxWidth()) { Text("➕ افزودن فرزند") } }
         item { SectionTitle("امکانات") }
+        item { MemberRow(AvatarKind.ROBOT, "برنامه‌های مجاز", "بازی‌ها و برنامه‌هایی که کودک اجازه دارد از داخل کدومو باز کند", onOpenAllowedApps) }
         item { MemberRow(AvatarKind.ROBOT, "گالری محرمانه‌ی خاطرات", "عکس‌های رمزنگاری‌شده‌ی پروژه‌ها و لحظه‌های شاد", onOpenGallery) }
         item { MemberRow(AvatarKind.ROBOT, "حساب ابری و همگام‌سازی", "ورود با کد یکبارمصرف، پشتیبان پروفایل‌ها و پایش زنده", onOpenCloud) }
         item { OutlinedButton(onClick = { changePin = true }, modifier = Modifier.fillMaxWidth()) { Text("🔐 تغییر رمز والدین") } }

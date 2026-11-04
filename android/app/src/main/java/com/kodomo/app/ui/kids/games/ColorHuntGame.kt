@@ -1,5 +1,6 @@
 package com.kodomo.app.ui.kids.games
 
+import com.kodomo.app.domain.engine.VoicePhrases
 import android.graphics.Color as AndroidColor
 import androidx.camera.core.ImageProxy
 import androidx.compose.foundation.background
@@ -99,11 +100,11 @@ fun ColorHuntGame(onFinish: (Int) -> Unit) {
     val target = sequence.getOrNull(index)
     val matching = target?.matches(hsv[0], hsv[1], hsv[2]) == true
 
-    LaunchedEffect(target) { target?.let { space.voice.speak("یک چیز ${it.label} پیدا کن!") } }
+    LaunchedEffect(target) { target?.let { space.voice.speak(VoicePhrases.findColor(it.label)) } }
     LaunchedEffect(matching, target) {
         if (matching && target != null) {
             delay(800)
-            space.voice.speak("آفرین! ${target.label} را پیدا کردی!")
+            space.voice.speak(VoicePhrases.foundColor(target.label))
             index++
         }
     }

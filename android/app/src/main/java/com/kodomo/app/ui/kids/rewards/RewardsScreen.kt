@@ -1,5 +1,6 @@
 package com.kodomo.app.ui.kids.rewards
 
+import com.kodomo.app.domain.engine.VoicePhrases
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -119,7 +120,7 @@ fun RewardsScreen(onBack: () -> Unit, viewModel: RewardsViewModel = hiltViewMode
                         Button(
                             onClick = {
                                 viewModel.redeem(reward) { ok ->
-                                    message = if (ok) "درخواست «${reward.title}» برای مامان و بابا فرستاده شد! 🎉" else "ستاره‌هایت هنوز کافی نیست؛ ادامه بده! 💪"
+                                    message = if (ok) VoicePhrases.rewardRequested(reward.title) else VoicePhrases.NOT_ENOUGH_STARS
                                     space.voice.speak(message.orEmpty())
                                 }
                             },

@@ -51,6 +51,7 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import com.kodomo.app.core.util.fa
 import com.kodomo.app.domain.model.ActivityCategory
+import com.kodomo.app.domain.model.VideoSource
 import com.kodomo.app.ui.components.EmptyState
 import com.kodomo.app.ui.kids.TrackActivity
 import kotlinx.coroutines.delay
@@ -78,6 +79,12 @@ fun VideoPlayerScreen(contentId: String, onBack: () -> Unit, onFinished: () -> U
         Box(Modifier.fillMaxSize().background(Color.Black), contentAlignment = Alignment.Center) {
             if (item != null) EmptyState("این فیلم هنوز فایل پخش ندارد.") else CircularProgressIndicator()
         }
+        return
+    }
+
+    val embed = if (source.startsWith("/")) null else VideoSource.parse(source) as? VideoSource.Embed
+    if (embed != null) {
+        EmbeddedVideoScreen(title = item.title, source = embed, onBack = onBack, onFinished = onFinished)
         return
     }
 
@@ -206,6 +213,31 @@ fun VideoPlayerScreen(contentId: String, onBack: () -> Unit, onFinished: () -> U
                     .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
                     .padding(horizontal = 12.dp, vertical = 6.dp),
             )
+        }
+    }
+}
+
+/** Full-screen frame around the locked web embed: title bar, back button and an explicit «finished» action. */
+@Composable
+private fun EmbeddedVideoScreen(title: String, source: VideoSource.Embed, onBack: () -> Unit, onFinished: () -> Unit) {
+    Column(Modifier.fillMaxSize().background(Color.Black)) {
+        Row(
+            Modifier.fillMaxWidth().statusBarsPadding().padding(12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            IconButton(onClick = onBack, modifier = Modifier.background(Color.White.copy(alpha = 0.15f), CircleShape)) {
+                Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "بازگشت", tint = Color.White)
+            }
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(title, color = Color.White, style = MaterialTheme.typography.titleMedium)
+                Text("پخش امن از ${source.platform.label} • تأییدشده توسط کدومو", color = Color.White.copy(alpha = 0.7f), style = MaterialTheme.typography.labelSmall)
+            }
+            Box(Modifier.size(48.dp))
+        }
+        EmbeddedVideoPlayer(source, Modifier.fillMaxWidth().weight(1f))
+        androidx.compose.material3.Button(onClick = onFinished, modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+            Text("تماشا تمام شد؛ نظرم را بگویم ✅")
         }
     }
 }

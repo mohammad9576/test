@@ -51,7 +51,7 @@ data class ParentalSettings(
     val maxAbnormality: Int,
 ) {
     companion object {
-        const val MIN_LIMIT = 15
+        const val MIN_LIMIT = 5
         const val MAX_LIMIT = 120
         fun defaults(childId: Long, dailyLimit: Int = 60) = ParentalSettings(
             childId = childId,

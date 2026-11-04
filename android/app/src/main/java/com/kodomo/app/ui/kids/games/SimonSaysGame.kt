@@ -1,5 +1,6 @@
 package com.kodomo.app.ui.kids.games
 
+import com.kodomo.app.domain.engine.VoicePhrases
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -40,15 +41,10 @@ import kotlin.random.Random
 @Composable
 fun SimonSaysGame(onFinish: (Int) -> Unit) {
     val space = LocalKidSpace.current
-    val commands = remember {
-        listOf(
-            "دست‌هات رو ببر بالا و پایین!", "سه بار بپر!", "دور خودت بچرخ!", "مثل خرگوش بپر!",
-            "دست‌هات رو مثل پرنده تکان بده!", "بنشین و پاشو!", "روی یک پا لی‌لی کن!", "مثل درخت در باد تکان بخور!",
-        )
-    }
+    val commands = VoicePhrases.simonCommands
     var round by remember { mutableIntStateOf(0) }
     var correct by remember { mutableIntStateOf(0) }
-    var prompt by remember { mutableStateOf("آماده‌ای؟ گوشی را در دست بگیر!") }
+    var prompt by remember { mutableStateOf(VoicePhrases.SIMON_READY) }
     var feedback by remember { mutableStateOf("") }
     var windowProgress by remember { mutableFloatStateOf(0f) }
     var energy by remember { mutableFloatStateOf(0f) }
@@ -62,7 +58,7 @@ fun SimonSaysGame(onFinish: (Int) -> Unit) {
         while (round < rounds) {
             val simon = Random.nextFloat() < 0.65f
             val command = commands.random()
-            prompt = if (simon) "سایمون می‌گه: $command" else command
+            prompt = if (simon) VoicePhrases.simon(command) else command
             feedback = ""
             space.voice.speak(prompt)
             delay(1_200)
@@ -78,10 +74,10 @@ fun SimonSaysGame(onFinish: (Int) -> Unit) {
             val ok = moved == simon
             if (ok) correct++
             feedback = when {
-                ok && simon -> "عالی بود! 🎉"
-                ok -> "آفرین! گول نخوردی 😎"
-                simon -> "سایمون گفته بود! باید حرکت می‌کردی 🙂"
-                else -> "اوه! سایمون نگفته بود 😄"
+                ok && simon -> VoicePhrases.SIMON_GOOD
+                ok -> VoicePhrases.SIMON_NOT_FOOLED
+                simon -> VoicePhrases.SIMON_SHOULD_MOVE
+                else -> VoicePhrases.SIMON_FOOLED
             }
             space.voice.speak(feedback)
             round++

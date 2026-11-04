@@ -1,5 +1,6 @@
 package com.kodomo.app.kiosk
 
+import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.view.WindowManager
@@ -32,14 +33,25 @@ class KidsLauncherActivity : ComponentActivity(), KioskController {
 
     private val appViewModel: AppViewModel by viewModels()
     private var inKidSpace = false
+    @Volatile private var allowedApps: Set<String> = emptySet()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) window.setHideOverlayWindows(true)
-        if (deviceOwnerManager.isDeviceOwner) {
-            lifecycleScope.launch { if (session.current().kioskEnabled) deviceOwnerManager.applyKioskPolicies() }
+        lifecycleScope.launch {
+            // Keeps the lock-task whitelist in sync with the parent-approved apps.
+            session.state.collect { state ->
+                allowedApps = state.allowedApps
+                if (deviceOwnerManager.isDeviceOwner && state.kioskEnabled) deviceOwnerManager.applyKioskPolicies(state.allowedApps)
+            }
+        }
+        lifecycleScope.launch {
+            // When the child is inside an approved external app and time runs out (or bedtime starts), bring Kodomo back.
+            screenTimeManager.events.collect { event ->
+                if (event !is ScreenTimeManager.Event.FiveMinuteWarning && screenTimeManager.externalAppActive) bringToFront()
+            }
         }
         setContent {
             CompositionLocalProvider(LocalKioskController provides this) {
@@ -68,7 +80,7 @@ class KidsLauncherActivity : ComponentActivity(), KioskController {
         applyImmersive(true)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         lifecycleScope.launch {
-            if (session.current().kioskEnabled) deviceOwnerManager.enterLockTask(this@KidsLauncherActivity)
+            if (session.current().kioskEnabled) deviceOwnerManager.enterLockTask(this@KidsLauncherActivity, allowedApps)
         }
     }
 
@@ -87,10 +99,17 @@ class KidsLauncherActivity : ComponentActivity(), KioskController {
         }
     }
 
-    override fun applyDeviceOwnerPolicies(): Boolean = deviceOwnerManager.applyKioskPolicies()
+    override fun applyDeviceOwnerPolicies(): Boolean = deviceOwnerManager.applyKioskPolicies(allowedApps)
 
     override fun requestDeviceAdmin() {
         if (!deviceOwnerManager.isAdminActive) startActivity(deviceOwnerManager.adminActivationIntent())
+    }
+
+    private fun bringToFront() {
+        startActivity(
+            Intent(this, KidsLauncherActivity::class.java)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or Intent.FLAG_ACTIVITY_SINGLE_TOP),
+        )
     }
 
     private fun applyImmersive(enabled: Boolean) {

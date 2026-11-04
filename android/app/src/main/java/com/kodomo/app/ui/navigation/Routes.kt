@@ -29,6 +29,8 @@ object Routes {
     const val KID_PROJECT = "kid/{childId}/project/{id}"
     const val KID_REWARDS = "kid/{childId}/rewards"
     const val KID_INTERESTS = "kid/{childId}/interests"
+    const val KID_APPS = "kid/{childId}/apps"
+    const val KID_EXPLORE_ITEM = "kid/{childId}/explore/{id}"
 
     const val PARENT_HUB = "parent"
     const val PARENT_CONTENT = "parent/content/{id}"
@@ -38,6 +40,7 @@ object Routes {
     const val PARENT_ADD_CHILD = "parent/add-child"
     const val PARENT_GALLERY = "parent/gallery"
     const val PARENT_CLOUD = "parent/cloud"
+    const val PARENT_ALLOWED_APPS = "parent/allowed-apps"
 
     fun kidHome(childId: Long) = "kid/$childId/home"
     fun kidVideos(childId: Long) = "kid/$childId/videos"
@@ -58,6 +61,8 @@ object Routes {
     fun kidProject(childId: Long, id: Long) = "kid/$childId/project/$id"
     fun kidRewards(childId: Long) = "kid/$childId/rewards"
     fun kidInterests(childId: Long) = "kid/$childId/interests"
+    fun kidApps(childId: Long) = "kid/$childId/apps"
+    fun kidExploreItem(childId: Long, id: String) = "kid/$childId/explore/${Uri.encode(id)}"
 
     fun parentContent(id: String) = "parent/content/${Uri.encode(id)}"
     fun parentArticle(id: String) = "parent/article/${Uri.encode(id)}"

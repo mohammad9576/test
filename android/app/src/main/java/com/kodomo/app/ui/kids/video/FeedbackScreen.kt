@@ -1,5 +1,6 @@
 package com.kodomo.app.ui.kids.video
 
+import com.kodomo.app.domain.engine.VoicePhrases
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -84,7 +85,7 @@ fun FeedbackScreen(contentId: String, onDone: () -> Unit, viewModel: FeedbackVie
                 enabled = liked != null,
                 onClick = {
                     viewModel.submit(liked == true, comment) { medal ->
-                        thanks = if (medal) "آفرین! مدال «منتقد کوچک» و ۵ ستاره گرفتی! 🏅" else "ممنون که نظرت را گفتی! 💚"
+                        thanks = if (medal) VoicePhrases.FEEDBACK_MEDAL else VoicePhrases.FEEDBACK_THANKS
                         space.voice.speak(thanks.orEmpty())
                     }
                 },

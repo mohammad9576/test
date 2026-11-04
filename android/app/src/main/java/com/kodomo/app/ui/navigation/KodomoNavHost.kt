@@ -16,6 +16,8 @@ import com.kodomo.app.ui.kids.books.BookListScreen
 import com.kodomo.app.ui.kids.books.BookReaderScreen
 import com.kodomo.app.ui.kids.browser.EncyclopediaArticleScreen
 import com.kodomo.app.ui.kids.browser.SafeBrowserScreen
+import com.kodomo.app.ui.kids.apps.MyAppsScreen
+import com.kodomo.app.ui.kids.explore.ExploreDetailScreen
 import com.kodomo.app.ui.kids.explore.ExploreScreen
 import com.kodomo.app.ui.kids.games.GamesScreen
 import com.kodomo.app.ui.kids.games.MotionGameScreen
@@ -33,6 +35,7 @@ import com.kodomo.app.ui.kids.video.VideoListScreen
 import com.kodomo.app.ui.kids.video.VideoPlayerScreen
 import com.kodomo.app.ui.onboarding.OnboardingScreen
 import com.kodomo.app.ui.parent.ParentHubScreen
+import com.kodomo.app.ui.parent.apps.AllowedAppsScreen
 import com.kodomo.app.ui.parent.cloud.CloudAccountScreen
 import com.kodomo.app.ui.parent.community.ForumTopicScreen
 import com.kodomo.app.ui.parent.community.ParentArticleScreen
@@ -105,7 +108,13 @@ fun KodomoNavHost(navController: NavHostController, startDestination: String) {
             LessonScreen(contentId = entry.stringArg(Routes.ARG_ID), onBack = back)
         }
         kid(Routes.KID_SCHOOL, toProfiles) { _, _ -> SchoolScreen(onBack = back) }
-        kid(Routes.KID_EXPLORE, toProfiles) { _, _ -> ExploreScreen(onBack = back) }
+        kid(Routes.KID_EXPLORE, toProfiles) { childId, _ ->
+            ExploreScreen(onBack = back, onOpen = { id -> navController.navigate(Routes.kidExploreItem(childId, id)) })
+        }
+        kid(Routes.KID_EXPLORE_ITEM, toProfiles, listOf(stringArg(Routes.ARG_ID))) { _, entry ->
+            ExploreDetailScreen(contentId = entry.stringArg(Routes.ARG_ID), onBack = back)
+        }
+        kid(Routes.KID_APPS, toProfiles) { _, _ -> MyAppsScreen(onBack = back) }
         kid(Routes.KID_BROWSER, toProfiles) { childId, _ ->
             SafeBrowserScreen(onBack = back, onOpen = { id -> navController.navigate(Routes.kidArticle(childId, id)) })
         }
@@ -131,6 +140,7 @@ fun KodomoNavHost(navController: NavHostController, startDestination: String) {
                 onAddChild = { navController.navigate(Routes.PARENT_ADD_CHILD) },
                 onOpenGallery = { navController.navigate(Routes.PARENT_GALLERY) },
                 onOpenCloud = { navController.navigate(Routes.PARENT_CLOUD) },
+                onOpenAllowedApps = { navController.navigate(Routes.PARENT_ALLOWED_APPS) },
             )
         }
         composable(Routes.PARENT_CONTENT, arguments = listOf(stringArg(Routes.ARG_ID))) { entry ->
@@ -148,6 +158,7 @@ fun KodomoNavHost(navController: NavHostController, startDestination: String) {
         composable(Routes.PARENT_ADD_CHILD) { ChildEditorScreen(childId = null, onBack = back) }
         composable(Routes.PARENT_GALLERY) { MemoriesGalleryScreen(onBack = back) }
         composable(Routes.PARENT_CLOUD) { CloudAccountScreen(onBack = back) }
+        composable(Routes.PARENT_ALLOWED_APPS) { AllowedAppsScreen(onBack = back) }
     }
 }
 

@@ -19,10 +19,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.kodomo.app.domain.model.ActivityCategory
 import com.kodomo.app.domain.model.MascotMood
+import com.kodomo.app.domain.model.GameKind
 import com.kodomo.app.domain.model.MotionGame
 import com.kodomo.app.ui.components.EmojiCover
 import com.kodomo.app.ui.components.KidScreenScaffold
 import com.kodomo.app.ui.components.KodomoCard
+import com.kodomo.app.ui.components.SectionTitle
 import com.kodomo.app.ui.kids.LocalKidSpace
 import com.kodomo.app.ui.kids.TrackActivity
 import com.kodomo.app.ui.mascot.MascotSpeech
@@ -36,14 +38,16 @@ private val gameColors = listOf(
 fun GamesScreen(onBack: () -> Unit, onPlay: (MotionGame) -> Unit) {
     val space = LocalKidSpace.current
     TrackActivity(ActivityCategory.GAME, "فهرست بازی‌ها")
-    KidScreenScaffold(title = "بازی‌های حرکتی", onBack = onBack) { padding ->
+    KidScreenScaffold(title = "بازی‌ها", onBack = onBack) { padding ->
         LazyColumn(
             Modifier.fillMaxSize().padding(padding),
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            item { MascotSpeech("بلند شو! این بازی‌ها با حرکت بدنت کار می‌کنند، نه فقط با انگشت 🤸", MascotMood.EXCITED) }
-            items(MotionGame.entries) { game ->
+            item { MascotSpeech("بلند شو! بیشتر این بازی‌ها با حرکت بدنت کار می‌کنند؛ برای استراحت هم نقاشی داریم 🤸🎨", MascotMood.EXCITED) }
+            GameKind.entries.forEach { kind ->
+            item(key = "title_$kind") { SectionTitle(kind.label) }
+            items(MotionGame.entries.filter { it.kind == kind }, key = { it.name }) { game ->
                 KodomoCard(onClick = {
                     space.guide(game.title)
                     onPlay(game)
@@ -59,6 +63,7 @@ fun GamesScreen(onBack: () -> Unit, onPlay: (MotionGame) -> Unit) {
                         }
                     }
                 }
+            }
             }
         }
     }

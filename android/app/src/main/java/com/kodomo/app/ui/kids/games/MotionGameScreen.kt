@@ -1,5 +1,6 @@
 package com.kodomo.app.ui.kids.games
 
+import com.kodomo.app.domain.engine.VoicePhrases
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -33,6 +34,13 @@ import com.kodomo.app.ui.components.KodomoPrimaryButton
 import com.kodomo.app.ui.components.rememberCameraPermission
 import com.kodomo.app.ui.kids.LocalKidSpace
 import com.kodomo.app.ui.kids.TrackActivity
+import com.kodomo.app.ui.kids.games.art.ColoringGame
+import com.kodomo.app.ui.kids.games.art.FreeDrawGame
+import com.kodomo.app.ui.kids.games.pose.FreezeDanceGame
+import com.kodomo.app.ui.kids.games.pose.JumpPopGame
+import com.kodomo.app.ui.kids.games.pose.JumpingJacksGame
+import com.kodomo.app.ui.kids.games.pose.PoseMatchGame
+import com.kodomo.app.ui.kids.games.pose.StarCatchGame
 import com.kodomo.app.ui.kids.childId
 import com.kodomo.app.ui.mascot.KodomoMascot
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -64,13 +72,13 @@ fun MotionGameScreen(game: MotionGame, onBack: () -> Unit, viewModel: MotionGame
     var finished by remember { mutableStateOf<Pair<Int, Int>?>(null) }
     var round by remember { mutableStateOf(0) }
     var medal by remember { mutableStateOf(false) }
-    TrackActivity(ActivityCategory.GAME, game.title, game.name)
+    TrackActivity(if (game.kind == com.kodomo.app.domain.model.GameKind.ART) ActivityCategory.ART else ActivityCategory.GAME, game.title, game.name)
 
     val onFinish: (Int) -> Unit = { score ->
         viewModel.onGameFinished(score) { stars, gotMedal ->
             finished = score to stars
             medal = gotMedal
-            space.voice.speak("آفرین ${space.child.name}! ${stars.fa()} ستاره گرفتی!")
+            space.voice.speak(VoicePhrases.GAME_DONE)
         }
     }
 
@@ -105,6 +113,12 @@ fun MotionGameScreen(game: MotionGame, onBack: () -> Unit, viewModel: MotionGame
                             MotionGame.TILT_RESCUE -> TiltRescueGame(onFinish)
                             MotionGame.SHAKE_CLEAN -> ShakeCleanGame(onFinish)
                             MotionGame.JUMP_POP -> JumpPopGame(onFinish)
+                            MotionGame.STAR_CATCH -> StarCatchGame(onFinish)
+                            MotionGame.POSE_MATCH -> PoseMatchGame(onFinish)
+                            MotionGame.FREEZE_DANCE -> FreezeDanceGame(onFinish)
+                            MotionGame.JUMPING_JACKS -> JumpingJacksGame(onFinish)
+                            MotionGame.FREE_DRAW -> FreeDrawGame(onFinish)
+                            MotionGame.COLORING -> ColoringGame(onFinish)
                             MotionGame.SIMON_SAYS -> SimonSaysGame(onFinish)
                             MotionGame.COLOR_HUNT -> ColorHuntGame(onFinish)
                         }

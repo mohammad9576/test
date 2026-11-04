@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
@@ -24,6 +25,7 @@ data class SessionState(
     val authToken: String?,
     val apiBaseUrl: String?,
     val lastSyncMillis: Long,
+    val allowedApps: Set<String>,
 )
 
 @Singleton
@@ -36,6 +38,7 @@ class SessionPreferences @Inject constructor(@ApplicationContext private val con
         val TOKEN = stringPreferencesKey("auth_token")
         val API_BASE_URL = stringPreferencesKey("api_base_url")
         val LAST_SYNC = longPreferencesKey("last_sync")
+        val ALLOWED_APPS = stringSetPreferencesKey("allowed_apps")
     }
 
     val state: Flow<SessionState> = context.sessionStore.data.map { p ->
@@ -46,6 +49,7 @@ class SessionPreferences @Inject constructor(@ApplicationContext private val con
             authToken = p[Keys.TOKEN],
             apiBaseUrl = p[Keys.API_BASE_URL],
             lastSyncMillis = p[Keys.LAST_SYNC] ?: 0L,
+            allowedApps = p[Keys.ALLOWED_APPS] ?: emptySet(),
         )
     }
 
@@ -65,6 +69,11 @@ class SessionPreferences @Inject constructor(@ApplicationContext private val con
 
     suspend fun setApiBaseUrl(url: String?) = context.sessionStore.edit {
         if (url.isNullOrBlank()) it.remove(Keys.API_BASE_URL) else it[Keys.API_BASE_URL] = url.trim()
+    }
+
+    suspend fun setAppAllowed(packageName: String, allowed: Boolean) = context.sessionStore.edit {
+        val current = it[Keys.ALLOWED_APPS] ?: emptySet()
+        it[Keys.ALLOWED_APPS] = if (allowed) current + packageName else current - packageName
     }
 
     suspend fun setLastSync(millis: Long) = context.sessionStore.edit { it[Keys.LAST_SYNC] = millis }

@@ -53,6 +53,8 @@ fun categoryColor(category: ActivityCategory): Color = when (category) {
     ActivityCategory.BROWSER -> Color(0xFF2BAEA0)
     ActivityCategory.PROJECT -> Color(0xFFB57A4A)
     ActivityCategory.HOME -> Color(0xFF9AA9A2)
+    ActivityCategory.APP -> Color(0xFF7E57C2)
+    ActivityCategory.ART -> Color(0xFFE57373)
 }
 
 data class StackedBar(val label: String, val segments: List<Pair<Color, Float>>)

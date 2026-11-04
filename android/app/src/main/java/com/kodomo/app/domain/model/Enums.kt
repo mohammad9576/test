@@ -53,6 +53,8 @@ enum class ActivityCategory(val label: String, val emoji: String) {
     BROWSER("مرورگر", "🌍"),
     PROJECT("پروژه", "✂️"),
     HOME("خانه", "🏠"),
+    APP("برنامه‌ها", "📱"),
+    ART("نقاشی", "🖍️"),
 }
 
 enum class AuthorRole(val label: String, val isExpert: Boolean) {
@@ -65,14 +67,22 @@ enum class AuthorRole(val label: String, val isExpert: Boolean) {
 
 enum class SchoolTaskKind(val label: String) { HOMEWORK("تکلیف"), PROJECT("پروژه آموزشی") }
 
-enum class MemorySource(val label: String) { PROJECT("پروژه"), LAUGH("لحظه شاد"), MANUAL("ثبت والد") }
+enum class MemorySource(val label: String) { PROJECT("پروژه"), LAUGH("لحظه شاد"), MANUAL("ثبت والد"), ART("نقاشی") }
 
 enum class MascotMood { HAPPY, EXCITED, SLEEPY, THINKING }
 
-enum class MotionGame(val title: String, val emoji: String, val description: String, val needsCamera: Boolean) {
-    TILT_RESCUE("نجات با کج کردن", "🐣", "گوشی را کج کن تا توپ نجات به جوجه‌ها برسد و از چاله‌ها دور بماند.", false),
-    SHAKE_CLEAN("تکان بده و تمیز کن", "🫧", "گوشی را تکان بده تا گل‌ولای از روی توله‌سگ پاک شود.", false),
-    JUMP_POP("بپر و بترکان", "🎈", "جلوی دوربین بالا بپر تا بادکنک‌ها بترکند.", true),
-    SIMON_SAYS("سایمون می‌گه", "🕺", "فقط وقتی «سایمون می‌گه» حرکت کن، وگرنه بی‌حرکت بمان!", false),
-    COLOR_HUNT("شکار رنگ", "🌈", "دوربین را به چیزی با رنگ خواسته‌شده بگیر.", true),
+enum class GameKind(val label: String) { BODY("بازی‌های حرکتی با دوربین"), SENSOR("بازی با حسگر گوشی"), ART("نقاشی و رنگ‌آمیزی") }
+
+enum class MotionGame(val title: String, val emoji: String, val description: String, val needsCamera: Boolean, val kind: GameKind) {
+    JUMP_POP("بپر و بترکان", "🎈", "جلوی دوربین بایست؛ با دست بادکنک‌ها را بترکان یا بالا بپر تا همه‌شان یکجا بترکند!", true, GameKind.BODY),
+    STAR_CATCH("ستاره‌گیر", "⭐", "ستاره‌ها از آسمان می‌افتند؛ با دست‌هایت آن‌ها را بگیر و از ابرهای بارانی دور شو.", true, GameKind.BODY),
+    POSE_MATCH("ژست بگیر!", "🤸", "ربات یک ژست نشان می‌دهد؛ مثل او بایست و چند ثانیه نگه دار.", true, GameKind.BODY),
+    FREEZE_DANCE("رقص مجسمه", "🧊", "وقتی موسیقی پخش می‌شود برقص؛ وقتی قطع شد مثل مجسمه بی‌حرکت بمان!", true, GameKind.BODY),
+    JUMPING_JACKS("پروانه‌ی پرانرژی", "🦋", "حرکت پروانه (جامپینگ جک) انجام بده تا پروانه‌ها پرواز کنند.", true, GameKind.BODY),
+    COLOR_HUNT("شکار رنگ", "🌈", "دوربین را به چیزی با رنگ خواسته‌شده بگیر.", true, GameKind.BODY),
+    TILT_RESCUE("نجات با کج کردن", "🐣", "گوشی را کج کن تا توپ نجات به جوجه‌ها برسد و از چاله‌ها دور بماند.", false, GameKind.SENSOR),
+    SHAKE_CLEAN("تکان بده و تمیز کن", "🫧", "گوشی را تکان بده تا گل‌ولای از روی توله‌سگ پاک شود.", false, GameKind.SENSOR),
+    SIMON_SAYS("سایمون می‌گه", "🕺", "فقط وقتی «سایمون می‌گه» حرکت کن، وگرنه بی‌حرکت بمان!", false, GameKind.SENSOR),
+    FREE_DRAW("نقاشی آزاد", "🖌️", "با رنگ‌ها و قلم‌موهای مختلف هر چه دوست داری بکش.", false, GameKind.ART),
+    COLORING("رنگ‌آمیزی", "🎨", "یک رنگ انتخاب کن و روی هر قسمت تصویر بزن تا رنگی شود.", false, GameKind.ART),
 }

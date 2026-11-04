@@ -95,7 +95,7 @@ fun DashboardTab(viewModel: ParentHubViewModel, modifier: Modifier = Modifier) {
                     steps = (ParentalSettings.MAX_LIMIT - ParentalSettings.MIN_LIMIT) / 5 - 1,
                 )
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("۱۵ دقیقه", style = MaterialTheme.typography.labelSmall)
+                    Text("۵ دقیقه", style = MaterialTheme.typography.labelSmall)
                     Text("۱۲۰ دقیقه", style = MaterialTheme.typography.labelSmall)
                 }
             }
