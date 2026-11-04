@@ -68,7 +68,9 @@ class MascotVoice @Inject constructor(@ApplicationContext private val context: C
         }
     }
 
-    fun stop() = main.post { stopInternal() }
+    fun stop() {
+        main.post { stopInternal() }
+    }
 
     private fun stopInternal() {
         generation++
@@ -88,7 +90,7 @@ class MascotVoice @Inject constructor(@ApplicationContext private val context: C
             return
         }
         val text = texts[index]
-        val next = { main.post { playNext(texts, index + 1, token, listener) } }
+        val next: () -> Unit = { main.post { playNext(texts, index + 1, token, listener) } }
         when {
             VoiceKeys.key(text) in clips -> playClip(text, token, listener, next)
             persianTtsAvailable -> speakTts(text, token, listener, next)

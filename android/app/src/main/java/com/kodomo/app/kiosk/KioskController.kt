@@ -17,6 +17,9 @@ interface KioskController {
     fun applyDeviceOwnerPolicies(): Boolean
 
     fun requestDeviceAdmin()
+
+    /** Asks Android to make Kodomo the default launcher (boot lands in Kodomo). */
+    fun requestDefaultHome()
 }
 
 val LocalKioskController = staticCompositionLocalOf<KioskController> {

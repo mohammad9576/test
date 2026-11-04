@@ -118,6 +118,33 @@ class DeviceOwnerManager @Inject constructor(@ApplicationContext private val con
         runCatching { activity.stopLockTask() }.onFailure { Log.w(TAG, "stopLockTask failed", it) }
     }
 
+    /** True when Kodomo is the launcher Android starts after boot / when Home is pressed. */
+    val isDefaultHome: Boolean
+        get() {
+            val home = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
+            @Suppress("DEPRECATION")
+            val resolved = context.packageManager.resolveActivity(home, android.content.pm.PackageManager.MATCH_DEFAULT_ONLY)
+            return resolved?.activityInfo?.packageName == context.packageName
+        }
+
+    /**
+     * Intent that lets the parent make Kodomo the default Home app, so the phone boots straight into Kodomo instead of
+     * the manufacturer launcher (MIUI/HyperOS, One UI…). Uses the Home role dialog on Android 10+, settings otherwise.
+     */
+    fun defaultHomeIntent(): Intent {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val roles = context.getSystemService(android.app.role.RoleManager::class.java)
+            if (roles != null && roles.isRoleAvailable(android.app.role.RoleManager.ROLE_HOME) && !roles.isRoleHeld(android.app.role.RoleManager.ROLE_HOME)) {
+                return roles.createRequestRoleIntent(android.app.role.RoleManager.ROLE_HOME)
+            }
+        }
+        return Intent(android.provider.Settings.ACTION_HOME_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    }
+
+    /** Fallback for ROMs whose role dialog is hidden: the generic default-apps screen. */
+    fun defaultAppsSettingsIntent(): Intent =
+        Intent(android.provider.Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+
     /** Permanently releases Device Owner (parent-only, behind the gate). */
     fun releaseDeviceOwnership() {
         if (!isDeviceOwner) return

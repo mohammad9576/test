@@ -164,11 +164,32 @@ fun DashboardTab(viewModel: ParentHubViewModel, modifier: Modifier = Modifier) {
                         modifier = Modifier.padding(vertical = 6.dp),
                     )
                 }
+                var isHome by remember { mutableStateOf(viewModel.deviceOwner.isDefaultHome) }
+                androidx.lifecycle.compose.LifecycleEventEffect(androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                    isHome = viewModel.deviceOwner.isDefaultHome
+                }
+                if (!isHome) {
+                    Text(
+                        "⚠️ کدومو هنوز لانچر پیش‌فرض گوشی نیست؛ به همین دلیل بعد از ری‌استارت، صفحه‌ی اصلی شیائومی/سامسونگ باز می‌شود. دکمه‌ی زیر را بزنید و «کدومو» را به‌عنوان برنامه‌ی خانه (Home) انتخاب کنید.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                    Button(onClick = kiosk::requestDefaultHome, modifier = Modifier.fillMaxWidth()) { Text("تنظیم کدومو به‌عنوان لانچر پیش‌فرض") }
+                    Text(
+                        "در شیائومی اگر پنجره‌ای باز نشد: تنظیمات ← برنامه‌ها ← برنامه‌های پیش‌فرض ← لانچر ← کدومو",
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                } else {
+                    Text("✅ کدومو لانچر پیش‌فرض است و بعد از ری‌استارت خودکار باز می‌شود.", style = MaterialTheme.typography.bodySmall)
+                }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("فعال‌سازی قفل محیط کودک", modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleSmall)
                     Switch(
                         checked = session?.kioskEnabled == true,
-                        onCheckedChange = { on -> viewModel.setKioskEnabled(on, kiosk::applyDeviceOwnerPolicies) },
+                        onCheckedChange = { on ->
+                            viewModel.setKioskEnabled(on, kiosk::applyDeviceOwnerPolicies)
+                            if (on) kiosk.requestDefaultHome()
+                        },
                     )
                 }
                 if (!owner && !viewModel.deviceOwner.isAdminActive) {

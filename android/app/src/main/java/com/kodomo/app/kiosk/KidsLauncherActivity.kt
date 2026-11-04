@@ -105,6 +105,12 @@ class KidsLauncherActivity : ComponentActivity(), KioskController {
         if (!deviceOwnerManager.isAdminActive) startActivity(deviceOwnerManager.adminActivationIntent())
     }
 
+    override fun requestDefaultHome() {
+        if (deviceOwnerManager.isDefaultHome) return
+        runCatching { startActivity(deviceOwnerManager.defaultHomeIntent()) }
+            .recoverCatching { startActivity(deviceOwnerManager.defaultAppsSettingsIntent()) }
+    }
+
     private fun bringToFront() {
         startActivity(
             Intent(this, KidsLauncherActivity::class.java)
