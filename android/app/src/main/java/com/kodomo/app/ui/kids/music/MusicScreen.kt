@@ -106,11 +106,11 @@ class MusicViewModel @Inject constructor(
     private val player: ExoPlayer = ExoPlayer.Builder(context).build().apply {
         addListener(object : Player.Listener {
             override fun onIsPlayingChanged(playing: Boolean) {
-                isPlaying.value = playing
+                this@MusicViewModel.isPlaying.value = playing
             }
 
             override fun onPlaybackStateChanged(state: Int) {
-                if (state == Player.STATE_ENDED) next()
+                if (state == Player.STATE_ENDED) this@MusicViewModel.next()
             }
         })
     }
