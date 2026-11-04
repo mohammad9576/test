@@ -18,6 +18,10 @@ class KodoumoParsingTest {
         assertEquals(7, KodoumoClient.parseAge(JsonPrimitive("+۷")))
         assertEquals(12, KodoumoClient.parseAge(buildJsonArray { add(buildJsonObject { put("name", "12+") }) }))
         assertEquals(null, KodoumoClient.parseAge(JsonPrimitive("")))
+        val badge = "<div category=\"+10\" class=\"age-label-box \"><img alt=\"kodoumo-logo\" width=\"40\" height=\"40\" src=\"x.png\"> <span class=\"age-tax\">7+ </span></div>"
+        assertEquals(7, KodoumoClient.parseAge(JsonPrimitive(badge)))
+        val waiting = "<div category=\"+10\" class=\"age-label-box\"><img width=\"40\" src=\"x.png\"> <span class=\"age-tax\">منتظر رده‌سنی</span></div>"
+        assertEquals(null, KodoumoClient.parseAge(JsonPrimitive(waiting)))
     }
 
     @Test

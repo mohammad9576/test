@@ -30,6 +30,7 @@ data class KodoumoListItem(
     val rate: Float?,
     val underEvaluation: Boolean,
     val permalink: String,
+    val typeSlug: String,
 )
 
 data class KodoumoReview(
@@ -110,18 +111,21 @@ class KodoumoClient @Inject constructor(private val http: OkHttpClient, private 
         )
     }
 
+    /** Category listings use the `reviews*` field names; the home/sidebar widgets use short names – accept both. */
     private fun JsonObject.toListItem(): KodoumoListItem? {
         val slug = this["slug"].str.ifBlank { return null }
+        val typeSlug = this["reviewsType"].str
         return KodoumoListItem(
             id = this["id"].long ?: 0L,
             slug = slug,
-            title = this["title"].str,
-            image = this["image"].str.ifBlank { null },
-            shortDescription = this["shortDescription"].str.stripHtml(),
-            age = parseAge(this["age"]),
-            rate = this["rate"].float,
+            title = this["reviewsTitle"].str.ifBlank { this["title"].str }.trim(),
+            image = this["reviewsThumbnailUrl"].str.ifBlank { this["image"].str }.ifBlank { null },
+            shortDescription = this["reviewsShortContent"].str.ifBlank { this["shortDescription"].str }.stripHtml(),
+            age = parseAge(this["reviewsAgeCategory"] ?: this["age"]),
+            rate = (this["reviewsRate"] ?: this["rate"]).float,
             underEvaluation = this["under_evaluation"].bool,
-            permalink = this["permalink"].str,
+            permalink = this["permalink"].str.ifBlank { "https://kodoumo.ir/reviews/${pathOf(typeSlug)}/$slug/" },
+            typeSlug = typeSlug,
         )
     }
 
@@ -144,13 +148,29 @@ class KodoumoClient @Inject constructor(private val http: OkHttpClient, private 
 
         private val digits = Regex("\\d+")
 
+        /** URL path segment of a review type (anime lives under animations/, games under games/). */
+        fun pathOf(typeSlug: String) = when (typeSlug) {
+            "anime" -> "animations/anime"
+            "console-games", "mobile-games" -> "games/$typeSlug"
+            "" -> "reviews"
+            else -> typeSlug
+        }
+
+        private val ageTax = Regex("""age-tax[^>]*>([^<]*)<""")
+
+        /**
+         * The age arrives as plain text ("7") or as the site's HTML badge, e.g.
+         * `<div category="+10" …><img width="40" …><span class="age-tax">7+ </span></div>` – only the age-tax text is the
+         * rating (the `category` attribute and image sizes are not). «منتظر رده‌سنی» (awaiting rating) yields null.
+         */
         internal fun parseAge(e: JsonElement?): Int? {
-            val text = when (e) {
+            val raw = when (e) {
                 null, JsonNull -> return null
                 is JsonPrimitive -> e.contentOrNull.orEmpty()
                 is JsonArray -> e.firstOrNull()?.let { (it as? JsonPrimitive)?.contentOrNull ?: (it as? JsonObject)?.get("name")?.str }.orEmpty()
                 is JsonObject -> (e["name"] ?: e["slug"] ?: e["age"])?.str.orEmpty()
             }
+            val text = ageTax.find(raw)?.groupValues?.get(1) ?: raw.stripHtml()
             return digits.find(com.kodomo.app.core.util.PersianDigits.normalize(text))?.value?.toIntOrNull()?.takeIf { it in 0..21 }
         }
     }

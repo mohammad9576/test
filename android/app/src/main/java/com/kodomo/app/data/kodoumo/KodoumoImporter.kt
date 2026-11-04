@@ -44,7 +44,7 @@ class KodoumoImporter @Inject constructor(
         sync()
     }
 
-    suspend fun sync(pagesPerCategory: Int = 3) {
+    suspend fun sync(pagesPerCategory: Int = 4) {
         if (!mutex.tryLock()) return
         try {
             var imported = 0
@@ -58,7 +58,8 @@ class KodoumoImporter @Inject constructor(
                         break
                     }
                     for (item in items) {
-                        if (item.underEvaluation) continue
+                        // Only finished evaluations with a real age rating may reach a child.
+                        if (item.underEvaluation || item.age == null) continue
                         val review = runCatching { client.review(item.slug) }.getOrNull() ?: continue
                         if (review.underEvaluation) continue
                         val entity = toEntity(category, item, review)
@@ -92,7 +93,7 @@ class KodoumoImporter @Inject constructor(
     }
 
     private fun typeOf(category: String) = when (category) {
-        "animations", "movies", "serials" -> ContentType.VIDEO
+        "animations", "anime", "movies", "serials" -> ContentType.VIDEO
         "books" -> ContentType.BOOK_REVIEW
         "console-games", "mobile-games" -> ContentType.GAME_REVIEW
         else -> ContentType.TOY_REVIEW
