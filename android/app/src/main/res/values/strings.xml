@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">کدومو</string>
+    <string name="device_admin_label">محافظ خانواده کدومو</string>
+    <string name="device_admin_description">کدومو برای قفل امن محیط کودک، مهار نصب برنامه، جلوگیری از بازنشانی کارخانه‌ای و کنترل زمان استفاده به این مجوز نیاز دارد.</string>
+</resources>

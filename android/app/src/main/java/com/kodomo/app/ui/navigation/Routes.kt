@@ -1,0 +1,73 @@
+package com.kodomo.app.ui.navigation
+
+import android.net.Uri
+import com.kodomo.app.domain.model.MotionGame
+
+object Routes {
+    const val ARG_CHILD = "childId"
+    const val ARG_ID = "id"
+
+    const val ONBOARDING = "onboarding"
+    const val PROFILES = "profiles"
+
+    const val KID_HOME = "kid/{childId}/home"
+    const val KID_VIDEOS = "kid/{childId}/videos"
+    const val KID_VIDEO_PLAYER = "kid/{childId}/video/{id}"
+    const val KID_FEEDBACK = "kid/{childId}/feedback/{id}"
+    const val KID_GAMES = "kid/{childId}/games"
+    const val KID_GAME = "kid/{childId}/game/{id}"
+    const val KID_BOOKS = "kid/{childId}/books"
+    const val KID_BOOK_READER = "kid/{childId}/book/{id}/{mode}"
+    const val KID_MUSIC = "kid/{childId}/music"
+    const val KID_LEARNING = "kid/{childId}/learning"
+    const val KID_LESSON = "kid/{childId}/lesson/{id}"
+    const val KID_SCHOOL = "kid/{childId}/school"
+    const val KID_EXPLORE = "kid/{childId}/explore"
+    const val KID_BROWSER = "kid/{childId}/browser"
+    const val KID_ARTICLE = "kid/{childId}/article/{id}"
+    const val KID_PROJECTS = "kid/{childId}/projects"
+    const val KID_PROJECT = "kid/{childId}/project/{id}"
+    const val KID_REWARDS = "kid/{childId}/rewards"
+    const val KID_INTERESTS = "kid/{childId}/interests"
+
+    const val PARENT_HUB = "parent"
+    const val PARENT_CONTENT = "parent/content/{id}"
+    const val PARENT_ARTICLE = "parent/article/{id}"
+    const val PARENT_TOPIC = "parent/topic/{id}"
+    const val PARENT_CHILD_EDIT = "parent/child/{id}"
+    const val PARENT_ADD_CHILD = "parent/add-child"
+    const val PARENT_GALLERY = "parent/gallery"
+    const val PARENT_CLOUD = "parent/cloud"
+
+    fun kidHome(childId: Long) = "kid/$childId/home"
+    fun kidVideos(childId: Long) = "kid/$childId/videos"
+    fun kidVideo(childId: Long, contentId: String) = "kid/$childId/video/${Uri.encode(contentId)}"
+    fun kidFeedback(childId: Long, contentId: String) = "kid/$childId/feedback/${Uri.encode(contentId)}"
+    fun kidGames(childId: Long) = "kid/$childId/games"
+    fun kidGame(childId: Long, game: MotionGame) = "kid/$childId/game/${game.name}"
+    fun kidBooks(childId: Long) = "kid/$childId/books"
+    fun kidBook(childId: Long, contentId: String, mode: String) = "kid/$childId/book/${Uri.encode(contentId)}/$mode"
+    fun kidMusic(childId: Long) = "kid/$childId/music"
+    fun kidLearning(childId: Long) = "kid/$childId/learning"
+    fun kidLesson(childId: Long, contentId: String) = "kid/$childId/lesson/${Uri.encode(contentId)}"
+    fun kidSchool(childId: Long) = "kid/$childId/school"
+    fun kidExplore(childId: Long) = "kid/$childId/explore"
+    fun kidBrowser(childId: Long) = "kid/$childId/browser"
+    fun kidArticle(childId: Long, id: Int) = "kid/$childId/article/$id"
+    fun kidProjects(childId: Long) = "kid/$childId/projects"
+    fun kidProject(childId: Long, id: Long) = "kid/$childId/project/$id"
+    fun kidRewards(childId: Long) = "kid/$childId/rewards"
+    fun kidInterests(childId: Long) = "kid/$childId/interests"
+
+    fun parentContent(id: String) = "parent/content/${Uri.encode(id)}"
+    fun parentArticle(id: String) = "parent/article/${Uri.encode(id)}"
+    fun parentTopic(id: Long) = "parent/topic/$id"
+    fun parentChildEdit(id: Long) = "parent/child/$id"
+}
+
+/** Reading modes of «دنیای کتاب». */
+enum class ReadingMode(val label: String, val emoji: String) {
+    AUDIO("کتاب صوتی", "🎧"),
+    PARENT_VOICE("برای من بخوان", "👩‍👧"),
+    SELF("خودم می‌خوانم", "👓"),
+}
