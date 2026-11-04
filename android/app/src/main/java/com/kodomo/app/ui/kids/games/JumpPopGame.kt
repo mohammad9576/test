@@ -94,10 +94,10 @@ class JumpDetector {
     }
 }
 
+private data class Balloon(val x: Float, val y: Float, val color: Color, val speed: Float)
+
 @Composable
 fun JumpPopGame(onFinish: (Int) -> Unit) {
-    data class Balloon(val x: Float, val y: Float, val color: Color, val speed: Float)
-
     val detector = remember { JumpDetector() }
     val balloons = remember { mutableStateListOf<Balloon>() }
     var popped by remember { mutableIntStateOf(0) }

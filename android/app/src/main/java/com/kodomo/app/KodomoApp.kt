@@ -1,10 +1,12 @@
 package com.kodomo.app
 
 import android.app.Application
+import android.util.Log
 import com.kodomo.app.data.seed.CatalogSeeder
-import com.kodomo.app.di.ApplicationScope
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -13,10 +15,12 @@ class KodomoApp : Application() {
 
     @Inject lateinit var catalogSeeder: CatalogSeeder
 
-    @Inject @ApplicationScope lateinit var appScope: CoroutineScope
+    private val startupScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override fun onCreate() {
         super.onCreate()
-        appScope.launch { catalogSeeder.seedIfEmpty() }
+        startupScope.launch {
+            runCatching { catalogSeeder.seedIfEmpty() }.onFailure { Log.e("KodomoApp", "Catalog seeding failed", it) }
+        }
     }
 }

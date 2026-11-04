@@ -88,36 +88,36 @@ interface SettingsDao {
 }
 
 @Dao
-interface ContentDao {
+abstract class ContentDao {
     @Query("SELECT COUNT(*) FROM content")
-    suspend fun count(): Int
+    abstract suspend fun count(): Int
 
     @Query("SELECT * FROM content WHERE type = :type ORDER BY title")
-    fun observeByType(type: ContentType): Flow<List<ContentEntity>>
+    abstract fun observeByType(type: ContentType): Flow<List<ContentEntity>>
 
     @Query("SELECT * FROM content WHERE id = :id")
-    fun observe(id: String): Flow<ContentEntity?>
+    abstract fun observe(id: String): Flow<ContentEntity?>
 
     @Query("SELECT * FROM content WHERE id = :id")
-    suspend fun get(id: String): ContentEntity?
+    abstract suspend fun get(id: String): ContentEntity?
 
     @Query(
         "SELECT * FROM content WHERE (:type IS NULL OR type = :type) AND " +
-            "(title LIKE '%' || :query || '%' OR description LIKE '%' || :query || '%' OR category LIKE '%' || :query || '%') ORDER BY title",
+            "(title LIKE '%' || :term || '%' OR description LIKE '%' || :term || '%' OR category LIKE '%' || :term || '%') ORDER BY title",
     )
-    fun search(query: String, type: ContentType?): Flow<List<ContentEntity>>
+    abstract fun search(term: String, type: ContentType?): Flow<List<ContentEntity>>
 
     @Upsert
-    suspend fun upsertAll(items: List<ContentEntity>)
+    abstract suspend fun upsertAll(items: List<ContentEntity>)
 
     @Upsert
-    suspend fun upsertPages(pages: List<ContentPageEntity>)
+    abstract suspend fun upsertPages(pages: List<ContentPageEntity>)
 
     @Query("SELECT * FROM content_pages WHERE contentId = :contentId ORDER BY pageIndex")
-    suspend fun pages(contentId: String): List<ContentPageEntity>
+    abstract suspend fun pages(contentId: String): List<ContentPageEntity>
 
     @Transaction
-    suspend fun upsertCatalog(items: List<ContentEntity>, pages: List<ContentPageEntity>) {
+    open suspend fun upsertCatalog(items: List<ContentEntity>, pages: List<ContentPageEntity>) {
         upsertAll(items)
         upsertPages(pages)
     }
@@ -175,17 +175,17 @@ interface ActivityDao {
     @Insert
     suspend fun insert(log: ActivityLogEntity)
 
-    @Query("SELECT COALESCE(SUM(durationSeconds), 0) FROM activity_log WHERE childId = :childId AND startedAt >= :from AND startedAt < :to")
-    suspend fun sumBetween(childId: Long, from: Instant, to: Instant): Long
+    @Query("SELECT COALESCE(SUM(durationSeconds), 0) FROM activity_log WHERE childId = :childId AND startedAt >= :since AND startedAt < :until")
+    suspend fun sumBetween(childId: Long, since: Instant, until: Instant): Long
 
-    @Query("SELECT COALESCE(SUM(durationSeconds), 0) FROM activity_log WHERE childId = :childId AND startedAt >= :from")
-    fun observeSumSince(childId: Long, from: Instant): Flow<Long>
+    @Query("SELECT COALESCE(SUM(durationSeconds), 0) FROM activity_log WHERE childId = :childId AND startedAt >= :since")
+    fun observeSumSince(childId: Long, since: Instant): Flow<Long>
 
-    @Query("SELECT * FROM activity_log WHERE childId = :childId AND startedAt >= :from ORDER BY startedAt ASC")
-    fun observeSince(childId: Long, from: Instant): Flow<List<ActivityLogEntity>>
+    @Query("SELECT * FROM activity_log WHERE childId = :childId AND startedAt >= :since ORDER BY startedAt ASC")
+    fun observeSince(childId: Long, since: Instant): Flow<List<ActivityLogEntity>>
 
-    @Query("SELECT * FROM activity_log WHERE childId = :childId ORDER BY startedAt DESC LIMIT :limit")
-    fun observeRecent(childId: Long, limit: Int): Flow<List<ActivityLogEntity>>
+    @Query("SELECT * FROM activity_log WHERE childId = :childId ORDER BY startedAt DESC LIMIT :maxRows")
+    fun observeRecent(childId: Long, maxRows: Int): Flow<List<ActivityLogEntity>>
 
     @Query("SELECT COUNT(DISTINCT COALESCE(contentId, title)) FROM activity_log WHERE childId = :childId AND category = :category AND durationSeconds >= :minSeconds")
     suspend fun countDistinct(childId: Long, category: ActivityCategory, minSeconds: Long): Int
@@ -271,8 +271,8 @@ interface EncyclopediaDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(entries: List<EncyclopediaEntity>)
 
-    @Query("SELECT rowid, * FROM encyclopedia WHERE encyclopedia MATCH :match AND minAge <= :maxAge")
-    fun match(match: String, maxAge: Int): Flow<List<EncyclopediaEntity>>
+    @Query("SELECT rowid, * FROM encyclopedia WHERE encyclopedia MATCH :expression AND minAge <= :maxAge")
+    fun match(expression: String, maxAge: Int): Flow<List<EncyclopediaEntity>>
 
     @Query("SELECT rowid, * FROM encyclopedia WHERE minAge <= :maxAge ORDER BY topic, title")
     fun observeAll(maxAge: Int): Flow<List<EncyclopediaEntity>>

@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -43,7 +44,7 @@ class VideoListViewModel @Inject constructor(
         items.filter { (c == null || it.category == c) && (q.isBlank() || it.title.contains(q.trim()) || it.description.contains(q.trim())) }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
-    val downloads: StateFlow<Set<String>> = combine(downloadRepository.observeDownloads(), query) { d: List<OfflineDownload>, _ -> d.map { it.contentId }.toSet() }
+    val downloads: StateFlow<Set<String>> = downloadRepository.observeDownloads().map { list: List<OfflineDownload> -> list.map { it.contentId }.toSet() }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptySet())
 }
 

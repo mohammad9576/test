@@ -235,8 +235,7 @@ fun ProjectWizardScreen(projectId: Long, onBack: () -> Unit, viewModel: ProjectW
                     MascotMood.EXCITED,
                 )
                 KodomoPrimaryButton("بازگشت به پروژه‌ها", onClick = onBack)
-                return@Column
-            }
+            } else {
             val step = p.currentStep
             Text("${CraftProject.stepEmojis[step]} گام ${(step + 1).fa()}: ${CraftProject.stepTitles[step]}", style = MaterialTheme.typography.headlineSmall)
             when (step) {
@@ -259,6 +258,7 @@ fun ProjectWizardScreen(projectId: Long, onBack: () -> Unit, viewModel: ProjectW
                         Toast.makeText(context, "گام ${(step + 1).fa()} ثبت شد!", Toast.LENGTH_SHORT).show()
                     }, modifier = Modifier.weight(1f))
                 }
+            }
             }
         }
     }

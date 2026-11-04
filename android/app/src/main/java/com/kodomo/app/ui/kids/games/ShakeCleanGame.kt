@@ -30,11 +30,11 @@ import kotlinx.coroutines.delay
 import kotlin.math.sqrt
 import kotlin.random.Random
 
+private data class Spot(val position: Offset, val radius: Float, val dirt: Float)
+
 /** Shake the phone to wash the mud off the puppy. Each strong shake fades a mud spot. */
 @Composable
 fun ShakeCleanGame(onFinish: (Int) -> Unit) {
-    data class Spot(val position: Offset, val radius: Float, val dirt: Float)
-
     val spots = remember {
         mutableStateListOf<Spot>().apply {
             repeat(14) { add(Spot(Offset(Random.nextFloat(), Random.nextFloat()), Random.nextFloat() * 0.05f + 0.04f, 1f)) }
