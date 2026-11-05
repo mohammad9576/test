@@ -6,7 +6,7 @@ import com.kodomo.app.domain.model.ContentType
 import com.kodomo.app.domain.model.Interest
 
 /**
- * Compact text format for the bundled catalogs in `assets/catalog/*.txt` (books, lessons, explore cards):
+ * Compact text format for the bundled catalogs in the `assets/catalog` text files (books, lessons, explore cards):
  *
  * ```
  * @id | title | category | emoji | minAge-maxAge | INTEREST,INTEREST | short description
