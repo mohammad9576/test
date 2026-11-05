@@ -58,6 +58,7 @@ class VoicePhraseExportTest {
         com.kodomo.app.ui.kids.games.adventure.AdventureThemes.all.forEach { t -> t.stages.forEach { male += it.title; male += it.story } }
         com.kodomo.app.domain.model.Buddy.entries.forEach { male += it.title }
         val maleNorm = male.map(VoiceKeys::normalize).filter { it.isNotEmpty() }.distinct()
+        File("build/voice").mkdirs()
         File("build/voice/phrases_male.tsv").writeText(maleNorm.joinToString("\n") { "${VoiceKeys.key(it)}\t$it" } + "\n")
 
         val normalized = phrases.map(VoiceKeys::normalize).filter { it.isNotEmpty() }.distinct()
