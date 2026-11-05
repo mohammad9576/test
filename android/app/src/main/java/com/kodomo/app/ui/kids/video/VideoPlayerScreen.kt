@@ -3,6 +3,7 @@ package com.kodomo.app.ui.kids.video
 import androidx.activity.compose.BackHandler
 import androidx.annotation.OptIn
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
@@ -88,7 +89,11 @@ fun VideoPlayerScreen(contentId: String, onBack: () -> Unit, onFinished: () -> U
             return
         }
         is VideoSource.LockedPage -> {
-            EmbeddedVideoScreen(item.title, parsed.platform.label, onBack, onFinished) { LockedWebPlayer(WebLock.Pinned(parsed.pageUrl), it) }
+            if (item.episodes.size > 1) {
+                SeriesPlayerScreen(item.title, parsed.platform.label, item.episodes, parsed.pageUrl, onBack, onFinished)
+            } else {
+                EmbeddedVideoScreen(item.title, parsed.platform.label, onBack, onFinished) { LockedWebPlayer(WebLock.Pinned(parsed.pageUrl), it) }
+            }
             return
         }
         else -> Unit
@@ -251,6 +256,64 @@ internal fun EmbeddedVideoScreen(
         if (onFinished != null) {
             androidx.compose.material3.Button(onClick = onFinished, modifier = Modifier.fillMaxWidth().padding(16.dp)) {
                 Text("تماشا تمام شد؛ نظرم را بگویم ✅")
+            }
+        }
+    }
+}
+
+/**
+ * A series approved by the parent: the child chooses an episode from Kodomo's own list (never from the website), and
+ * the player is pinned to that one episode page. «Next episode» moves along the approved list.
+ */
+@Composable
+private fun SeriesPlayerScreen(
+    title: String,
+    platformLabel: String,
+    episodes: List<com.kodomo.app.domain.model.Episode>,
+    startUrl: String,
+    onBack: () -> Unit,
+    onFinished: () -> Unit,
+) {
+    var index by androidx.compose.runtime.saveable.rememberSaveable {
+        mutableStateOf(episodes.indexOfFirst { WebLockRules.samePage(it.url, startUrl) }.coerceAtLeast(0))
+    }
+    val episode = episodes[index]
+    EmbeddedVideoScreen("$title • ${episode.title.ifBlank { "قسمت ${(index + 1).fa()}" }}", platformLabel, onBack, onFinished) { modifier ->
+        Column(modifier) {
+            androidx.compose.runtime.key(episode.url) {
+                LockedWebPlayer(WebLock.Pinned(episode.url), Modifier.fillMaxWidth().weight(1f))
+            }
+            Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                androidx.compose.material3.OutlinedButton(onClick = { index-- }, enabled = index > 0) { Text("◀ قبلی", color = Color.White) }
+                Text(
+                    "قسمت ${(index + 1).fa()} از ${episodes.size.fa()}",
+                    color = Color.White,
+                    modifier = Modifier.weight(1f).align(Alignment.CenterVertically),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                )
+                androidx.compose.material3.Button(onClick = { index++ }, enabled = index < episodes.lastIndex) { Text("بعدی ▶") }
+            }
+            androidx.compose.foundation.lazy.LazyRow(
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.padding(bottom = 6.dp),
+            ) {
+                items(episodes.size) { i ->
+                    val selected = i == index
+                    Column(
+                        Modifier
+                            .size(width = 120.dp, height = 64.dp)
+                            .background(if (selected) com.kodomo.app.ui.theme.KodomoColors.Green else Color.White.copy(alpha = 0.12f), RoundedCornerShape(14.dp))
+                            .clickable { index = i }
+                            .padding(8.dp),
+                        verticalArrangement = Arrangement.Center,
+                    ) {
+                        Text("قسمت ${(i + 1).fa()}", color = Color.White, style = MaterialTheme.typography.labelLarge)
+                        if (episodes[i].title.isNotBlank()) {
+                            Text(episodes[i].title, color = Color.White.copy(alpha = 0.8f), style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                        }
+                    }
+                }
             }
         }
     }

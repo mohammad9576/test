@@ -3,13 +3,22 @@ import { InjectRepository, TypeOrmModule } from '@nestjs/typeorm';
 import { IsBoolean, IsInt, IsString, Length, Max, Min } from 'class-validator';
 import { MoreThan, Repository } from 'typeorm';
 import { CurrentFamily, FamilyAuthGuard, FamilyPrincipal } from '../common/auth';
-import { Content, Family, Feedback } from '../entities';
+import { Content, Family, Feedback, ReviewRequest } from '../entities';
 
 export class FeedbackDto {
   @IsString() contentId: string;
   @IsBoolean() liked: boolean;
   @IsString() @Length(0, 280) comment: string;
   @IsInt() @Min(0) @Max(18) childAge: number;
+}
+
+export class ReviewRequestDto {
+  @IsString() @Length(1, 200) title: string;
+  @IsString() @Length(0, 30) kind: string;
+  @IsString() @Length(0, 1000) url: string;
+  @IsString() @Length(0, 1000) note: string;
+  @IsInt() @Min(0) @Max(18) childAge: number;
+  @IsString() @Length(0, 80) deviceId: string;
 }
 
 /** Maps a content row to the exact JSON contract consumed by the Android `ContentDto`. */
@@ -47,7 +56,21 @@ export class ContentService {
   constructor(
     @InjectRepository(Content) private readonly content: Repository<Content>,
     @InjectRepository(Feedback) private readonly feedback: Repository<Feedback>,
+    @InjectRepository(ReviewRequest) private readonly reviews: Repository<ReviewRequest>,
   ) {}
+
+  /** Parents ask the expert team to evaluate a title; repeated requests for the same title raise its priority. */
+  async requestReview(dto: ReviewRequestDto): Promise<{ id: string; requests: number }> {
+    const existing = await this.reviews.findOne({ where: { title: dto.title.trim(), status: 'PENDING' } });
+    if (existing) {
+      existing.requests += 1;
+      if (!existing.url && dto.url) existing.url = dto.url;
+      const saved = await this.reviews.save(existing);
+      return { id: saved.id, requests: saved.requests };
+    }
+    const saved = await this.reviews.save(this.reviews.create({ ...dto, title: dto.title.trim() }));
+    return { id: saved.id, requests: saved.requests };
+  }
 
   async catalog(since?: string) {
     const sinceDate = since ? new Date(since) : undefined;
@@ -87,6 +110,12 @@ export class ContentController {
     return this.service.catalog(since);
   }
 
+  /** Open endpoint: the app may not be signed in to the cloud account when a parent approves an unrated title. */
+  @Post('review-requests')
+  requestReview(@Body() dto: ReviewRequestDto) {
+    return this.service.requestReview(dto);
+  }
+
   @Post('feedback')
   @HttpCode(204)
   @UseGuards(FamilyAuthGuard)
@@ -96,7 +125,7 @@ export class ContentController {
 }
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Content, Feedback])],
+  imports: [TypeOrmModule.forFeature([Content, Feedback, ReviewRequest])],
   controllers: [ContentController],
   providers: [ContentService],
   exports: [ContentService],

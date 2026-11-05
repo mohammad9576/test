@@ -203,6 +203,25 @@ export class AdminUser {
   @CreateDateColumn() createdAt: Date;
 }
 
+export type ReviewRequestStatus = 'PENDING' | 'IN_REVIEW' | 'DONE' | 'REJECTED';
+
+/** A title a parent approved for their child although no expert (kodoumo) evaluation existed yet. */
+@Entity('review_requests')
+export class ReviewRequest {
+  @PrimaryGeneratedColumn('uuid') id: string;
+  @Column() title: string;
+  @Column({ type: 'varchar', length: 30, default: 'VIDEO' }) kind: string;
+  @Column({ type: 'text', default: '' }) url: string;
+  @Column({ type: 'text', default: '' }) note: string;
+  @Column({ default: 0 }) childAge: number;
+  @Column({ default: '' }) deviceId: string;
+  @Column({ default: 1 }) requests: number;
+  @Column({ type: 'varchar', length: 20, default: 'PENDING' }) status: ReviewRequestStatus;
+  @Column({ type: 'text', default: '' }) adminNote: string;
+  @CreateDateColumn() createdAt: Date;
+  @UpdateDateColumn() updatedAt: Date;
+}
+
 export const ALL_ENTITIES = [
-  Organization, Family, Child, Content, Feedback, Expert, ForumTopic, ForumPost, ForumReport, License, Payment, UsageEvent, AdminUser,
+  Organization, Family, Child, Content, Feedback, Expert, ForumTopic, ForumPost, ForumReport, License, Payment, UsageEvent, AdminUser, ReviewRequest,
 ];

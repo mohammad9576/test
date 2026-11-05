@@ -138,6 +138,22 @@ class KidsLauncherActivity : ComponentActivity(), KioskController {
         }
     }
 
+    override fun exitToPhone() {
+        exitKidSpace()
+        val home = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
+        val other = packageManager.queryIntentActivities(home, 0)
+            .map { it.activityInfo }
+            .firstOrNull { it.packageName != packageName && it.packageName != "com.android.settings" && it.packageName != "com.android.fallback" }
+        if (other != null) {
+            runCatching {
+                startActivity(Intent(home).setClassName(other.packageName, other.name).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            }
+        }
+        finishAndRemoveTask()
+    }
+
+    override fun openDefaultHomeSettings() = openHomeSettings()
+
     private fun openHomeSettings() {
         runCatching { startActivity(Intent(android.provider.Settings.ACTION_HOME_SETTINGS)) }
             .recoverCatching { startActivity(deviceOwnerManager.defaultAppsSettingsIntent()) }

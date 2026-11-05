@@ -1,5 +1,6 @@
 package com.kodomo.app.ui.parent.ratings
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
@@ -171,20 +172,23 @@ fun ContentPassportScreen(contentId: String, onBack: () -> Unit, viewModel: Cont
         val i = item ?: return@KidScreenScaffold
         val r = i.rating
         Column(
-            Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp),
+            Modifier.fillMaxSize().padding(padding).background(MaterialTheme.colorScheme.background).verticalScroll(rememberScrollState()).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface, androidx.compose.foundation.shape.RoundedCornerShape(20.dp)).padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
                 com.kodomo.app.ui.components.ContentCover(i, Modifier.size(width = 96.dp, height = 132.dp), emojiSize = 48)
                 Spacer(Modifier.width(14.dp))
-                Column {
+                Column(Modifier.weight(1f)) {
                     Text(i.title, style = MaterialTheme.typography.headlineSmall)
                     Text("${i.type.label} • ${i.category}", style = MaterialTheme.typography.labelLarge, color = KodomoColors.Green)
                     Text("سن پیشنهادی: ${r.minAge.fa()} تا ${r.maxAge.fa()} سال", style = MaterialTheme.typography.titleSmall)
                     if (i.author.isNotBlank()) Text(i.author, style = MaterialTheme.typography.labelSmall)
                 }
             }
-            Text(i.description, style = MaterialTheme.typography.bodyLarge)
+            KodomoCard(Modifier.fillMaxWidth()) { Text(i.description, style = MaterialTheme.typography.bodyLarge) }
             i.sourceUrl?.let { url ->
                 val context = androidx.compose.ui.platform.LocalContext.current
                 androidx.compose.material3.TextButton(onClick = {

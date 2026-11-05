@@ -8,6 +8,7 @@ import { getToken, setToken } from '@/lib/api';
 const NAV = [
   { href: '/', label: 'داشبورد', icon: '📊' },
   { href: '/content', label: 'مدیریت محتوا', icon: '🎬' },
+  { href: '/review-requests', label: 'درخواست ارزیابی', icon: '📝' },
   { href: '/families', label: 'خانواده‌ها', icon: '👨‍👩‍👧' },
   { href: '/licenses', label: 'لایسنس و مالی', icon: '💳' },
   { href: '/forum', label: 'نظارت بر تالارها', icon: '💬' },

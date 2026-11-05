@@ -119,6 +119,9 @@ abstract class ContentDao {
     @Query("SELECT mediaUrl FROM content WHERE id = :id")
     abstract suspend fun mediaUrl(id: String): String?
 
+    @Query("SELECT episodes FROM content WHERE id = :id")
+    abstract suspend fun episodes(id: String): String?
+
     @Query("SELECT COUNT(*) FROM content WHERE sourceUrl LIKE 'https://kodoumo.ir%'")
     abstract fun observeImportedCount(): Flow<Int>
 

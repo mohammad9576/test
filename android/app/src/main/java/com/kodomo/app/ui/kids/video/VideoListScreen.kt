@@ -94,6 +94,8 @@ private fun VideoCard(video: ContentItem, downloaded: Boolean, onClick: () -> Un
                 Text("مدت زمان: ${video.durationMinutes.fa()} دقیقه", style = MaterialTheme.typography.bodySmall)
                 Text("رده سنی: +${video.rating.minAge.fa()} سال", style = MaterialTheme.typography.bodySmall)
                 Text(video.category, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                if (video.parentOnly) Text("👨‍👩‍👧 انتخاب پدر و مادر", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.tertiary)
+                if (video.episodes.size > 1) Text("📺 ${video.episodes.size.fa()} قسمت", style = MaterialTheme.typography.labelSmall)
                 if (video.sourceUrl?.startsWith("https://kodoumo.ir") == true) Text("✅ تأییدشده توسط کدومو", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                 if (video.mediaUrl == null && video.trailerUrl != null) Text("🎞️ پیش‌نمایش", style = MaterialTheme.typography.labelSmall)
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {

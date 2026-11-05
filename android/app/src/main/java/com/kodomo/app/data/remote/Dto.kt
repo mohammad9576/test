@@ -82,6 +82,12 @@ data class ContentDto(
 @Serializable data class CatalogResponseDto(val items: List<ContentDto>, val updatedAt: String)
 
 @Serializable
+data class ReviewRequestDto(val title: String, val kind: String, val url: String, val note: String, val childAge: Int, val deviceId: String)
+
+@Serializable
+data class ReviewRequestResponseDto(val id: String = "", val requests: Int = 1)
+
+@Serializable
 data class FeedbackDto(val contentId: String, val liked: Boolean, val comment: String, val childAge: Int)
 
 @Serializable

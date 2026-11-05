@@ -108,7 +108,7 @@ fun ModuleTile(
     onClick: () -> Unit,
 ) {
     val spec = LocalAgeUiSpec.current
-    // pop-in entrance (staggered by position) + a gentle idle wiggle of the icon and a light sweep across the card
+    // pop-in entrance (staggered by position) + a gentle idle bob of the icon over soft bubbles
     val appear = remember { androidx.compose.animation.core.Animatable(0f) }
     androidx.compose.runtime.LaunchedEffect(Unit) {
         kotlinx.coroutines.delay(index * 70L)
@@ -120,10 +120,10 @@ fun ModuleTile(
         androidx.compose.animation.core.infiniteRepeatable(androidx.compose.animation.core.tween(1_400 + index * 90), androidx.compose.animation.core.RepeatMode.Reverse),
         label = "wiggle",
     )
-    val shine by idle.animateFloat(
-        -1f, 2f,
-        androidx.compose.animation.core.infiniteRepeatable(androidx.compose.animation.core.tween(3_800, delayMillis = index * 250, easing = androidx.compose.animation.core.LinearEasing)),
-        label = "shine",
+    val bob by idle.animateFloat(
+        0f, 1f,
+        androidx.compose.animation.core.infiniteRepeatable(androidx.compose.animation.core.tween(2_200 + index * 120, easing = androidx.compose.animation.core.FastOutSlowInEasing), androidx.compose.animation.core.RepeatMode.Reverse),
+        label = "bob",
     )
     Box(
         modifier = modifier
@@ -140,18 +140,16 @@ fun ModuleTile(
             .bouncyClick(onClick)
             .padding(12.dp),
     ) {
+        // Soft decoration instead of a moving light: a glossy top edge and two floating bubbles.
         androidx.compose.foundation.Canvas(Modifier.matchParentSize()) {
-            val x = size.width * shine
             drawRect(
-                Brush.linearGradient(
-                    listOf(Color.Transparent, Color.White.copy(alpha = 0.28f), Color.Transparent),
-                    start = androidx.compose.ui.geometry.Offset(x - size.width * 0.3f, 0f),
-                    end = androidx.compose.ui.geometry.Offset(x, size.height),
-                ),
+                Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.22f), Color.Transparent), endY = size.height * 0.45f),
             )
+            drawCircle(Color.White.copy(alpha = 0.13f), size.minDimension * 0.42f, androidx.compose.ui.geometry.Offset(size.width * 0.92f, size.height * (0.95f - bob * 0.06f)))
+            drawCircle(Color.White.copy(alpha = 0.10f), size.minDimension * 0.16f, androidx.compose.ui.geometry.Offset(size.width * 0.1f, size.height * (0.2f + bob * 0.08f)))
         }
         Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-            Text(emoji, fontSize = spec.iconSizeSp.sp, modifier = Modifier.graphicsLayer { rotationZ = wiggle })
+            Text(emoji, fontSize = spec.iconSizeSp.sp, modifier = Modifier.graphicsLayer { rotationZ = wiggle * 0.5f; translationY = -bob * 6f })
             if (spec.showCardLabels) {
                 Spacer(Modifier.height(6.dp))
                 Text(

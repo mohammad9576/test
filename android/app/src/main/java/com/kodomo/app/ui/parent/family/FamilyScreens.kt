@@ -57,6 +57,7 @@ import com.kodomo.app.domain.model.AvatarKind
 import com.kodomo.app.domain.model.Child
 import com.kodomo.app.domain.model.ChildDraft
 import com.kodomo.app.domain.model.MemoryPhoto
+import com.kodomo.app.domain.model.MemorySource
 import com.kodomo.app.domain.model.ParentalSettings
 import com.kodomo.app.domain.repository.FamilyRepository
 import com.kodomo.app.domain.repository.MemoryRepository
@@ -123,6 +124,7 @@ fun FamilyTab(
         item { MemberRow(AvatarKind.ROBOT, "حساب ابری و همگام‌سازی", "ورود با کد یکبارمصرف، پشتیبان پروفایل‌ها و پایش زنده", onOpenCloud) }
         item { OutlinedButton(onClick = { changePin = true }, modifier = Modifier.fillMaxWidth()) { Text("🔐 تغییر رمز والدین") } }
         item { CrashReportCard() }
+        item { ExitAppCard() }
     }
 
     if (editFamily) {
@@ -258,6 +260,10 @@ class MemoriesViewModel @Inject constructor(private val memoryRepository: Memory
     }
 
     fun delete(memory: MemoryPhoto) = viewModelScope.launch { memoryRepository.delete(memory) }
+
+    fun import(jpeg: ByteArray, childId: Long, caption: String) = viewModelScope.launch {
+        memoryRepository.saveJpeg(childId, jpeg, caption.ifBlank { "خاطره" }, MemorySource.MANUAL)
+    }
 }
 
 /** Parents-only, encrypted memories gallery. Images are decrypted in memory only while displayed. */
@@ -266,9 +272,19 @@ fun MemoriesGalleryScreen(onBack: () -> Unit, viewModel: MemoriesViewModel = hil
     val memories by viewModel.memories.collectAsStateWithLifecycle()
     val children by viewModel.children.collectAsStateWithLifecycle()
     var open by remember { mutableStateOf<MemoryPhoto?>(null) }
-    KidScreenScaffold(title = "گالری محرمانه‌ی خاطرات", onBack = onBack) { padding ->
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    var picked by remember { mutableStateOf<ByteArray?>(null) }
+    val picker = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia()) { uri ->
+        if (uri != null) scope.launch { picked = com.kodomo.app.core.util.importImageAsJpeg(context, uri) }
+    }
+    KidScreenScaffold(title = "گالری محرمانه‌ی خاطرات", onBack = onBack, actions = {
+        TextButton(onClick = {
+            picker.launch(androidx.activity.result.PickVisualMediaRequest(androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia.ImageOnly))
+        }) { Text("➕ از گالری") }
+    }) { padding ->
         if (memories.isEmpty()) {
-            EmptyState("هنوز خاطره‌ای ثبت نشده. عکس‌های گام پنجم «پروژه‌های من» اینجا ذخیره می‌شوند.", Modifier.padding(padding))
+            EmptyState("هنوز خاطره‌ای ثبت نشده. عکس‌های پروژه‌ها اینجا ذخیره می‌شوند؛ با «➕ از گالری» هم می‌توانید عکس اضافه کنید.", Modifier.padding(padding))
             return@KidScreenScaffold
         }
         LazyVerticalGrid(
@@ -297,6 +313,32 @@ fun MemoriesGalleryScreen(onBack: () -> Unit, viewModel: MemoriesViewModel = hil
                 }
             }
         }
+    }
+    picked?.let { jpeg ->
+        var caption by remember { mutableStateOf("") }
+        var childId by remember { mutableStateOf(children.firstOrNull()?.id) }
+        AlertDialog(
+            onDismissRequest = { picked = null },
+            title = { Text("افزودن به خاطرات") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    androidx.compose.material3.OutlinedTextField(value = caption, onValueChange = { caption = it.take(80) }, label = { Text("توضیح") })
+                    androidx.compose.foundation.lazy.LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        items(children.size) { i ->
+                            val c = children[i]
+                            androidx.compose.material3.FilterChip(selected = childId == c.id, onClick = { childId = c.id }, label = { Text(c.name) })
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(enabled = childId != null, onClick = {
+                    childId?.let { viewModel.import(jpeg, it, caption) }
+                    picked = null
+                }) { Text("ذخیره (رمزنگاری‌شده)") }
+            },
+            dismissButton = { TextButton(onClick = { picked = null }) { Text("انصراف") } },
+        )
     }
     open?.let { memory ->
         val image by produceState<ImageBitmap?>(null, memory.id) { value = viewModel.bitmap(memory) }
@@ -332,5 +374,32 @@ private fun CrashReportCard() {
                 report = null
             }) { Text("حذف") }
         }
+    }
+}
+
+/** The parent's way out of Kodomo: back to the phone's own launcher, optionally changing the default Home app. */
+@Composable
+private fun ExitAppCard() {
+    val kiosk = com.kodomo.app.kiosk.LocalKioskController.current
+    var confirm by remember { mutableStateOf(false) }
+    KodomoCard(Modifier.fillMaxWidth()) {
+        Text("🚪 خروج از کدومو", style = MaterialTheme.typography.titleMedium)
+        Text(
+            "برنامه بسته می‌شود و صفحه‌ی اصلی گوشی باز می‌شود. اگر کدومو لانچر پیش‌فرض است و می‌خواهید بعد از خاموش و روشن شدن هم گوشی عادی بالا بیاید، لانچر پیش‌فرض را عوض کنید.",
+            style = MaterialTheme.typography.bodySmall,
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            androidx.compose.material3.Button(onClick = { confirm = true }, modifier = Modifier.weight(1f)) { Text("خروج از برنامه") }
+            OutlinedButton(onClick = { kiosk.openDefaultHomeSettings() }, modifier = Modifier.weight(1f)) { Text("تغییر لانچر پیش‌فرض") }
+        }
+    }
+    if (confirm) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { confirm = false },
+            title = { Text("خروج از کدومو؟") },
+            text = { Text("محیط امن کودک بسته می‌شود. برای برگشت، آیکون کدومو را بزنید.") },
+            confirmButton = { TextButton(onClick = { confirm = false; kiosk.exitToPhone() }) { Text("خروج") } },
+            dismissButton = { TextButton(onClick = { confirm = false }) { Text("انصراف") } },
+        )
     }
 }

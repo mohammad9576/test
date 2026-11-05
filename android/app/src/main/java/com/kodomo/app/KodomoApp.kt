@@ -18,6 +18,8 @@ class KodomoApp : Application() {
 
     @Inject lateinit var kodoumoImporter: KodoumoImporter
 
+    @Inject lateinit var reviewRequests: com.kodomo.app.data.remote.ReviewRequestSender
+
     private val startupScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override fun onCreate() {
@@ -27,6 +29,7 @@ class KodomoApp : Application() {
             runCatching { catalogSeeder.seedIfEmpty() }.onFailure { Log.e("KodomoApp", "Catalog seeding failed", it) }
             // Refresh age ratings & reviews from kodoumo.ir (reachable from Iranian networks) at most twice a day.
             runCatching { kodoumoImporter.syncIfStale() }.onFailure { Log.w("KodomoApp", "kodoumo.ir sync skipped", it) }
+            runCatching { reviewRequests.flush() }
         }
     }
 }

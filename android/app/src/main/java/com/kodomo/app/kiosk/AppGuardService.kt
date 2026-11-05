@@ -41,12 +41,14 @@ class AppGuardService : Service() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private var lastForeground: String? = null
     private var lastBringFront = 0L
+    private lateinit var bubble: ReturnBubble
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onCreate() {
         super.onCreate()
         running = true
+        bubble = ReturnBubble(this) { bringKodomoToFront(force = true) }
         scope.launch { guardLoop() }
     }
 
@@ -62,6 +64,7 @@ class AppGuardService : Service() {
 
     override fun onDestroy() {
         running = false
+        bubble.hide()
         scope.cancel()
         super.onDestroy()
     }
@@ -84,18 +87,23 @@ class AppGuardService : Service() {
 
     private suspend fun guardLoop() {
         while (scope.isActive) {
-            delay(900)
+            delay(600)
             val state = screenTime.state.value
-            if (state.child == null) continue
+            if (state.child == null) { bubble.hide(); continue }
             val fg = foregroundPackage() ?: continue
-            if (fg == packageName || fg in ignoredPackages) continue
+            if (fg == packageName) { bubble.hide(); continue }
+            if (fg in ignoredPackages) continue
             val allowed = session.current().allowedApps
             val blocked = state.lock != ScreenTimeManager.LockReason.NONE || fg !in allowed
             if (blocked) {
+                bubble.hide()
                 bringKodomoToFront()
-            } else if (!screenTime.externalAppActive) {
-                val label = runCatching { packageManager.getApplicationLabel(packageManager.getApplicationInfo(fg, 0)).toString() }.getOrDefault(fg)
-                screenTime.enterExternalApp(label, fg)
+            } else {
+                bubble.show(state.remainingSeconds)
+                if (!screenTime.externalAppActive) {
+                    val label = runCatching { packageManager.getApplicationLabel(packageManager.getApplicationInfo(fg, 0)).toString() }.getOrDefault(fg)
+                    screenTime.enterExternalApp(label, fg)
+                }
             }
         }
     }
@@ -114,9 +122,9 @@ class AppGuardService : Service() {
         return lastForeground
     }
 
-    private fun bringKodomoToFront() {
+    private fun bringKodomoToFront(force: Boolean = false) {
         val now = System.currentTimeMillis()
-        if (now - lastBringFront < 1_500) return
+        if (!force && now - lastBringFront < 800) return
         lastBringFront = now
         runCatching {
             startActivity(
@@ -125,6 +133,7 @@ class AppGuardService : Service() {
             )
         }.onFailure { Log.w(TAG, "Cannot bring Kodomo to front (grant «display over other apps»)", it) }
         lastForeground = packageName
+        bubble.hide()
     }
 
     companion object {

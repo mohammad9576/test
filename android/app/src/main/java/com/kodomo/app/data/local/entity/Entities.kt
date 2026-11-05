@@ -95,6 +95,10 @@ data class ContentEntity(
     val imageUrl: String? = null,
     val trailerUrl: String? = null,
     val sourceUrl: String? = null,
+    /** Episode pages of a series, one «url\ttitle» per line (Telewebion series approved by a parent). */
+    val episodes: String? = null,
+    /** True when a parent approved the title without an expert (kodoumo) evaluation; an evaluation was requested. */
+    val parentOnly: Boolean = false,
 )
 
 @Entity(

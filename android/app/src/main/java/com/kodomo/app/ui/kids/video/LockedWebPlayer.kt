@@ -118,6 +118,7 @@ fun LockedWebPlayer(
     modifier: Modifier = Modifier,
     onPageChanged: (url: String, title: String) -> Unit = { _, _ -> },
     onWebView: (WebView) -> Unit = {},
+    visible: Boolean = true,
 ) {
     var fullscreenView by remember { mutableStateOf<View?>(null) }
     val pinned = lock is WebLock.Pinned
@@ -218,6 +219,14 @@ fun LockedWebPlayer(
                     }
                     onWebView(this)
                     loadUrl(home)
+                }
+            },
+            update = { web ->
+                // Hidden (e.g. while the parent reads the kodoumo review): pause it so no video surface draws over the UI.
+                val target = if (visible) View.VISIBLE else View.GONE
+                if (web.visibility != target) {
+                    web.visibility = target
+                    if (visible) web.onResume() else web.onPause()
                 }
             },
         )

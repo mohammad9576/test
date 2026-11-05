@@ -21,6 +21,9 @@ interface KodomoApi {
     @GET("content/catalog")
     suspend fun catalog(@Query("since") since: String?): CatalogResponseDto
 
+    @POST("content/review-requests")
+    suspend fun requestReview(@Body body: ReviewRequestDto): ReviewRequestResponseDto
+
     @POST("content/feedback")
     suspend fun sendFeedback(@Body body: FeedbackDto)
 

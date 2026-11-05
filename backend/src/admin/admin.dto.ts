@@ -84,3 +84,8 @@ export class AdminUserInput {
   @IsString() @Length(2, 80) fullName: string;
   @IsIn(['SUPER_ADMIN', 'CONTENT_EDITOR', 'MODERATOR', 'FINANCE']) role: 'SUPER_ADMIN' | 'CONTENT_EDITOR' | 'MODERATOR' | 'FINANCE';
 }
+
+export class ReviewRequestDecision {
+  @IsIn(['PENDING', 'IN_REVIEW', 'DONE', 'REJECTED']) status: 'PENDING' | 'IN_REVIEW' | 'DONE' | 'REJECTED';
+  @IsString() @Length(0, 1000) adminNote: string;
+}

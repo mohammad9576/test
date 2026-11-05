@@ -138,7 +138,8 @@ fun KidHomeScreen(onOpen: (String) -> Unit, childId: Long, viewModel: KidHomeVie
 
     BackHandler(enabled = true) { }
     TrackActivity(ActivityCategory.HOME, "خانه")
-    LaunchedEffect(child.id) { space.voice.speakLine(greeting) }
+    // Greet once when the child enters the kids space, not every time they come back to the home screen.
+    LaunchedEffect(child.id) { if (GreetingMemory.shouldGreet(child.id)) space.voice.speakLine(greeting) }
 
     val bounce = rememberInfiniteTransition(label = "avatar")
     val avatarScale by bounce.animateFloat(1f, if (spec.gamified) 1.06f else 1f, infiniteRepeatable(tween(900), RepeatMode.Reverse), label = "s")
@@ -207,5 +208,17 @@ fun KidHomeScreen(onOpen: (String) -> Unit, childId: Long, viewModel: KidHomeVie
             )
         }
         item(span = { GridItemSpan(maxLineSpan) }) { Spacer(Modifier.height(24.dp)) }
+    }
+}
+
+/** Remembers when each child was last greeted aloud, so returning from a section stays quiet. */
+internal object GreetingMemory {
+    private val last = mutableMapOf<Long, Long>()
+    fun shouldGreet(childId: Long, quietMillis: Long = 45 * 60_000L): Boolean {
+        val now = System.currentTimeMillis()
+        val previous = last[childId]
+        if (previous != null && now - previous < quietMillis) return false
+        last[childId] = now
+        return true
     }
 }

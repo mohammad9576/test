@@ -78,6 +78,8 @@ data class KodomoRating(
     val familyValues: Int,
 )
 
+data class Episode(val url: String, val title: String)
+
 data class ContentItem(
     val id: String,
     val type: ContentType,
@@ -105,6 +107,10 @@ data class ContentItem(
     val trailerUrl: String? = null,
     /** Original review page (kodoumo.ir) the rating was imported from. */
     val sourceUrl: String? = null,
+    /** Episodes of a series the parent approved (each played pinned to its own page). */
+    val episodes: List<Episode> = emptyList(),
+    /** Approved by the parent only; no expert evaluation yet (an evaluation request was sent to the Kodomo team). */
+    val parentOnly: Boolean = false,
 ) {
     /** What the kids player should play: the parent-approved full video, otherwise the trailer. */
     val playableUrl: String? get() = mediaUrl ?: trailerUrl

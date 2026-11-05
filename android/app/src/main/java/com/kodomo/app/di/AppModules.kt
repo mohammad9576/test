@@ -56,7 +56,7 @@ object CoreModule {
     @Provides @Singleton
     fun provideDatabase(@ApplicationContext context: Context): KodomoDatabase =
         Room.databaseBuilder(context, KodomoDatabase::class.java, KodomoDatabase.NAME)
-            .addMigrations(KodomoDatabase.MIGRATION_1_2)
+            .addMigrations(KodomoDatabase.MIGRATION_1_2, KodomoDatabase.MIGRATION_2_3)
             .build()
 
     @Provides @Singleton

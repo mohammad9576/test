@@ -19,6 +19,7 @@ import com.kodomo.app.domain.model.ActivityLog
 import com.kodomo.app.domain.model.Child
 import com.kodomo.app.domain.model.ClassSession
 import com.kodomo.app.domain.model.ContentItem
+import com.kodomo.app.domain.model.Episode
 import com.kodomo.app.domain.model.ContentPage
 import com.kodomo.app.domain.model.CraftProject
 import com.kodomo.app.domain.model.EncyclopediaEntry
@@ -51,6 +52,11 @@ fun ContentEntity.toDomain() = ContentItem(
     positives = positives, negatives = negatives, expertReview = expertReview, expertName = expertName,
     peerLikes = peerLikes, peerDislikes = peerDislikes, interests = interests, author = author,
     imageUrl = imageUrl, trailerUrl = trailerUrl, sourceUrl = sourceUrl,
+    episodes = episodes.orEmpty().lines().mapNotNull { line ->
+        val parts = line.split('\t')
+        parts.getOrNull(0)?.takeIf { it.startsWith("http") }?.let { Episode(it, parts.getOrNull(1).orEmpty()) }
+    },
+    parentOnly = parentOnly,
 )
 
 fun ContentItem.toEntity() = ContentEntity(
@@ -61,6 +67,8 @@ fun ContentItem.toEntity() = ContentEntity(
     familyValues = rating.familyValues, positives = positives, negatives = negatives, expertReview = expertReview,
     expertName = expertName, peerLikes = peerLikes, peerDislikes = peerDislikes, interests = interests, author = author,
     imageUrl = imageUrl, trailerUrl = trailerUrl, sourceUrl = sourceUrl,
+    episodes = episodes.takeIf { it.isNotEmpty() }?.joinToString("\n") { "${it.url}\t${it.title.replace('\t', ' ').replace('\n', ' ')}" },
+    parentOnly = parentOnly,
 )
 
 fun ContentPageEntity.toDomain() = ContentPage(contentId, pageIndex, text, emoji)

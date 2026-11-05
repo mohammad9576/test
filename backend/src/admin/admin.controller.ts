@@ -2,7 +2,7 @@ import { Body, Controller, Delete, Get, HttpCode, Param, ParseBoolPipe, ParseUUI
 import { AdminAuthGuard, AdminRoles } from '../common/auth';
 import { StorageService } from '../storage/storage.module';
 import {
-  AdminUserInput, ContentInput, ExpertInput, ExpertReplyInput, LicenseInput, OrganizationInput, ReportDecision, UploadRequest,
+  AdminUserInput, ContentInput, ExpertInput, ExpertReplyInput, LicenseInput, OrganizationInput, ReportDecision, ReviewRequestDecision, UploadRequest,
 } from './admin.dto';
 import { AdminService } from './admin.service';
 
@@ -21,6 +21,13 @@ export class AdminController {
   @Put('content/:id') @AdminRoles('CONTENT_EDITOR') updateContent(@Param('id', ParseUUIDPipe) id: string, @Body() input: ContentInput) { return this.admin.updateContent(id, input); }
   @Delete('content/:id') @HttpCode(204) @AdminRoles('CONTENT_EDITOR') deleteContent(@Param('id', ParseUUIDPipe) id: string) { return this.admin.deleteContent(id); }
   @Post('uploads') @AdminRoles('CONTENT_EDITOR') upload(@Body() body: UploadRequest) { return this.storage.presignUpload(body.fileName); }
+
+  // Parent requests to evaluate titles that have no expert rating yet
+  @Get('review-requests') @AdminRoles('CONTENT_EDITOR') reviewRequests(@Query('status') status?: string) { return this.admin.listReviewRequests(status); }
+  @Post('review-requests/:id') @HttpCode(204) @AdminRoles('CONTENT_EDITOR')
+  decideReviewRequest(@Param('id', ParseUUIDPipe) id: string, @Body() body: ReviewRequestDecision) {
+    return this.admin.setReviewRequestStatus(id, body.status, body.adminNote);
+  }
 
   // Feedback
   @Get('feedback/pending') @AdminRoles('MODERATOR') pendingFeedback() { return this.admin.pendingFeedback(); }

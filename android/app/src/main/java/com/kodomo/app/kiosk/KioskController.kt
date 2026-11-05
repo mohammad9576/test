@@ -23,6 +23,12 @@ interface KioskController {
 
     /** Opens a parent-approved app from the kids space (temporarily lifting screen pinning when needed). */
     fun launchExternalApp(intent: android.content.Intent): Boolean
+
+    /** Parent only: leaves Kodomo completely and opens the phone's own launcher (works even when Kodomo is default Home). */
+    fun exitToPhone()
+
+    /** Parent only: opens the system screen where the default launcher can be changed back. */
+    fun openDefaultHomeSettings()
 }
 
 val LocalKioskController = staticCompositionLocalOf<KioskController> {

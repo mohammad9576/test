@@ -2,6 +2,7 @@ package com.kodomo.app.ui.parent.ratings
 
 import android.webkit.WebView
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -41,6 +42,7 @@ import com.kodomo.app.data.kodoumo.KodoumoClient
 import com.kodomo.app.data.kodoumo.KodoumoImporter
 import com.kodomo.app.data.kodoumo.KodoumoListItem
 import com.kodomo.app.data.kodoumo.KodoumoReview
+import com.kodomo.app.domain.model.Episode
 import com.kodomo.app.ui.components.KidScreenScaffold
 import com.kodomo.app.ui.components.KodomoCard
 import com.kodomo.app.ui.components.RatingPill
@@ -66,10 +68,39 @@ internal fun cleanTelewebionTitle(title: String): String {
     return t.replace(Regex("""[\-–—:«»"]+"""), " ").replace(Regex("""\s+"""), " ").trim()
 }
 
+/** Collects every episode link visible on a Telewebion series / program page. */
+private const val COLLECT_EPISODES_JS = """
+(function(){
+  var out = [], seen = {};
+  document.querySelectorAll('a[href]').forEach(function(a){
+    var h = a.href;
+    if (/\/episode\//.test(h) && !seen[h]) {
+      seen[h] = 1;
+      var t = (a.getAttribute('title') || a.getAttribute('aria-label') || a.innerText || '').trim().replace(/\s+/g, ' ').slice(0, 80);
+      out.push([h, t]);
+    }
+  });
+  return JSON.stringify(out.slice(0, 300));
+})()
+"""
+
+/** Parses the evaluateJavascript result (a JSON-encoded string holding a JSON array of [url, title]). */
+internal fun parseEpisodeLinks(raw: String?): List<Episode> = runCatching {
+    val inner = kotlinx.serialization.json.Json.parseToJsonElement(raw ?: "null")
+    val text = (inner as? kotlinx.serialization.json.JsonPrimitive)?.content ?: return emptyList()
+    (kotlinx.serialization.json.Json.parseToJsonElement(text) as kotlinx.serialization.json.JsonArray).mapNotNull { e ->
+        val pair = e as? kotlinx.serialization.json.JsonArray ?: return@mapNotNull null
+        val url = (pair.getOrNull(0) as? kotlinx.serialization.json.JsonPrimitive)?.content ?: return@mapNotNull null
+        val title = (pair.getOrNull(1) as? kotlinx.serialization.json.JsonPrimitive)?.content.orEmpty()
+        if (url.startsWith("https://") && WebLockRules.hostMatches(android.net.Uri.parse(url).host.orEmpty(), WebLockRules.telewebionHosts)) Episode(url, title) else null
+    }
+}.getOrDefault(emptyList())
+
 @HiltViewModel
 class TelewebionPickerViewModel @Inject constructor(
     private val client: KodoumoClient,
     private val importer: KodoumoImporter,
+    private val reviewRequests: com.kodomo.app.data.remote.ReviewRequestSender,
 ) : ViewModel() {
 
     data class State(
@@ -108,14 +139,31 @@ class TelewebionPickerViewModel @Inject constructor(
 
     fun clearSelection() = _state.update { it.copy(selected = null, review = null) }
 
-    fun approve(pageUrl: String) = viewModelScope.launch {
+    fun approve(pageUrl: String, episodes: List<Episode>) = viewModelScope.launch {
         val s = _state.value
         val item = s.selected ?: return@launch
         val review = s.review ?: return@launch
-        runCatching { importer.saveApprovedVideo(item, review, pageUrl) }
-            .onSuccess { e -> _state.update { State(saved = "«${e.title}» با ارزیابی کدومو به فیلم‌های کودک اضافه شد ✅") } }
+        runCatching { importer.saveApprovedVideo(item, review, pageUrl, episodes) }
+            .onSuccess { e -> _state.update { State(saved = "«${e.title}» با ارزیابی کدومو اضافه شد ✅" + episodesNote(episodes)) } }
             .onFailure { err -> _state.update { it.copy(error = err.message ?: "ذخیره نشد.") } }
     }
+
+    /** No (finished) kodoumo evaluation: the parent takes responsibility and the Kodomo team is asked to evaluate it. */
+    fun approveWithoutRating(title: String, pageUrl: String, minAge: Int, note: String, episodes: List<Episode>) = viewModelScope.launch {
+        runCatching { importer.saveParentApprovedVideo(title, pageUrl, minAge, note, episodes) }
+            .onSuccess { e ->
+                val sent = reviewRequests.request(e.title, "TELEWEBION", pageUrl, note, minAge)
+                _state.update {
+                    State(
+                        saved = "«${e.title}» با تأیید شما اضافه شد ✅" + episodesNote(episodes) +
+                            if (sent) "\nدرخواست ارزیابی برای تیم کدومو ارسال شد." else "\nدرخواست ارزیابی ذخیره شد و با اتصال اینترنت ارسال می‌شود.",
+                    )
+                }
+            }
+            .onFailure { err -> _state.update { it.copy(error = err.message ?: "ذخیره نشد.") } }
+    }
+
+    private fun episodesNote(episodes: List<Episode>) = if (episodes.size > 1) " (${episodes.size.fa()} قسمت)" else ""
 
     fun reset() = _state.update { State() }
 }
@@ -123,7 +171,8 @@ class TelewebionPickerViewModel @Inject constructor(
 /**
  * Parent-side picker: browse telewebion.ir/kids (navigation limited to Telewebion), open a cartoon, then match it to
  * its kodoumo.ir review. The cartoon can be added for the child only after the parent has seen kodoumo's age rating,
- * indicator bars and «what parents should know» notes; works without a finished kodoumo evaluation are refused.
+ * indicator bars and «what parents should know» notes. Without a finished kodoumo evaluation the parent may still
+ * approve it on their own responsibility, which also sends an evaluation request to the Kodomo team.
  */
 @Composable
 fun TelewebionPickerScreen(onBack: () -> Unit, viewModel: TelewebionPickerViewModel = hiltViewModel()) {
@@ -133,6 +182,7 @@ fun TelewebionPickerScreen(onBack: () -> Unit, viewModel: TelewebionPickerViewMo
     var checking by remember { mutableStateOf(false) }
     var query by remember { mutableStateOf("") }
     var webView by remember { mutableStateOf<WebView?>(null) }
+    var episodes by remember { mutableStateOf<List<Episode>>(emptyList()) }
     val lock = remember { WebLock.SameSite(TELEWEBION_KIDS, WebLockRules.telewebionHosts) }
 
     BackHandler {
@@ -146,13 +196,14 @@ fun TelewebionPickerScreen(onBack: () -> Unit, viewModel: TelewebionPickerViewMo
     KidScreenScaffold(title = if (checking) "بررسی با کدومو" else "کارتون‌های تلوبیون", onBack = {
         if (checking) { checking = false; viewModel.reset() } else onBack()
     }) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding)) {
+        Column(Modifier.fillMaxSize().padding(padding).background(MaterialTheme.colorScheme.background)) {
             // The WebView stays composed (only shrunk) so the page the parent chose is kept while checking.
             LockedWebPlayer(
                 lock = lock,
-                modifier = if (checking) Modifier.fillMaxWidth().size(0.dp) else Modifier.fillMaxWidth().weight(1f),
+                modifier = if (checking) Modifier.fillMaxWidth().size(1.dp) else Modifier.fillMaxWidth().weight(1f),
                 onPageChanged = { url, title -> pageUrl = url; pageTitle = title },
                 onWebView = { webView = it },
+                visible = !checking,
             )
             if (!checking) {
                 Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -165,6 +216,12 @@ fun TelewebionPickerScreen(onBack: () -> Unit, viewModel: TelewebionPickerViewMo
                     Button(
                         onClick = {
                             query = cleanTelewebionTitle(pageTitle)
+                            val current = pageUrl
+                            // Remember every episode of the series shown on this page, so the child can pick between them.
+                            webView?.evaluateJavascript(COLLECT_EPISODES_JS) { raw ->
+                                val found = parseEpisodeLinks(raw)
+                                episodes = if (found.none { WebLockRules.samePage(it.url, current) }) listOf(Episode(current, pageTitle)) + found else found
+                            } ?: run { episodes = listOf(Episode(current, pageTitle)) }
                             checking = true
                             viewModel.search(query)
                         },
@@ -182,8 +239,13 @@ fun TelewebionPickerScreen(onBack: () -> Unit, viewModel: TelewebionPickerViewMo
                     onSearch = { viewModel.search(query) },
                     onSelect = viewModel::select,
                     onClear = viewModel::clearSelection,
-                    onApprove = { viewModel.approve(pageUrl); checking = false },
-                    modifier = Modifier.fillMaxWidth().weight(1f),
+                    episodes = episodes,
+                    onApprove = { viewModel.approve(pageUrl, episodes); checking = false },
+                    onApproveWithoutRating = { minAge, note ->
+                        viewModel.approveWithoutRating(query.ifBlank { cleanTelewebionTitle(pageTitle) }, pageUrl, minAge, note, episodes)
+                        checking = false
+                    },
+                    modifier = Modifier.fillMaxWidth().weight(1f).background(MaterialTheme.colorScheme.background),
                 )
             }
         }
@@ -200,13 +262,16 @@ private fun CheckPanel(
     onSearch: () -> Unit,
     onSelect: (KodoumoListItem) -> Unit,
     onClear: () -> Unit,
+    episodes: List<Episode>,
     onApprove: () -> Unit,
+    onApproveWithoutRating: (minAge: Int, note: String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(modifier, contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         item {
             Text("صفحه‌ی انتخاب‌شده: ${pageTitle.ifBlank { pageUrl }}", style = MaterialTheme.typography.labelMedium)
             Text(pageUrl, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+            if (episodes.size > 1) Text("📺 ${episodes.size.fa()} قسمت در این صفحه پیدا شد؛ کودک می‌تواند بین قسمت‌ها انتخاب کند.", style = MaterialTheme.typography.labelMedium, color = KodomoColors.Green)
         }
         val review = state.review
         val selected = state.selected
@@ -227,6 +292,9 @@ private fun CheckPanel(
                         color = KodomoColors.Danger,
                     )
                 }
+            }
+            if (state.searched && !state.searching && (state.results.isEmpty() || state.error != null)) {
+                item { ParentOnlyApprovalCard(onApproveWithoutRating) }
             }
             items(state.results, key = { it.slug }) { item ->
                 KodomoCard(Modifier.fillMaxWidth(), onClick = { onSelect(item) }) {
@@ -282,7 +350,8 @@ private fun CheckPanel(
                 item {
                     var confirmed by remember(review.id) { mutableStateOf(false) }
                     if (blocked) {
-                        Text("این اثر هنوز ارزیابی کامل کدومو را ندارد و قابل افزودن نیست.", color = KodomoColors.Danger)
+                        Text("این اثر هنوز ارزیابی کامل کدومو را ندارد.", color = KodomoColors.Danger)
+                        ParentOnlyApprovalCard(onApproveWithoutRating)
                     } else {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Checkbox(checked = confirmed, onCheckedChange = { confirmed = it })
@@ -297,6 +366,32 @@ private fun CheckPanel(
                 }
             }
         }
+    }
+}
+
+/**
+ * Approval without an expert rating: the parent picks the minimum age and confirms responsibility; the title is then
+ * playable and an evaluation request is sent to the Kodomo admin team.
+ */
+@Composable
+private fun ParentOnlyApprovalCard(onApprove: (minAge: Int, note: String) -> Unit) {
+    var minAge by remember { mutableStateOf(3) }
+    var note by remember { mutableStateOf("") }
+    var confirmed by remember { mutableStateOf(false) }
+    KodomoCard(Modifier.fillMaxWidth()) {
+        Text("پخش با تأیید شما (بدون ارزیابی کارشناسی)", style = MaterialTheme.typography.titleMedium)
+        Text(
+            "اگر خودتان این کارتون را دیده‌اید و مناسب می‌دانید، می‌توانید آن را تأیید کنید. کارتون با برچسب «تأیید والدین» پخش می‌شود و درخواست ارزیابی برای تیم کدومو ارسال می‌شود.",
+            style = MaterialTheme.typography.bodySmall,
+        )
+        Text("مناسب از سن: ${minAge.fa()} سال", style = MaterialTheme.typography.labelLarge)
+        androidx.compose.material3.Slider(value = minAge.toFloat(), onValueChange = { minAge = it.toInt() }, valueRange = 0f..15f, steps = 14)
+        OutlinedTextField(value = note, onValueChange = { note = it.take(500) }, label = { Text("یادداشت برای کارشناسان (اختیاری)") }, modifier = Modifier.fillMaxWidth())
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Checkbox(checked = confirmed, onCheckedChange = { confirmed = it })
+            Text("این کارتون را دیده‌ام و مسئولیت تأیید آن با من است.", style = MaterialTheme.typography.bodySmall)
+        }
+        Button(onClick = { onApprove(minAge, note) }, enabled = confirmed, modifier = Modifier.fillMaxWidth()) { Text("تأیید من و ارسال درخواست ارزیابی") }
     }
 }
 

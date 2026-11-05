@@ -4,7 +4,7 @@ import * as bcrypt from 'bcryptjs';
 import { MoreThan, Repository } from 'typeorm';
 import { toCatalogDto } from '../content/content.module';
 import {
-  AdminUser, Child, Content, Expert, Family, Feedback, ForumPost, ForumReport, ForumTopic, License, Organization, Payment, UsageEvent,
+  AdminUser, Child, Content, Expert, Family, Feedback, ForumPost, ForumReport, ForumTopic, License, Organization, Payment, ReviewRequest, UsageEvent,
 } from '../entities';
 import { LiveGateway } from '../live/live.gateway';
 import {
@@ -27,8 +27,23 @@ export class AdminService {
     @InjectRepository(Expert) private readonly experts: Repository<Expert>,
     @InjectRepository(UsageEvent) private readonly usage: Repository<UsageEvent>,
     @InjectRepository(AdminUser) private readonly admins: Repository<AdminUser>,
+    @InjectRepository(ReviewRequest) private readonly reviewRequests: Repository<ReviewRequest>,
     private readonly live: LiveGateway,
   ) {}
+
+  // ---------- Evaluation requests from parents ----------
+  listReviewRequests(status?: string) {
+    const where = status ? { status: status as ReviewRequest['status'] } : {};
+    return this.reviewRequests.find({ where, order: { requests: 'DESC', createdAt: 'ASC' }, take: 300 });
+  }
+
+  async setReviewRequestStatus(id: string, status: ReviewRequest['status'], adminNote: string) {
+    const r = await this.reviewRequests.findOne({ where: { id } });
+    if (!r) throw new NotFoundException('درخواست یافت نشد');
+    r.status = status;
+    r.adminNote = adminNote;
+    await this.reviewRequests.save(r);
+  }
 
   // ---------- Dashboard ----------
   async stats() {
