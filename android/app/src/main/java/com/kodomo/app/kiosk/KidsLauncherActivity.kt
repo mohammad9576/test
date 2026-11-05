@@ -37,6 +37,10 @@ class KidsLauncherActivity : ComponentActivity(), KioskController {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
+        if (com.kodomo.app.BuildConfig.DEBUG) {
+            com.kodomo.app.core.demo.DemoMode.route = intent?.getStringExtra("demo_route")
+            com.kodomo.app.core.demo.DemoMode.age = intent?.getIntExtra("demo_age", 7) ?: 7
+        }
         super.onCreate(savedInstanceState)
         window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) window.setHideOverlayWindows(true)

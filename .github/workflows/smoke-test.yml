@@ -1,0 +1,76 @@
+name: Emulator smoke test
+
+on:
+  push:
+    branches: [ "claude/**", "main" ]
+    paths:
+      - "android/**"
+      - ".github/workflows/smoke-test.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    name: Open every screen on an emulator
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        working-directory: android
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: "platforms;android-35 build-tools;35.0.0 platform-tools"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Build debug APK with x86_64 libraries
+        run: chmod +x ./gradlew && ./gradlew --no-daemon assembleDebug -PwithX86
+
+      - name: Enable KVM
+        working-directory: .
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Run smoke test on emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 30
+          target: google_apis
+          arch: x86_64
+          profile: pixel_4
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back emulated -camera-front emulated
+          working-directory: android
+          script: bash tools/smoke_test.sh app/build/outputs/apk/debug/app-debug.apk smoke-out
+
+      - name: Publish screenshots to the ci-screens branch
+        if: always()
+        working-directory: android/smoke-out
+        run: |
+          git init -q
+          git config user.name "kodomo-ci"
+          git config user.email "ci@kodomo.local"
+          echo "run ${{ github.run_number }} – commit ${{ github.sha }}" > RUN.txt
+          git checkout -q -b ci-screens
+          git add -A
+          git commit -q -m "Smoke test screenshots for ${{ github.sha }}"
+          git push -q -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" ci-screens
+
+      - name: Fail on crashes
+        run: "! grep -q '^CRASH' smoke-out/report.txt"

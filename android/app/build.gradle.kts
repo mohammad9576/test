@@ -20,7 +20,8 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
         // Real phones only (ARM); drops emulator x86 copies of the ML Kit native libraries to keep the APK small.
-        ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
+        // Phones are ARM; the emulator smoke test (-PwithX86) also needs x86_64.
+        ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") + if (project.hasProperty("withX86")) listOf("x86_64") else emptyList() }
 
         buildConfigField("String", "API_BASE_URL", "\"https://api.kodomo.ir/v1/\"")
         buildConfigField("String", "WS_BASE_URL", "\"wss://api.kodomo.ir/live\"")
