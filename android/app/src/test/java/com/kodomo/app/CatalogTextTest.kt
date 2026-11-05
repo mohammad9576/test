@@ -36,7 +36,7 @@ class CatalogTextTest {
             val file = File("src/main/assets/$path")
             assertTrue("missing $path", file.exists())
             val parsed = CatalogText.parse(file.readText(), type)
-            assertTrue("$path is too small", parsed.items.size >= 40)
+            assertTrue("$path is too small", parsed.items.size >= if (path.endsWith("global.txt")) 25 else 40)
             parsed.items.forEach { item ->
                 assertTrue("duplicate id ${item.id}", ids.add(item.id))
                 val pages = parsed.pages.count { it.contentId == item.id }

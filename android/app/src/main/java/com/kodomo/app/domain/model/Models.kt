@@ -116,7 +116,7 @@ data class ContentItem(
     val playableUrl: String? get() = mediaUrl ?: trailerUrl
 }
 
-data class ContentPage(val contentId: String, val index: Int, val text: String, val emoji: String)
+data class ContentPage(val contentId: String, val index: Int, val text: String, val emoji: String, val image: String? = null)
 
 data class Feedback(val childId: Long, val contentId: String, val liked: Boolean, val comment: String, val createdAt: Instant)
 

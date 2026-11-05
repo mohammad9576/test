@@ -33,6 +33,10 @@ import javax.inject.Inject
 class BookListViewModel @Inject constructor(savedState: SavedStateHandle, contentRepository: ContentRepository) : ViewModel() {
     val books: StateFlow<List<ContentItem>> = contentRepository.observeAllowedForChild(savedState.childId, ContentType.BOOK)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /** Real printed books reviewed by kodoumo.ir for this age – shown as «books to ask your parents for». */
+    val printed: StateFlow<List<ContentItem>> = contentRepository.observeAllowedForChild(savedState.childId, ContentType.BOOK_REVIEW)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 }
 
 /**

@@ -34,6 +34,40 @@ data class SafeSite(val host: String, val title: String, val emoji: String) {
 class SafeSitesStore @Inject constructor(@ApplicationContext private val context: Context) {
     private val sitesKey = stringSetPreferencesKey("sites")
     private val requestsKey = stringSetPreferencesKey("requests")
+    private val bookmarksKey = stringSetPreferencesKey("bookmarks")
+    private val historyKey = androidx.datastore.preferences.core.stringPreferencesKey("history")
+    private val seededKey = androidx.datastore.preferences.core.booleanPreferencesKey("seeded_v1")
+
+    /** Page bookmarks of the child, «url␟title». */
+    val bookmarks: Flow<List<Pair<String, String>>> = context.sitesStore.data.map { p ->
+        p[bookmarksKey].orEmpty().mapNotNull { raw -> raw.split('\u001F').takeIf { it.size == 2 }?.let { it[0] to it[1] } }.sortedBy { it.second }
+    }
+
+    /** Last visited pages (newest first) for the parent: «epochMillis␟url␟title». */
+    val history: Flow<List<Triple<Long, String, String>>> = context.sitesStore.data.map { p ->
+        p[historyKey].orEmpty().lines().mapNotNull { l -> l.split('\u001F').takeIf { it.size == 3 }?.let { Triple(it[0].toLongOrNull() ?: 0L, it[1], it[2]) } }
+    }
+
+    suspend fun toggleBookmark(url: String, title: String) = context.sitesStore.edit { p ->
+        val current = p[bookmarksKey].orEmpty()
+        val existing = current.firstOrNull { it.startsWith(url + "\u001F") }
+        p[bookmarksKey] = if (existing != null) current - existing else current + (url + "\u001F" + title.ifBlank { url }.take(60))
+    }
+
+    suspend fun logVisit(url: String, title: String) = context.sitesStore.edit { p ->
+        val lines = p[historyKey].orEmpty().lines().filter { it.isNotBlank() }
+        if (lines.firstOrNull()?.split('\u001F')?.getOrNull(1) == url) return@edit
+        p[historyKey] = (listOf("${System.currentTimeMillis()}\u001F$url\u001F${title.replace('\n', ' ').take(80)}") + lines).take(200).joinToString("\n")
+    }
+
+    suspend fun clearHistory() = context.sitesStore.edit { it.remove(historyKey) }
+
+    /** On first use a small set of well-known children's sites is approved; the parent can remove any of them. */
+    suspend fun seedDefaults() = context.sitesStore.edit { p ->
+        if (p[seededKey] == true) return@edit
+        p[seededKey] = true
+        p[sitesKey] = p[sitesKey].orEmpty() + defaults.map { it.copy(host = SafeSite.normalizeHost(it.host)).encode() }
+    }
 
     val sites: Flow<List<SafeSite>> = context.sitesStore.data.map { p -> p[sitesKey].orEmpty().mapNotNull(SafeSite::decode).sortedBy { it.title } }
     val requests: Flow<List<String>> = context.sitesStore.data.map { p -> p[requestsKey].orEmpty().sorted() }
@@ -55,6 +89,14 @@ class SafeSitesStore @Inject constructor(@ApplicationContext private val context
     suspend fun dismissRequest(host: String) = context.sitesStore.edit { p -> p[requestsKey] = p[requestsKey].orEmpty() - host }
 
     companion object {
+        /** Approved on first use (removable in the parent hub). */
+        val defaults = listOf(
+            SafeSite("global-asp.github.io", "کتاب‌های مصور جهان (فارسی)", "📗"),
+            SafeSite("kids.nationalgeographic.com", "نشنال جئوگرافیک کودکان", "🌍"),
+            SafeSite("spaceplace.nasa.gov", "ناسا برای بچه‌ها", "🚀"),
+            SafeSite("scratch.mit.edu", "اسکرچ – برنامه‌نویسی تصویری", "🐱"),
+        )
+
         /** One-tap suggestions in the parent screen (the parent still decides; nothing is allowed by default). */
         val suggestions = listOf(
             SafeSite("kodoumo.ir", "کدومو – نقد و رده‌بندی محتوا", "🛡️"),

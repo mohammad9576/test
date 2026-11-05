@@ -83,6 +83,12 @@ class SafeBrowserViewModel @Inject constructor(
 
     fun requestSite(host: String) = viewModelScope.launch { sitesStore.request(host) }
 
+    val bookmarks = sitesStore.bookmarks.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    fun toggleBookmark(url: String, title: String) = viewModelScope.launch { sitesStore.toggleBookmark(url, title) }
+    fun logVisit(url: String, title: String) = viewModelScope.launch { if (url.startsWith("http")) sitesStore.logVisit(url, title) }
+
+    init { viewModelScope.launch { sitesStore.seedDefaults() } }
+
     /** Kodomo's own pages (discoveries, lessons, books) that match the search – part of the «safe web». */
     val pageResults: StateFlow<List<com.kodomo.app.domain.model.ContentItem>> = kotlinx.coroutines.flow.combine(
         contentRepository.observeAllowedForChild(savedState.childId, com.kodomo.app.domain.model.ContentType.EXPLORE),
@@ -134,6 +140,8 @@ fun SafeBrowserScreen(onBack: () -> Unit, onOpen: (Int) -> Unit, onOpenRoute: (S
     val results by viewModel.results.collectAsStateWithLifecycle()
     val pages by viewModel.pageResults.collectAsStateWithLifecycle()
     val sites by viewModel.sites.collectAsStateWithLifecycle()
+    val bookmarks by viewModel.bookmarks.collectAsStateWithLifecycle()
+    var currentTitle by remember { androidx.compose.runtime.mutableStateOf("") }
     TrackActivity(ActivityCategory.BROWSER, "مرورگر امن")
 
     var address by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf("") }
@@ -190,6 +198,10 @@ fun SafeBrowserScreen(onBack: () -> Unit, onOpen: (Int) -> Unit, onOpenRoute: (S
                     keyboardActions = androidx.compose.foundation.text.KeyboardActions(onGo = { go(address); address = "" }),
                     modifier = Modifier.weight(1f),
                 )
+                if (openSite != null) {
+                    val marked = bookmarks.any { it.first == currentUrl }
+                    androidx.compose.material3.IconButton(onClick = { if (currentUrl.isNotBlank()) viewModel.toggleBookmark(currentUrl, currentTitle) }) { Text(if (marked) "⭐" else "☆", fontSize = 22.sp) }
+                }
                 androidx.compose.material3.IconButton(onClick = { if (openSite != null) web?.reload() else go(address) }) { Text("⟳", fontSize = 22.sp) }
                 androidx.compose.material3.IconButton(onClick = { openSite = null; blocked = null; address = ""; viewModel.query.value = "" }) { Text("🏠", fontSize = 20.sp) }
             }
@@ -211,7 +223,7 @@ fun SafeBrowserScreen(onBack: () -> Unit, onOpen: (Int) -> Unit, onOpenRoute: (S
                         com.kodomo.app.ui.kids.video.LockedWebPlayer(
                             lock = com.kodomo.app.ui.kids.video.WebLock.SameSite(site, hosts),
                             modifier = Modifier.fillMaxWidth().weight(1f),
-                            onPageChanged = { url, _ -> currentUrl = url; loading = false },
+                            onPageChanged = { url, title -> currentUrl = url; currentTitle = title; loading = false; viewModel.logVisit(url, title) },
                             onWebView = { web = it; loading = true },
                         )
                     }
@@ -236,6 +248,9 @@ fun SafeBrowserScreen(onBack: () -> Unit, onOpen: (Int) -> Unit, onOpenRoute: (S
                 else -> StartPage(
                     query = query,
                     sites = sites,
+                    bookmarks = bookmarks,
+                    onBookmark = { url -> blocked = null; openSite = url },
+                    onTopic = { t -> viewModel.query.value = t },
                     results = results,
                     pages = pages,
                     onSite = { s -> space.guide(s.title); blocked = null; openSite = s.homeUrl },
@@ -252,6 +267,9 @@ fun SafeBrowserScreen(onBack: () -> Unit, onOpen: (Int) -> Unit, onOpenRoute: (S
 private fun StartPage(
     query: String,
     sites: List<com.kodomo.app.data.prefs.SafeSite>,
+    bookmarks: List<Pair<String, String>>,
+    onBookmark: (String) -> Unit,
+    onTopic: (String) -> Unit,
     results: List<EncyclopediaEntry>,
     pages: List<com.kodomo.app.domain.model.ContentItem>,
     onSite: (com.kodomo.app.data.prefs.SafeSite) -> Unit,
@@ -273,23 +291,42 @@ private fun StartPage(
                     androidx.compose.foundation.lazy.LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         items(sites.size) { i ->
                             val s = sites[i]
+                            val palette = listOf(0xFF5AA9E6 to 0xFF1E5AA8, 0xFFF28AA6 to 0xFFB83265, 0xFFFFB648 to 0xFFE07B00, 0xFF5FB98A to 0xFF2E7D5B, 0xFF9B7FE6 to 0xFF5E3FB5)[i % 5]
                             Column(
                                 Modifier
-                                    .size(width = 96.dp, height = 104.dp)
-                                    .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(20.dp))
+                                    .size(width = 112.dp, height = 120.dp)
+                                    .background(androidx.compose.ui.graphics.Brush.verticalGradient(listOf(androidx.compose.ui.graphics.Color(palette.first), androidx.compose.ui.graphics.Color(palette.second))), RoundedCornerShape(22.dp))
                                     .bouncyClick { onSite(s) }
                                     .padding(8.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.Center,
                             ) {
-                                Text(s.emoji, fontSize = 36.sp)
-                                Text(s.title, style = MaterialTheme.typography.labelSmall, maxLines = 2, textAlign = TextAlign.Center)
+                                Text(s.emoji, fontSize = 40.sp)
+                                Text(s.title, style = MaterialTheme.typography.labelSmall, maxLines = 2, textAlign = TextAlign.Center, color = androidx.compose.ui.graphics.Color.White)
                             }
                         }
                     }
                 }
             } else {
                 item { Text("هنوز سایتی تأیید نشده؛ پدر و مادرت می‌توانند از پنل والدین سایت‌های امن را اضافه کنند.", style = MaterialTheme.typography.bodySmall) }
+            }
+            if (bookmarks.isNotEmpty()) {
+                item { Text("⭐ نشانک‌های من", style = MaterialTheme.typography.titleMedium) }
+                item {
+                    androidx.compose.foundation.lazy.LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(bookmarks.size) { i ->
+                            val (url, title) = bookmarks[i]
+                            androidx.compose.material3.AssistChip(onClick = { onBookmark(url) }, label = { Text(title, maxLines = 1) }, leadingIcon = { Text("⭐") })
+                        }
+                    }
+                }
+            }
+            item { Text("🔎 درباره‌ی چه چیزی می‌خواهی بدانی؟", style = MaterialTheme.typography.titleMedium) }
+            item {
+                val topics = listOf("🚀 فضا", "🦁 حیوانات", "🌋 طبیعت", "❤️ بدن ما", "🧲 علم", "🦖 دایناسور", "🌈 رنگین‌کمان", "🐝 زنبور")
+                androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    topics.forEach { t -> androidx.compose.material3.SuggestionChip(onClick = { onTopic(t.substringAfter(' ')) }, label = { Text(t) }) }
+                }
             }
             item { MascotSpeech("هر سؤالی داری بپرس! جواب‌ها را کارشناسان کدومو بررسی کرده‌اند.", MascotMood.THINKING) }
             item { Text("موضوع‌های دانشنامه", style = MaterialTheme.typography.titleMedium) }

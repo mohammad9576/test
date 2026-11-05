@@ -48,6 +48,8 @@ class SafeSitesViewModel @Inject constructor(private val store: SafeSitesStore) 
     fun add(site: SafeSite) = viewModelScope.launch { store.add(site) }
     fun remove(host: String) = viewModelScope.launch { store.remove(host) }
     fun dismiss(host: String) = viewModelScope.launch { store.dismissRequest(host) }
+    val history = store.history.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    fun clearHistory() = viewModelScope.launch { store.clearHistory() }
 }
 
 /** Parent: websites the kids browser may open, plus the child's «may I open…» requests. */
@@ -55,6 +57,7 @@ class SafeSitesViewModel @Inject constructor(private val store: SafeSitesStore) 
 fun SafeSitesScreen(onBack: () -> Unit, viewModel: SafeSitesViewModel = hiltViewModel()) {
     val sites by viewModel.sites.collectAsStateWithLifecycle()
     val requests by viewModel.requests.collectAsStateWithLifecycle()
+    val history by viewModel.history.collectAsStateWithLifecycle()
     var host by remember { mutableStateOf("") }
     var title by remember { mutableStateOf("") }
 
@@ -111,6 +114,18 @@ fun SafeSitesScreen(onBack: () -> Unit, viewModel: SafeSitesViewModel = hiltView
                     }
                 }
             }
+            item { SectionTitle("صفحه‌های بازدیدشده توسط کودک (${history.size})") }
+            if (history.isEmpty()) item { Text("هنوز صفحه‌ای باز نشده است.", style = MaterialTheme.typography.bodySmall) }
+            items(history.take(30), key = { "h_" + it.first + it.second }) { (time, url, title) ->
+                Column(Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
+                    Text(title.ifBlank { url }, style = MaterialTheme.typography.bodyMedium, maxLines = 1)
+                    Text(
+                        java.time.format.DateTimeFormatter.ofPattern("HH:mm").format(java.time.Instant.ofEpochMilli(time).atZone(java.time.ZoneId.systemDefault())) + " • " + url,
+                        style = MaterialTheme.typography.labelSmall, maxLines = 1,
+                    )
+                }
+            }
+            if (history.isNotEmpty()) item { TextButton(onClick = { viewModel.clearHistory() }) { Text("پاک کردن تاریخچه") } }
             item { SectionTitle("سایت‌های تأییدشده (${sites.size})") }
             items(sites, key = { "a_" + it.host }) { s ->
                 KodomoCard(Modifier.fillMaxWidth()) {

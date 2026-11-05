@@ -56,7 +56,7 @@ import com.kodomo.app.data.local.entity.SchoolTaskEntity
         ForumPostEntity::class,
         MemoryPhotoEntity::class,
     ],
-    version = 3,
+    version = 4,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -84,6 +84,13 @@ abstract class KodomoDatabase : RoomDatabase() {
                 db.execSQL("ALTER TABLE content ADD COLUMN imageUrl TEXT")
                 db.execSQL("ALTER TABLE content ADD COLUMN trailerUrl TEXT")
                 db.execSQL("ALTER TABLE content ADD COLUMN sourceUrl TEXT")
+            }
+        }
+
+        /** v4: page illustrations for real picture books. */
+        val MIGRATION_3_4 = object : androidx.room.migration.Migration(3, 4) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE content_pages ADD COLUMN image TEXT")
             }
         }
 

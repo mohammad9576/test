@@ -111,6 +111,8 @@ data class ContentPageEntity(
     val pageIndex: Int,
     val text: String,
     val emoji: String,
+    /** Illustration of the page (e.g. `file:///android_asset/catalog/img/0001/01.jpg`). */
+    val image: String? = null,
 )
 
 @Entity(

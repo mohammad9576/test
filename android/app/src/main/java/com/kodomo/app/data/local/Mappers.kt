@@ -71,8 +71,8 @@ fun ContentItem.toEntity() = ContentEntity(
     parentOnly = parentOnly,
 )
 
-fun ContentPageEntity.toDomain() = ContentPage(contentId, pageIndex, text, emoji)
-fun ContentPage.toEntity() = ContentPageEntity(contentId, index, text, emoji)
+fun ContentPageEntity.toDomain() = ContentPage(contentId, pageIndex, text, emoji, image)
+fun ContentPage.toEntity() = ContentPageEntity(contentId, index, text, emoji, image)
 
 fun ActivityLogEntity.toDomain() = ActivityLog(id, childId, category, title, contentId, startedAt, durationSeconds)
 

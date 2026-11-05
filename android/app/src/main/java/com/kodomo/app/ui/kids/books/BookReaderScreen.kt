@@ -37,6 +37,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -166,7 +167,20 @@ fun BookReaderScreen(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
-                        EmojiCover(p.emoji, book.colorStart, book.colorEnd, Modifier.fillMaxWidth().height(220.dp), emojiSize = 110, corner = 32.dp)
+                        if (p.image != null) {
+                            coil.compose.AsyncImage(
+                                model = p.image,
+                                contentDescription = null,
+                                contentScale = androidx.compose.ui.layout.ContentScale.Fit,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(260.dp)
+                                    .clip(RoundedCornerShape(32.dp))
+                                    .background(Color.White),
+                            )
+                        } else {
+                            EmojiCover(p.emoji, book.colorStart, book.colorEnd, Modifier.fillMaxWidth().height(220.dp), emojiSize = 110, corner = 32.dp)
+                        }
                         if (mode == ReadingMode.SELF) {
                             val words = p.text.split(" ")
                             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {

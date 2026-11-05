@@ -41,6 +41,20 @@ object CatalogText {
                 items += item
                 current = item
                 index = 0
+            } else if (line.startsWith("credit:")) {
+                // credits of real books: shown as author line; an optional «cover:path» sets the cover image
+                val c = current ?: return@forEach
+                val raw = line.removePrefix("credit:")
+                val cover = Regex("cover:(\\S+)").find(raw)?.groupValues?.get(1)
+                val text = raw.replace(Regex("•?\\s*cover:\\S+"), "").trim()
+                val updated = c.copy(author = text, expertName = "کتاب واقعی با مجوز آزاد", imageUrl = cover?.let { ASSET + it } ?: c.imageUrl)
+                items[items.lastIndex] = updated
+                current = updated
+            } else if (line.startsWith("img:")) {
+                val c = current ?: return@forEach
+                val split = line.indexOf('>')
+                if (split < 0) return@forEach
+                pages += ContentPage(c.id, index++, line.substring(split + 1).trim(), c.emoji, ASSET + line.substring(4, split).trim())
             } else {
                 val c = current ?: return@forEach
                 val split = line.indexOf('>')
@@ -53,8 +67,11 @@ object CatalogText {
         return Parsed(items.map { it.copy(durationMinutes = ((words[it.id] ?: 0) / 60 + 2).coerceAtMost(30)) }, pages)
     }
 
+    const val ASSET = "file:///android_asset/"
+
     /** Asset files and their content type. */
     val files = listOf(
+        "catalog/books_global.txt" to ContentType.BOOK,
         "catalog/books_toddler.txt" to ContentType.BOOK,
         "catalog/books_kid.txt" to ContentType.BOOK,
         "catalog/books_teen.txt" to ContentType.BOOK,
@@ -65,5 +82,5 @@ object CatalogText {
     )
 
     /** Bump whenever an asset catalog changes so installed apps re-import it. */
-    const val VERSION = 1
+    const val VERSION = 2
 }
