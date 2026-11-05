@@ -40,6 +40,7 @@ import com.kodomo.app.ui.mascot.MascotSpeech
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import com.kodomo.app.domain.model.MotionGame as G
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.flow.stateIn
 import com.kodomo.app.ui.kids.childId
@@ -50,19 +51,18 @@ import com.kodomo.app.ui.navigation.ReadingMode
 data class Suggestion(val title: String, val emoji: String, val kind: String, val route: String, val interests: Set<Interest>)
 
 /** Which Kodomo games fit which interest. */
-private val gamesByInterest: Map<Interest, List<com.kodomo.app.domain.model.MotionGame>> = with(com.kodomo.app.domain.model.MotionGame) {
+private val gamesByInterest: Map<Interest, List<com.kodomo.app.domain.model.MotionGame>> =
     mapOf(
-        Interest.SPORT to listOf(PING_PONG, PENALTY, GOALKEEPER, JUMPING_JACKS, SHAPE_WALL),
-        Interest.ART to listOf(FREE_DRAW, COLORING, STYLIST, BAKERY),
-        Interest.GAMES to listOf(TAP_RACE, AIR_HOCKEY, MEMORY_CARDS, CAR_RACE, SNAP_MATCH),
-        Interest.SCIENCE to listOf(MATH_BALLOONS, SLIDE_PUZZLE, COLOR_SEQUENCE, TILT_RESCUE),
-        Interest.ASTRONOMY to listOf(SPACE_GUARD, STAR_CATCH),
-        Interest.ANIMALS to listOf(WHACK_A_MOLE, FRUIT_CATCH, SHAKE_CLEAN),
-        Interest.MUSIC to listOf(FREEZE_DANCE, SIMON_SAYS, COLOR_SEQUENCE),
-        Interest.BOOKS to listOf(MEMORY_CARDS),
-        Interest.MOVIES to listOf(HAND_SLICE),
+        Interest.SPORT to listOf(G.PING_PONG, G.PENALTY, G.GOALKEEPER, G.JUMPING_JACKS, G.SHAPE_WALL),
+        Interest.ART to listOf(G.FREE_DRAW, G.COLORING, G.STYLIST, G.BAKERY),
+        Interest.GAMES to listOf(G.TAP_RACE, G.AIR_HOCKEY, G.MEMORY_CARDS, G.CAR_RACE, G.SNAP_MATCH),
+        Interest.SCIENCE to listOf(G.MATH_BALLOONS, G.SLIDE_PUZZLE, G.COLOR_SEQUENCE, G.TILT_RESCUE),
+        Interest.ASTRONOMY to listOf(G.SPACE_GUARD, G.STAR_CATCH),
+        Interest.ANIMALS to listOf(G.WHACK_A_MOLE, G.FRUIT_CATCH, G.SHAKE_CLEAN),
+        Interest.MUSIC to listOf(G.FREEZE_DANCE, G.SIMON_SAYS, G.COLOR_SEQUENCE),
+        Interest.BOOKS to listOf(G.MEMORY_CARDS),
+        Interest.MOVIES to listOf(G.HAND_SLICE),
     )
-}
 
 @HiltViewModel
 class InterestsViewModel @Inject constructor(
