@@ -82,7 +82,7 @@ fun KodomoNavHost(navController: NavHostController, startDestination: String) {
                 childId = childId,
             )
         }
-        kid(Routes.KID_INTERESTS, toProfiles) { _, _ -> InterestsScreen(onBack = back) }
+        kid(Routes.KID_INTERESTS, toProfiles) { _, _ -> InterestsScreen(onBack = back, onOpen = { route -> navController.navigate(route) }) }
         kid(Routes.KID_VIDEOS, toProfiles) { childId, _ ->
             VideoListScreen(onBack = back, onPlay = { id -> navController.navigate(Routes.kidVideo(childId, id)) })
         }
@@ -126,12 +126,27 @@ fun KodomoNavHost(navController: NavHostController, startDestination: String) {
         kid(Routes.KID_EXPLORE, toProfiles) { childId, _ ->
             ExploreScreen(onBack = back, onOpen = { id -> navController.navigate(Routes.kidExploreItem(childId, id)) })
         }
-        kid(Routes.KID_EXPLORE_ITEM, toProfiles, listOf(stringArg(Routes.ARG_ID))) { _, entry ->
-            ExploreDetailScreen(contentId = entry.stringArg(Routes.ARG_ID), onBack = back)
+        kid(Routes.KID_EXPLORE_ITEM, toProfiles, listOf(stringArg(Routes.ARG_ID))) { childId, entry ->
+            ExploreDetailScreen(
+                contentId = entry.stringArg(Routes.ARG_ID),
+                onBack = back,
+                onOpen = { id -> navController.navigate(Routes.kidExploreItem(childId, id)) },
+            )
         }
         kid(Routes.KID_APPS, toProfiles) { _, _ -> MyAppsScreen(onBack = back) }
         kid(Routes.KID_BROWSER, toProfiles) { childId, _ ->
-            SafeBrowserScreen(onBack = back, onOpen = { id -> navController.navigate(Routes.kidArticle(childId, id)) })
+            SafeBrowserScreen(
+                onBack = back,
+                onOpen = { id -> navController.navigate(Routes.kidArticle(childId, id)) },
+                onOpenRoute = { contentId ->
+                    val route = when {
+                        contentId.startsWith("ex") || contentId.startsWith("explore") -> Routes.kidExploreItem(childId, contentId)
+                        contentId.startsWith("l") -> Routes.kidLesson(childId, contentId)
+                        else -> Routes.kidBook(childId, contentId, com.kodomo.app.ui.navigation.ReadingMode.SELF.name)
+                    }
+                    navController.navigate(route)
+                },
+            )
         }
         kid(Routes.KID_ARTICLE, toProfiles, listOf(navArgument(Routes.ARG_ID) { type = NavType.IntType })) { _, entry ->
             EncyclopediaArticleScreen(articleId = entry.arguments?.getInt(Routes.ARG_ID) ?: 0, onBack = back)
@@ -157,8 +172,10 @@ fun KodomoNavHost(navController: NavHostController, startDestination: String) {
                 onOpenCloud = { navController.navigate(Routes.PARENT_CLOUD) },
                 onOpenAllowedApps = { navController.navigate(Routes.PARENT_ALLOWED_APPS) },
                 onOpenTelewebion = { navController.navigate(Routes.PARENT_TELEWEBION) },
+                onOpenSites = { navController.navigate(Routes.PARENT_SITES) },
             )
         }
+        composable(Routes.PARENT_SITES) { com.kodomo.app.ui.parent.apps.SafeSitesScreen(onBack = back) }
         composable(Routes.PARENT_TELEWEBION) { com.kodomo.app.ui.parent.ratings.TelewebionPickerScreen(onBack = back) }
         composable(Routes.PARENT_CONTENT, arguments = listOf(stringArg(Routes.ARG_ID))) { entry ->
             ContentPassportScreen(contentId = entry.stringArg(Routes.ARG_ID), onBack = back)

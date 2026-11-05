@@ -68,7 +68,7 @@ object WebLockRules {
         if (uri.scheme != "https" && uri.scheme != "http") return false
         return when (lock) {
             is WebLock.Pinned -> samePage(lock.url, url)
-            is WebLock.SameSite -> hostMatches(uri.host.orEmpty(), lock.hosts)
+            is WebLock.SameSite -> hostMatches(uri.host.orEmpty().removePrefix("www."), lock.hosts) || hostMatches(uri.host.orEmpty(), lock.hosts)
         }
     }
 
@@ -96,7 +96,7 @@ object WebLockRules {
           }
           var css = pinned
             ? 'header,footer,nav,aside,[class*="navbar" i],[class*="sidebar" i],[class*="banner" i],[class*="advert" i],[id*="advert" i],[class*="yektanet" i],[id*="yektanet" i],[class*="tapsell" i],[class*="download-app" i],[class*="app-promo" i],[class*="comment" i],[class*="share" i],[class*="social" i],iframe:not([src*="telewebion"]),a[target="_blank"]{display:none!important;}'
-            : '[class*="banner" i],[class*="advert" i],[id*="advert" i],[class*="yektanet" i],[id*="yektanet" i],[class*="tapsell" i],iframe:not([src*="telewebion"]){display:none!important;}';
+            : '[class*="advert" i],[id*="advert" i],[class*="yektanet" i],[id*="yektanet" i],[class*="tapsell" i]{display:none!important;}';
           var st = document.createElement('style'); st.textContent = css;
           (document.head || document.documentElement).appendChild(st);
           document.addEventListener('contextmenu', function(e){ e.preventDefault(); }, true);
@@ -127,6 +127,13 @@ fun LockedWebPlayer(
         is WebLock.SameSite -> lock.startUrl
     }
     val script = remember(pinned) { WebLockRules.lockScript(pinned) }
+    // Frames (players) may only come from the locked site itself.
+    val frameHosts = remember(lock) {
+        when (lock) {
+            is WebLock.Pinned -> WebLockRules.telewebionHosts + Uri.parse(lock.url).host.orEmpty().removePrefix("www.")
+            is WebLock.SameSite -> lock.hosts
+        }
+    }
 
     Box(modifier.background(Color.Black)) {
         AndroidView(
@@ -167,7 +174,7 @@ fun LockedWebPlayer(
                             val url = request.url.toString()
                             if (request.isForMainFrame) return !WebLockRules.allowsMainFrame(lock, url)
                             // Sub-frames: only the site's own player frames.
-                            return !WebLockRules.hostMatches(request.url.host.orEmpty(), WebLockRules.telewebionHosts)
+                            return !WebLockRules.hostMatches(request.url.host.orEmpty(), frameHosts)
                         }
 
                         override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? {
@@ -176,7 +183,7 @@ fun LockedWebPlayer(
                             // A foreign HTML document (an ad iframe) is never loaded.
                             val accept = request.requestHeaders["Accept"].orEmpty()
                             if (!request.isForMainFrame && accept.startsWith("text/html") &&
-                                !WebLockRules.hostMatches(host, WebLockRules.telewebionHosts)
+                                !WebLockRules.hostMatches(host, frameHosts)
                             ) return WebLockRules.empty()
                             return null
                         }

@@ -28,6 +28,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
@@ -65,6 +67,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import javax.inject.Inject
+import com.kodomo.app.ui.components.bouncyClick
 
 @OptIn(FlowPreview::class)
 @HiltViewModel
@@ -72,9 +75,24 @@ class SafeBrowserViewModel @Inject constructor(
     savedState: SavedStateHandle,
     familyRepository: FamilyRepository,
     private val encyclopedia: EncyclopediaRepository,
+    private val sitesStore: com.kodomo.app.data.prefs.SafeSitesStore,
+    contentRepository: com.kodomo.app.domain.repository.ContentRepository,
 ) : ViewModel() {
-    private val childId = savedState.childId
     val query = MutableStateFlow("")
+    val sites = sitesStore.sites.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    fun requestSite(host: String) = viewModelScope.launch { sitesStore.request(host) }
+
+    /** Kodomo's own pages (discoveries, lessons, books) that match the search – part of the «safe web». */
+    val pageResults: StateFlow<List<com.kodomo.app.domain.model.ContentItem>> = kotlinx.coroutines.flow.combine(
+        contentRepository.observeAllowedForChild(savedState.childId, com.kodomo.app.domain.model.ContentType.EXPLORE),
+        contentRepository.observeAllowedForChild(savedState.childId, com.kodomo.app.domain.model.ContentType.LEARNING),
+        contentRepository.observeAllowedForChild(savedState.childId, com.kodomo.app.domain.model.ContentType.BOOK),
+        query.debounce(250),
+    ) { a, b, c, q ->
+        if (q.isBlank()) emptyList() else (a + b + c).filter { it.title.contains(q.trim()) || it.description.contains(q.trim()) || it.category.contains(q.trim()) }.take(20)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    private val childId = savedState.childId
     private val age = MutableStateFlow(18)
 
     init {
@@ -104,54 +122,205 @@ class EncyclopediaArticleViewModel @Inject constructor(
     }
 }
 
-/** «مرورگر امن من»: searches only the curated offline encyclopedia; there is no WebView and no open-web access. */
+/**
+ * «مرورگر امن من»: a real browser feel – address bar, back/forward/reload/home, a start page with search and approved
+ * sites – but it only ever opens Kodomo's own pages and websites the parent approved. Any other address shows a
+ * friendly «not approved yet» page with a button that asks the parent.
+ */
 @Composable
-fun SafeBrowserScreen(onBack: () -> Unit, onOpen: (Int) -> Unit, viewModel: SafeBrowserViewModel = hiltViewModel()) {
+fun SafeBrowserScreen(onBack: () -> Unit, onOpen: (Int) -> Unit, onOpenRoute: (String) -> Unit = {}, viewModel: SafeBrowserViewModel = hiltViewModel()) {
     val space = LocalKidSpace.current
     val query by viewModel.query.collectAsStateWithLifecycle()
     val results by viewModel.results.collectAsStateWithLifecycle()
+    val pages by viewModel.pageResults.collectAsStateWithLifecycle()
+    val sites by viewModel.sites.collectAsStateWithLifecycle()
     TrackActivity(ActivityCategory.BROWSER, "مرورگر امن")
 
+    var address by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf("") }
+    var openSite by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf<String?>(null) }
+    var currentUrl by remember { androidx.compose.runtime.mutableStateOf("") }
+    var blocked by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf<String?>(null) }
+    var requested by remember { androidx.compose.runtime.mutableStateOf(false) }
+    var web by remember { androidx.compose.runtime.mutableStateOf<android.webkit.WebView?>(null) }
+    var loading by remember { androidx.compose.runtime.mutableStateOf(false) }
+    val hosts = sites.map { it.host.substringBefore('/') }
+
+    fun go(input: String) {
+        val text = input.trim()
+        if (text.isEmpty()) return
+        val looksLikeAddress = text.contains('.') && !text.contains(' ')
+        if (looksLikeAddress) {
+            val host = com.kodomo.app.data.prefs.SafeSite.normalizeHost(text).substringBefore('/')
+            if (hosts.any { host == it || host.endsWith(".$it") }) {
+                blocked = null
+                openSite = "https://" + com.kodomo.app.data.prefs.SafeSite.normalizeHost(text)
+            } else {
+                openSite = null
+                blocked = host
+                requested = false
+            }
+        } else {
+            openSite = null
+            blocked = null
+            viewModel.query.value = text.take(60)
+        }
+    }
+
+    androidx.activity.compose.BackHandler(enabled = openSite != null || blocked != null) {
+        when {
+            web?.canGoBack() == true -> web?.goBack()
+            else -> { openSite = null; blocked = null; address = "" }
+        }
+    }
+
     KidScreenScaffold(title = "مرورگر امن من", onBack = onBack) { padding ->
-        LazyColumn(
-            Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            item {
+        Column(Modifier.fillMaxSize().padding(padding)) {
+            // ---- toolbar ----
+            Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                androidx.compose.material3.IconButton(onClick = { web?.takeIf { it.canGoBack() }?.goBack() ?: run { openSite = null; blocked = null } }) { Text("→", fontSize = 22.sp) }
+                androidx.compose.material3.IconButton(onClick = { web?.takeIf { it.canGoForward() }?.goForward() }) { Text("←", fontSize = 22.sp) }
                 OutlinedTextField(
-                    value = query,
-                    onValueChange = { viewModel.query.value = it.take(60) },
-                    leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
-                    placeholder = { Text("دنبال چی می‌گردی؟ مثلاً «فضا»") },
+                    value = if (openSite != null && address.isEmpty()) android.net.Uri.parse(currentUrl.ifBlank { openSite }).host.orEmpty() else address,
+                    onValueChange = { address = it.take(120) },
+                    leadingIcon = { Text(if (openSite != null) "🔒" else "🔎") },
+                    placeholder = { Text("جستجو یا آدرس سایت") },
                     singleLine = true,
-                    shape = RoundedCornerShape(22.dp),
-                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(50),
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(imeAction = androidx.compose.ui.text.input.ImeAction.Go),
+                    keyboardActions = androidx.compose.foundation.text.KeyboardActions(onGo = { go(address); address = "" }),
+                    modifier = Modifier.weight(1f),
                 )
-                Row(
-                    Modifier.padding(top = 6.dp).background(KodomoColors.Mint, RoundedCornerShape(50)).padding(horizontal = 10.dp, vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(Icons.Rounded.Shield, contentDescription = null, tint = KodomoColors.Green, modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text("جستجوی امن و کنترل‌شده • فقط مطالب تأییدشده‌ی کدومو", style = MaterialTheme.typography.labelSmall, color = KodomoColors.GreenDark)
+                androidx.compose.material3.IconButton(onClick = { if (openSite != null) web?.reload() else go(address) }) { Text("⟳", fontSize = 22.sp) }
+                androidx.compose.material3.IconButton(onClick = { openSite = null; blocked = null; address = ""; viewModel.query.value = "" }) { Text("🏠", fontSize = 20.sp) }
+            }
+            if (loading && openSite != null) androidx.compose.material3.LinearProgressIndicator(Modifier.fillMaxWidth().padding(top = 4.dp))
+            Row(
+                Modifier.padding(horizontal = 16.dp, vertical = 4.dp).background(KodomoColors.Mint, RoundedCornerShape(50)).padding(horizontal = 10.dp, vertical = 3.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(Icons.Rounded.Shield, contentDescription = null, tint = KodomoColors.Green, modifier = Modifier.size(14.dp))
+                Spacer(Modifier.width(4.dp))
+                Text("اینترنت امن کدومو • فقط سایت‌های تأییدشده‌ی والدین", style = MaterialTheme.typography.labelSmall, color = KodomoColors.GreenDark)
+            }
+
+            val site = openSite
+            val blockedHost = blocked
+            when {
+                site != null -> {
+                    androidx.compose.runtime.key(site, hosts) {
+                        com.kodomo.app.ui.kids.video.LockedWebPlayer(
+                            lock = com.kodomo.app.ui.kids.video.WebLock.SameSite(site, hosts),
+                            modifier = Modifier.fillMaxWidth().weight(1f),
+                            onPageChanged = { url, _ -> currentUrl = url; loading = false },
+                            onWebView = { web = it; loading = true },
+                        )
+                    }
+                }
+                blockedHost != null -> {
+                    Column(
+                        Modifier.fillMaxSize().padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(14.dp, Alignment.CenterVertically),
+                    ) {
+                        Text("🙈", fontSize = 80.sp)
+                        Text("سایت «$blockedHost» هنوز تأیید نشده است.", style = MaterialTheme.typography.titleLarge, textAlign = TextAlign.Center)
+                        Text("می‌توانی از پدر یا مادرت بخواهی آن را بررسی کنند.", style = MaterialTheme.typography.bodyLarge, textAlign = TextAlign.Center)
+                        if (requested) {
+                            Text("✅ درخواستت فرستاده شد!", style = MaterialTheme.typography.titleMedium, color = KodomoColors.Green)
+                        } else {
+                            androidx.compose.material3.Button(onClick = { viewModel.requestSite(blockedHost); requested = true; space.celebrate() }) { Text("از مامان و بابا بپرس 🙋") }
+                        }
+                        OutlinedButton(onClick = { blocked = null }) { Text("برگشت به صفحه‌ی اول") }
+                    }
+                }
+                else -> StartPage(
+                    query = query,
+                    sites = sites,
+                    results = results,
+                    pages = pages,
+                    onSite = { s -> space.guide(s.title); blocked = null; openSite = s.homeUrl },
+                    onArticle = { e -> space.guide(e.title); onOpen(e.id) },
+                    onPage = { item -> space.guide(item.title); onOpenRoute(item.id) },
+                    modifier = Modifier.fillMaxWidth().weight(1f),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun StartPage(
+    query: String,
+    sites: List<com.kodomo.app.data.prefs.SafeSite>,
+    results: List<EncyclopediaEntry>,
+    pages: List<com.kodomo.app.domain.model.ContentItem>,
+    onSite: (com.kodomo.app.data.prefs.SafeSite) -> Unit,
+    onArticle: (EncyclopediaEntry) -> Unit,
+    onPage: (com.kodomo.app.domain.model.ContentItem) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    LazyColumn(modifier, contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        if (query.isBlank()) {
+            item {
+                Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("کدومو", style = MaterialTheme.typography.displaySmall, color = KodomoColors.Green)
+                    Text("جست‌وجوی امن برای بچه‌ها", style = MaterialTheme.typography.labelLarge)
                 }
             }
-            if (query.isBlank()) item { MascotSpeech("هر سؤالی داری بپرس! جواب‌ها را کارشناسان کدومو بررسی کرده‌اند.", MascotMood.THINKING) }
-            if (results.isEmpty() && query.isNotBlank()) item { EmptyState("چیزی پیدا نکردم! یک کلمه‌ی دیگر امتحان کن 🤔") }
-            items(results, key = { it.id }) { entry ->
-                KodomoCard(onClick = {
-                    space.guide(entry.title)
-                    onOpen(entry.id)
-                }) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(entry.emoji, fontSize = 40.sp)
-                        Spacer(Modifier.width(12.dp))
-                        Column(Modifier.weight(1f)) {
-                            Text(entry.title, style = MaterialTheme.typography.titleMedium)
-                            Text(entry.topic, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
-                            Text(entry.summary, style = MaterialTheme.typography.bodySmall, maxLines = 2)
+            if (sites.isNotEmpty()) {
+                item { Text("سایت‌های من", style = MaterialTheme.typography.titleMedium) }
+                item {
+                    androidx.compose.foundation.lazy.LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        items(sites.size) { i ->
+                            val s = sites[i]
+                            Column(
+                                Modifier
+                                    .size(width = 96.dp, height = 104.dp)
+                                    .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(20.dp))
+                                    .bouncyClick { onSite(s) }
+                                    .padding(8.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center,
+                            ) {
+                                Text(s.emoji, fontSize = 36.sp)
+                                Text(s.title, style = MaterialTheme.typography.labelSmall, maxLines = 2, textAlign = TextAlign.Center)
+                            }
                         }
+                    }
+                }
+            } else {
+                item { Text("هنوز سایتی تأیید نشده؛ پدر و مادرت می‌توانند از پنل والدین سایت‌های امن را اضافه کنند.", style = MaterialTheme.typography.bodySmall) }
+            }
+            item { MascotSpeech("هر سؤالی داری بپرس! جواب‌ها را کارشناسان کدومو بررسی کرده‌اند.", MascotMood.THINKING) }
+            item { Text("موضوع‌های دانشنامه", style = MaterialTheme.typography.titleMedium) }
+        } else {
+            if (results.isEmpty() && pages.isEmpty()) item { EmptyState("چیزی پیدا نکردم! یک کلمه‌ی دیگر امتحان کن 🤔") }
+            if (pages.isNotEmpty()) item { Text("صفحه‌های کدومو", style = MaterialTheme.typography.titleMedium) }
+            items(pages, key = { "p_" + it.id }) { item ->
+                KodomoCard(onClick = { onPage(item) }) {
+                    Text("kodomo › ${item.type.label} › ${item.category}", style = MaterialTheme.typography.labelSmall, color = KodomoColors.Green)
+                    Text("${item.emoji} ${item.title}", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                    Text(item.description, style = MaterialTheme.typography.bodySmall, maxLines = 2)
+                }
+            }
+            val matchingSites = sites.filter { it.title.contains(query.trim()) || it.host.contains(query.trim()) }
+            items(matchingSites, key = { "s_" + it.host }) { s ->
+                KodomoCard(onClick = { onSite(s) }) {
+                    Text(s.host, style = MaterialTheme.typography.labelSmall, color = KodomoColors.Green)
+                    Text("${s.emoji} ${s.title}", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                }
+            }
+            if (results.isNotEmpty()) item { Text("دانشنامه", style = MaterialTheme.typography.titleMedium) }
+        }
+        items(results, key = { "e_" + it.id }) { entry ->
+            KodomoCard(onClick = { onArticle(entry) }) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(entry.emoji, fontSize = 40.sp)
+                    Spacer(Modifier.width(12.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(entry.title, style = MaterialTheme.typography.titleMedium)
+                        Text(entry.topic, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                        Text(entry.summary, style = MaterialTheme.typography.bodySmall, maxLines = 2)
                     }
                 }
             }

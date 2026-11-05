@@ -36,6 +36,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -161,23 +162,42 @@ fun ProjectsScreen(onBack: () -> Unit, onOpen: (Long) -> Unit, viewModel: Projec
     if (creating) {
         var title by remember { mutableStateOf("") }
         var emoji by remember { mutableStateOf("🛩️") }
+        val templates = com.kodomo.app.domain.engine.ProjectTemplates.all.filter { it.minAge <= space.child.ageYears() + 1 }
         AlertDialog(
             onDismissRequest = { creating = false },
-            title = { Text("پروژه‌ی جدید") },
+            title = { Text("یک پروژه انتخاب کن") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("با هم قدم به قدم می‌سازیم:", style = MaterialTheme.typography.labelLarge)
+                    LazyColumn(Modifier.height(320.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(templates, key = { it.title }) { t ->
+                            Row(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .background(if (title == t.title) KodomoColors.MintDeep else MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(16.dp))
+                                    .bouncyClick { title = t.title; emoji = t.emoji }
+                                    .padding(10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(t.emoji, fontSize = 30.sp)
+                                Spacer(Modifier.width(10.dp))
+                                Column(Modifier.weight(1f)) {
+                                    Text(t.title, style = MaterialTheme.typography.titleSmall)
+                                    Text("⏱ حدود ${t.minutes.fa()} دقیقه • ${t.materials.size.fa()} وسیله", style = MaterialTheme.typography.labelSmall)
+                                }
+                            }
+                        }
+                    }
+                    Text("یا پروژه‌ی آزاد خودت:", style = MaterialTheme.typography.labelLarge)
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        items(projectIdeas) { (e, t) ->
+                        items(projectIdeas) { (e, _) ->
                             Box(
                                 Modifier
-                                    .size(52.dp)
+                                    .size(44.dp)
                                     .background(if (emoji == e) KodomoColors.MintDeep else MaterialTheme.colorScheme.surfaceVariant, CircleShape)
-                                    .bouncyClick {
-                                        emoji = e
-                                        if (title.isBlank()) title = t
-                                    },
+                                    .bouncyClick { emoji = e },
                                 contentAlignment = Alignment.Center,
-                            ) { Text(e, fontSize = 26.sp) }
+                            ) { Text(e, fontSize = 22.sp) }
                         }
                     }
                     OutlinedTextField(title, { title = it.take(40) }, label = { Text("اسم پروژه") }, singleLine = true)
@@ -239,8 +259,14 @@ fun ProjectWizardScreen(projectId: Long, onBack: () -> Unit, viewModel: ProjectW
             } else {
             val step = p.currentStep
             Text("${CraftProject.stepEmojis[step]} گام ${(step + 1).fa()}: ${CraftProject.stepTitles[step]}", style = MaterialTheme.typography.headlineSmall)
+            val template = com.kodomo.app.domain.engine.ProjectTemplates.byTitle(p.title)
+            var checkedAll by remember(step) { mutableStateOf(template == null) }
+            if (template != null && step < CraftProject.STEP_COUNT - 1) {
+                GuidedChecklist(step, template.phase(step), onAllChecked = { checkedAll = it })
+                Text("یادداشت خودت (اختیاری):", style = MaterialTheme.typography.labelLarge)
+            }
             when (step) {
-                0 -> StepNotes("چه وسایلی لازم داری؟ (مثلاً مقوا، چسب، قیچی)", p.materials) { viewModel.save(p.copy(materials = it)) }
+                0 -> StepNotes(if (template != null) "چیز دیگری هم اضافه کردی؟" else "چه وسایلی لازم داری؟ (مثلاً مقوا، چسب، قیچی)", p.materials) { viewModel.save(p.copy(materials = it)) }
                 1 -> StepNotes("چه قسمت‌هایی را باید ببری؟ یادت باشد با کمک بزرگ‌ترها از قیچی استفاده کنی ✂️", p.cuttingNotes) { viewModel.save(p.copy(cuttingNotes = it)) }
                 2 -> StepNotes("قطعه‌ها را چطور به هم وصل کردی؟", p.assemblyNotes) { viewModel.save(p.copy(assemblyNotes = it)) }
                 3 -> StepNotes("از چه رنگ‌هایی استفاده کردی؟ 🎨", p.paintingNotes) { viewModel.save(p.copy(paintingNotes = it)) }
@@ -255,12 +281,39 @@ fun ProjectWizardScreen(projectId: Long, onBack: () -> Unit, viewModel: ProjectW
             if (step < CraftProject.STEP_COUNT - 1) {
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedButton(onClick = { viewModel.save(p.copy(currentStep = step - 1)) }, enabled = step > 0, modifier = Modifier.weight(1f)) { Text("گام قبل") }
-                    KodomoPrimaryButton("ثبت گام ✅", onClick = {
+                    KodomoPrimaryButton(if (checkedAll) "ثبت گام ✅" else "اول همه را تیک بزن", enabled = checkedAll, onClick = {
                         viewModel.save(p.copy(currentStep = step + 1))
                         Toast.makeText(context, "گام ${(step + 1).fa()} ثبت شد!", Toast.LENGTH_SHORT).show()
                     }, modifier = Modifier.weight(1f))
                 }
             }
+            }
+        }
+    }
+}
+
+/** The template's sub-steps for this phase; each must be ticked (and can be read aloud) before moving on. */
+@Composable
+private fun GuidedChecklist(step: Int, items: List<String>, onAllChecked: (Boolean) -> Unit) {
+    val space = LocalKidSpace.current
+    val checked = remember(step) { androidx.compose.runtime.mutableStateListOf<Int>() }
+    LaunchedEffect(checked.size) { onAllChecked(checked.size == items.size) }
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        items.forEachIndexed { i, text ->
+            val on = i in checked
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .background(if (on) KodomoColors.Mint else MaterialTheme.colorScheme.surface, RoundedCornerShape(16.dp))
+                    .border(1.dp, if (on) KodomoColors.Green else MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp))
+                    .bouncyClick { if (on) checked.remove(i) else { checked.add(i); if (checked.size == items.size) space.celebrate() } }
+                    .padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(if (on) "✅" else "⬜", fontSize = 22.sp)
+                Spacer(Modifier.width(10.dp))
+                Text(text, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+                androidx.compose.material3.IconButton(onClick = { space.voice.speak(text) }) { Text("🔊") }
             }
         }
     }

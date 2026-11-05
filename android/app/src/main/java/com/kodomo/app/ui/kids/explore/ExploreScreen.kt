@@ -1,5 +1,13 @@
 package com.kodomo.app.ui.kids.explore
 
+import com.kodomo.app.ui.components.bouncyClick
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.unit.sp
+import androidx.compose.runtime.setValue
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -60,13 +68,25 @@ class ExploreViewModel @Inject constructor(savedState: SavedStateHandle, private
     fun toggleLike(id: String) = viewModelScope.launch { contentRepository.toggleLike(childId, id) }
 }
 
-/** Social-style but 100% curated discovery feed – no outbound links, no user-generated content. */
+/**
+ * Curated discovery feed (no outbound links, no user content): «fact of the day» hero, topic chips and a colourful
+ * grid ordered by the child's interests.
+ */
 @Composable
 fun ExploreScreen(onBack: () -> Unit, onOpen: (String) -> Unit, viewModel: ExploreViewModel = hiltViewModel()) {
     val space = LocalKidSpace.current
     val feed by viewModel.feed.collectAsStateWithLifecycle()
     val liked by viewModel.liked.collectAsStateWithLifecycle()
+    var topic by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf<String?>(null) }
     TrackActivity(ActivityCategory.EXPLORE, "کشف محتوا")
+
+    val interests = space.child.interests
+    val ordered = androidx.compose.runtime.remember(feed, interests) {
+        feed.sortedByDescending { it.interests.intersect(interests).size * 10 + (it.id.hashCode() and 7) }
+    }
+    val topics = androidx.compose.runtime.remember(feed) { feed.map { it.category }.distinct() }
+    val today = androidx.compose.runtime.remember(feed) { feed.takeIf { it.isNotEmpty() }?.get((java.time.LocalDate.now().toEpochDay() % feed.size).toInt()) }
+    val shown = ordered.filter { topic == null || it.category == topic }
 
     KidScreenScaffold(title = "کشف محتوا", onBack = onBack) { padding ->
         LazyVerticalStaggeredGrid(
@@ -76,18 +96,61 @@ fun ExploreScreen(onBack: () -> Unit, onOpen: (String) -> Unit, viewModel: Explo
             horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalItemSpacing = 10.dp,
         ) {
-            item(span = StaggeredGridItemSpan.FullLine) {
-                MascotSpeech("همه چیز برای تو: امن، تازه و سرگرم‌کننده! 🧭", MascotMood.HAPPY)
+            today?.let { fact ->
+                item(span = StaggeredGridItemSpan.FullLine) {
+                    Column(
+                        Modifier
+                            .fillMaxWidth()
+                            .background(
+                                androidx.compose.ui.graphics.Brush.linearGradient(listOf(androidx.compose.ui.graphics.Color(fact.colorStart), androidx.compose.ui.graphics.Color(fact.colorEnd))),
+                                androidx.compose.foundation.shape.RoundedCornerShape(28.dp),
+                            )
+                            .bouncyClick { space.guide(fact.title); onOpen(fact.id) }
+                            .padding(18.dp),
+                    ) {
+                        Text("✨ دانستنی امروز", style = MaterialTheme.typography.labelLarge, color = androidx.compose.ui.graphics.Color.White)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(fact.emoji, fontSize = 64.sp)
+                            Spacer(Modifier.width(12.dp))
+                            Column(Modifier.weight(1f)) {
+                                Text(fact.title, style = MaterialTheme.typography.titleLarge, color = androidx.compose.ui.graphics.Color.White)
+                                Text(fact.description, style = MaterialTheme.typography.bodyMedium, color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.92f))
+                            }
+                        }
+                    }
+                }
             }
-            items(feed, key = { it.id }) { post ->
-                val tall = post.id.hashCode() % 2 == 0
+            item(span = StaggeredGridItemSpan.FullLine) {
+                androidx.compose.foundation.lazy.LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    item { androidx.compose.material3.FilterChip(selected = topic == null, onClick = { topic = null }, label = { Text("همه") }) }
+                    items(topics.size) { i ->
+                        val t = topics[i]
+                        androidx.compose.material3.FilterChip(selected = topic == t, onClick = { topic = t }, label = { Text(t) })
+                    }
+                }
+            }
+            items(shown, key = { it.id }) { post ->
+                val tall = (post.id.hashCode() and 1) == 0
+                val forYou = post.interests.intersect(interests).isNotEmpty()
                 KodomoCard(Modifier.fillMaxWidth(), onClick = {
                     space.guide(post.title)
                     onOpen(post.id)
                 }) {
-                    EmojiCover(post.emoji, post.colorStart, post.colorEnd, Modifier.fillMaxWidth().height(if (tall) 150.dp else 100.dp), emojiSize = if (tall) 64 else 46, corner = 16.dp)
+                    Box {
+                        EmojiCover(post.emoji, post.colorStart, post.colorEnd, Modifier.fillMaxWidth().height(if (tall) 150.dp else 104.dp), emojiSize = if (tall) 66 else 48, corner = 18.dp)
+                        if (forYou) {
+                            Text(
+                                "💚 مخصوص تو",
+                                style = MaterialTheme.typography.labelSmall,
+                                modifier = Modifier
+                                    .padding(6.dp)
+                                    .background(androidx.compose.ui.graphics.Color.White.copy(alpha = 0.9f), androidx.compose.foundation.shape.RoundedCornerShape(50))
+                                    .padding(horizontal = 8.dp, vertical = 2.dp),
+                            )
+                        }
+                    }
                     Text(post.title, style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 8.dp))
-                    if (space.spec.showCardLabels) Text(post.description, style = MaterialTheme.typography.bodySmall)
+                    if (space.spec.showCardLabels) Text(post.description, style = MaterialTheme.typography.bodySmall, maxLines = 3)
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         IconButton(onClick = { viewModel.toggleLike(post.id) }) {
                             Icon(if (post.id in liked) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder, contentDescription = "پسندیدن", tint = MaterialTheme.colorScheme.tertiary)

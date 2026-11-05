@@ -148,11 +148,46 @@ fun KidsBackground(group: AgeGroup, dark: Boolean, modifier: Modifier = Modifier
             drawCircle(cloud, r, c + Offset(r * 2.1f, 0f))
             drawRoundRect(cloud, topLeft = c + Offset(0f, -r * 0.2f), size = Size(r * 2.1f, r * 1.2f), cornerRadius = CornerRadius(r))
         }
+        // a smiling sun with slowly turning rays
+        val sunC = Offset(size.width * 0.86f, size.height * 0.08f)
+        val sunR = size.minDimension * 0.07f
+        repeat(10) { i ->
+            val a = (i / 10f + drift) * 2 * PI
+            drawLine(
+                Color(0xFFFFC83D).copy(alpha = 0.55f),
+                sunC + Offset(kotlin.math.cos(a).toFloat() * sunR * 1.25f, sin(a).toFloat() * sunR * 1.25f),
+                sunC + Offset(kotlin.math.cos(a).toFloat() * sunR * 1.7f, sin(a).toFloat() * sunR * 1.7f),
+                strokeWidth = sunR * 0.18f,
+                cap = androidx.compose.ui.graphics.StrokeCap.Round,
+            )
+        }
+        drawCircle(Color(0xFFFFD54F).copy(alpha = 0.85f), sunR, sunC)
+        // rainbow arc for the youngest
+        if (group == AgeGroup.TODDLER) {
+            listOf(0xFFE57373, 0xFFFFB74D, 0xFFFFF176, 0xFF81C784, 0xFF64B5F6, 0xFFBA68C8).forEachIndexed { i, c ->
+                val r = size.width * (0.55f - i * 0.025f)
+                drawArc(
+                    Color(c).copy(alpha = 0.18f), 180f, 180f, false,
+                    topLeft = Offset(size.width * 0.5f - r, size.height * 0.62f - r), size = Size(r * 2, r * 2),
+                    style = androidx.compose.ui.graphics.drawscope.Stroke(size.width * 0.022f),
+                )
+            }
+        }
+        // rolling hills at the bottom
+        val hill = androidx.compose.ui.graphics.Path().apply {
+            moveTo(0f, size.height * 0.9f)
+            cubicTo(size.width * 0.25f, size.height * 0.82f, size.width * 0.45f, size.height * 0.95f, size.width * 0.7f, size.height * 0.87f)
+            cubicTo(size.width * 0.85f, size.height * 0.83f, size.width * 0.95f, size.height * 0.88f, size.width, size.height * 0.86f)
+            lineTo(size.width, size.height)
+            lineTo(0f, size.height)
+            close()
+        }
+        drawPath(hill, Color(0xFF9CCC65).copy(alpha = 0.28f))
         // floating bubbles
         bubbles.forEach { (x, y, s) ->
             val yy = ((y - bob * s * 0.3f) % 1f + 1f) % 1f
             val c = Offset(size.width * x + sin((bob + x) * 2 * PI).toFloat() * 12f, size.height * (0.35f + yy * 0.65f))
-            drawCircle(confettiColors[(x * 6).toInt().coerceIn(0, 5)].copy(alpha = 0.10f), 26f * s, c)
+            drawCircle(confettiColors[(x * 6).toInt().coerceIn(0, 5)].copy(alpha = 0.16f), 26f * s, c)
             drawCircle(Color.White.copy(alpha = 0.35f), 6f * s, c - Offset(8f * s, 8f * s))
         }
     }

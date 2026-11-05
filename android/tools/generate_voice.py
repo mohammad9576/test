@@ -9,6 +9,7 @@ with studio recordings using the same file names for a production release.
 import asyncio
 import pathlib
 import re
+import shutil
 import sys
 
 import edge_tts
@@ -27,6 +28,20 @@ def speakable(text: str) -> str:
     return re.sub(r"\s+", " ", EMOJI.sub(" ", text)).strip(" .،")
 
 
+async def shrink(target: pathlib.Path) -> None:
+    """Re-encodes a clip as 32 kbit/s mono MP3 (speech stays clear, the APK stays small). Skipped without ffmpeg."""
+    if not shutil.which("ffmpeg"):
+        return
+    tmp = target.with_suffix(".tmp.mp3")
+    proc = await asyncio.create_subprocess_exec(
+        "ffmpeg", "-loglevel", "error", "-y", "-i", str(target), "-ac", "1", "-ar", "22050", "-b:a", "32k", str(tmp),
+    )
+    if await proc.wait() == 0 and tmp.exists() and tmp.stat().st_size > 0:
+        tmp.replace(target)
+    else:
+        tmp.unlink(missing_ok=True)
+
+
 async def record(sem, key, text, out_dir, stats):
     target = out_dir / f"{key}.mp3"
     if target.exists() and target.stat().st_size > 0:
@@ -39,6 +54,7 @@ async def record(sem, key, text, out_dir, stats):
         for attempt in range(3):
             try:
                 await edge_tts.Communicate(clean, VOICE, rate=RATE, pitch=PITCH).save(str(target))
+                await shrink(target)
                 stats["new"] += 1
                 return
             except Exception as exc:  # network hiccups – retry with backoff

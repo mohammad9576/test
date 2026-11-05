@@ -30,6 +30,22 @@ class VoicePhraseExportTest {
         LearningCatalog.explore.forEach { phrases += it.title; phrases += it.description }
         EncyclopediaCatalog.entries.forEach { phrases += it.title; phrases += it.summary; phrases += it.body }
         (MediaCatalog.videos + MediaCatalog.music).forEach { phrases += it.title }
+        // Bundled text catalogs: titles and whole sentences of book pages / discovery cards (not single words, to keep
+        // the APK small). Lesson steps and project steps are read aloud too.
+        // Recorded: books for ages up to 8 and the discovery cards (young children cannot read yet). Teen books, lessons
+        // and project steps fall back to the device voice to keep the APK size reasonable.
+        com.kodomo.app.data.seed.CatalogText.files.forEach { (path, type) ->
+            val file = File("src/main/assets/$path")
+            if (!file.exists()) return@forEach
+            val parsed = com.kodomo.app.data.seed.CatalogText.parse(file.readText(), type)
+            parsed.items.forEach { phrases += it.title }
+            if (type == com.kodomo.app.domain.model.ContentType.BOOK || type == com.kodomo.app.domain.model.ContentType.EXPLORE) {
+                val young = parsed.items.filter { it.rating.minAge <= 8 }.map { it.id }.toSet()
+                parsed.pages.filter { it.contentId in young }.forEach { phrases += it.text }
+            }
+        }
+        com.kodomo.app.domain.engine.ProjectTemplates.all.forEach { phrases += it.title }
+        com.kodomo.app.domain.model.Buddy.entries.forEach { phrases += it.title }
 
         val normalized = phrases.map(VoiceKeys::normalize).filter { it.isNotEmpty() }.distinct()
         val out = File("build/voice/phrases.tsv").apply { parentFile?.mkdirs() }

@@ -40,9 +40,53 @@ import com.kodomo.app.ui.mascot.MascotSpeech
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.flow.stateIn
+import com.kodomo.app.ui.kids.childId
+import com.kodomo.app.ui.navigation.Routes
+import com.kodomo.app.ui.navigation.ReadingMode
+
+/** A suggestion shown under «علایق من»: any book, video, lesson, discovery or game that matches the interests. */
+data class Suggestion(val title: String, val emoji: String, val kind: String, val route: String, val interests: Set<Interest>)
+
+/** Which Kodomo games fit which interest. */
+private val gamesByInterest: Map<Interest, List<com.kodomo.app.domain.model.MotionGame>> = with(com.kodomo.app.domain.model.MotionGame) {
+    mapOf(
+        Interest.SPORT to listOf(PING_PONG, PENALTY, GOALKEEPER, JUMPING_JACKS, SHAPE_WALL),
+        Interest.ART to listOf(FREE_DRAW, COLORING, STYLIST, BAKERY),
+        Interest.GAMES to listOf(TAP_RACE, AIR_HOCKEY, MEMORY_CARDS, CAR_RACE, SNAP_MATCH),
+        Interest.SCIENCE to listOf(MATH_BALLOONS, SLIDE_PUZZLE, COLOR_SEQUENCE, TILT_RESCUE),
+        Interest.ASTRONOMY to listOf(SPACE_GUARD, STAR_CATCH),
+        Interest.ANIMALS to listOf(WHACK_A_MOLE, FRUIT_CATCH, SHAKE_CLEAN),
+        Interest.MUSIC to listOf(FREEZE_DANCE, SIMON_SAYS, COLOR_SEQUENCE),
+        Interest.BOOKS to listOf(MEMORY_CARDS),
+        Interest.MOVIES to listOf(HAND_SLICE),
+    )
+}
 
 @HiltViewModel
-class InterestsViewModel @Inject constructor(private val familyRepository: FamilyRepository) : ViewModel() {
+class InterestsViewModel @Inject constructor(
+    private val familyRepository: FamilyRepository,
+    contentRepository: com.kodomo.app.domain.repository.ContentRepository,
+    savedState: androidx.lifecycle.SavedStateHandle,
+) : ViewModel() {
+    private val childId = savedState.childId
+
+    /** Everything the child is allowed to see, turned into suggestions. Filtered by the live interest selection in the UI. */
+    val suggestions = kotlinx.coroutines.flow.combine(
+        contentRepository.observeAllowedForChild(childId, com.kodomo.app.domain.model.ContentType.BOOK),
+        contentRepository.observeAllowedForChild(childId, com.kodomo.app.domain.model.ContentType.VIDEO),
+        contentRepository.observeAllowedForChild(childId, com.kodomo.app.domain.model.ContentType.LEARNING),
+        contentRepository.observeAllowedForChild(childId, com.kodomo.app.domain.model.ContentType.EXPLORE),
+    ) { books, videos, lessons, explore ->
+        books.map { Suggestion(it.title, it.emoji, "📚 کتاب", Routes.kidBook(childId, it.id, ReadingMode.AUDIO.name), it.interests) } +
+            videos.filter { it.playableUrl != null }.map { Suggestion(it.title, it.emoji, "🎬 فیلم", Routes.kidVideo(childId, it.id), it.interests) } +
+            lessons.map { Suggestion(it.title, it.emoji, "🔬 آموزش", Routes.kidLesson(childId, it.id), it.interests) } +
+            explore.map { Suggestion(it.title, it.emoji, "🧭 کشف", Routes.kidExploreItem(childId, it.id), it.interests) } +
+            gamesByInterest.flatMap { (interest, games) -> games.map { Suggestion(it.title, it.emoji, "🎮 بازی", Routes.kidGame(childId, it), setOf(interest)) } }
+                .groupBy { it.route }.map { (_, list) -> list.first().copy(interests = list.flatMap { it.interests }.toSet()) }
+    }.stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5_000), emptyList())
+
     fun save(child: Child, interests: Set<Interest>, onDone: () -> Unit) = viewModelScope.launch {
         familyRepository.updateChild(child.copy(interests = interests))
         onDone()
@@ -50,9 +94,19 @@ class InterestsViewModel @Inject constructor(private val familyRepository: Famil
 }
 
 @Composable
-fun InterestsScreen(onBack: () -> Unit, viewModel: InterestsViewModel = hiltViewModel()) {
+fun InterestsScreen(onBack: () -> Unit, onOpen: (String) -> Unit = {}, viewModel: InterestsViewModel = hiltViewModel()) {
     val space = LocalKidSpace.current
     var selected by remember { mutableStateOf(space.child.interests) }
+    val all by viewModel.suggestions.collectAsStateWithLifecycle()
+    // Mix the kinds so the list is not just books; a stable shuffle per child keeps it from jumping around.
+    val picks = remember(all, selected) {
+        all.filter { it.interests.intersect(selected).isNotEmpty() }
+            .sortedByDescending { it.interests.intersect(selected).size }
+            .groupBy { it.kind }.values
+            .map { it.shuffled(kotlin.random.Random(space.child.id)) }
+            .let { groups -> (0 until (groups.maxOfOrNull { it.size } ?: 0)).flatMap { i -> groups.mapNotNull { it.getOrNull(i) } } }
+            .take(24)
+    }
     KidScreenScaffold(title = "علایق من", onBack = onBack) { padding ->
         LazyVerticalGrid(
             columns = GridCells.Fixed(3),
@@ -85,7 +139,31 @@ fun InterestsScreen(onBack: () -> Unit, viewModel: InterestsViewModel = hiltView
                 }
             }
             item(span = { GridItemSpan(maxLineSpan) }) {
-                KodomoPrimaryButton("ذخیره‌ی تغییرات", onClick = { viewModel.save(space.child, selected, onBack) })
+                KodomoPrimaryButton("ذخیره‌ی تغییرات", onClick = { viewModel.save(space.child, selected) {} ; space.celebrate() })
+            }
+            if (picks.isNotEmpty()) {
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    Text("✨ پیشنهادهای مخصوص تو", style = MaterialTheme.typography.titleLarge)
+                }
+                items(picks, span = { GridItemSpan(maxLineSpan) }) { s ->
+                    androidx.compose.foundation.layout.Row(
+                        Modifier
+                            .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(18.dp))
+                            .bouncyClick { space.guide(s.title); onOpen(s.route) }
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(s.emoji, fontSize = 34.sp)
+                        androidx.compose.foundation.layout.Spacer(Modifier.padding(horizontal = 6.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(s.title, style = MaterialTheme.typography.titleSmall)
+                            Text(s.kind + "  " + s.interests.intersect(selected).joinToString(" ") { it.emoji }, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                        }
+                        Text("▶", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                    }
+                }
+            } else if (selected.isNotEmpty()) {
+                item(span = { GridItemSpan(maxLineSpan) }) { Text("پیشنهادی پیدا نشد؛ علاقه‌ی دیگری را هم امتحان کن.", style = MaterialTheme.typography.bodyMedium) }
             }
         }
     }

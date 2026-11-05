@@ -4,6 +4,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.background
+import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -64,15 +67,19 @@ class ExploreDetailViewModel @Inject constructor(savedState: SavedStateHandle, p
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     fun toggleLike() = viewModelScope.launch { content.toggleLike(childId, id) }
+
+    val pages = kotlinx.coroutines.flow.MutableStateFlow<List<com.kodomo.app.domain.model.ContentPage>>(emptyList())
+    init { viewModelScope.launch { pages.value = content.getPages(id) } }
 }
 
 /** Full card of an Explore post: big cover, the story behind it, voice narration and related discoveries. */
 @Composable
-fun ExploreDetailScreen(contentId: String, onBack: () -> Unit, viewModel: ExploreDetailViewModel = hiltViewModel()) {
+fun ExploreDetailScreen(contentId: String, onBack: () -> Unit, onOpen: (String) -> Unit = {}, viewModel: ExploreDetailViewModel = hiltViewModel()) {
     val space = LocalKidSpace.current
     val item by viewModel.item.collectAsStateWithLifecycle()
     val liked by viewModel.liked.collectAsStateWithLifecycle()
     val related by viewModel.related.collectAsStateWithLifecycle()
+    val pages by viewModel.pages.collectAsStateWithLifecycle()
     TrackActivity(ActivityCategory.EXPLORE, item?.title ?: "کشف", contentId)
 
     KidScreenScaffold(title = item?.category.orEmpty(), onBack = onBack) { padding ->
@@ -86,12 +93,16 @@ fun ExploreDetailScreen(contentId: String, onBack: () -> Unit, viewModel: Explor
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            EmojiCover(post.emoji, post.colorStart, post.colorEnd, Modifier.fillMaxWidth().height(240.dp), emojiSize = 120, corner = 32.dp)
             Text(post.title, style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.Center)
-            Text(post.description, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
+            if (pages.isEmpty()) {
+                EmojiCover(post.emoji, post.colorStart, post.colorEnd, Modifier.fillMaxWidth().height(240.dp), emojiSize = 120, corner = 32.dp)
+                Text(post.description, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
+            } else {
+                FactPager(post, pages)
+            }
             if (post.body.isNotBlank()) Text(post.body, style = MaterialTheme.typography.bodyLarge)
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                FilledTonalButton(onClick = { space.voice.speakAll(listOf(post.title, post.description, post.body).filter { it.isNotBlank() }) }) {
+                FilledTonalButton(onClick = { space.voice.speakAll((listOf(post.title) + pages.map { it.text }.ifEmpty { listOf(post.description) }).filter { it.isNotBlank() }) }) {
                     Text("🔊 برایم بخوان")
                 }
                 FilledTonalButton(onClick = { viewModel.toggleLike() }) {
@@ -103,7 +114,7 @@ fun ExploreDetailScreen(contentId: String, onBack: () -> Unit, viewModel: Explor
             if (related.isNotEmpty()) {
                 Text("کشف‌های مرتبط", style = MaterialTheme.typography.titleMedium, modifier = Modifier.fillMaxWidth())
                 related.forEach { r ->
-                    KodomoCard(Modifier.fillMaxWidth()) {
+                    KodomoCard(Modifier.fillMaxWidth(), onClick = { onOpen(r.id) }) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             EmojiCover(r.emoji, r.colorStart, r.colorEnd, Modifier.size(56.dp), emojiSize = 28, corner = 14.dp)
                             Spacer(Modifier.width(10.dp))
@@ -115,6 +126,56 @@ fun ExploreDetailScreen(contentId: String, onBack: () -> Unit, viewModel: Explor
                     }
                 }
             }
+        }
+    }
+}
+
+/** The story behind a discovery as swipeable, colourful cards with page dots. */
+@Composable
+private fun FactPager(post: ContentItem, pages: List<com.kodomo.app.domain.model.ContentPage>) {
+    val pager = androidx.compose.foundation.pager.rememberPagerState { pages.size }
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    androidx.compose.foundation.pager.HorizontalPager(state = pager, pageSpacing = 12.dp, modifier = Modifier.fillMaxWidth().height(320.dp)) { i ->
+        val page = pages[i]
+        Column(
+            Modifier
+                .fillMaxSize()
+                .background(
+                    androidx.compose.ui.graphics.Brush.linearGradient(listOf(androidx.compose.ui.graphics.Color(post.colorStart), androidx.compose.ui.graphics.Color(post.colorEnd))),
+                    androidx.compose.foundation.shape.RoundedCornerShape(32.dp),
+                )
+                .padding(20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(14.dp, Alignment.CenterVertically),
+        ) {
+            Text(page.emoji, fontSize = 88.sp)
+            Text(
+                page.text,
+                style = MaterialTheme.typography.titleMedium,
+                textAlign = TextAlign.Center,
+                color = androidx.compose.ui.graphics.Color.White,
+                modifier = Modifier
+                    .background(androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.22f), androidx.compose.foundation.shape.RoundedCornerShape(18.dp))
+                    .padding(12.dp),
+            )
+        }
+    }
+    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+        repeat(pages.size) { i ->
+            Box(
+                Modifier
+                    .size(if (pager.currentPage == i) 12.dp else 8.dp)
+                    .background(
+                        if (pager.currentPage == i) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
+                        androidx.compose.foundation.shape.CircleShape,
+                    ),
+            )
+        }
+        Spacer(Modifier.width(12.dp))
+        if (pager.currentPage < pages.lastIndex) {
+            androidx.compose.material3.TextButton(onClick = { scope.launch { pager.animateScrollToPage(pager.currentPage + 1) } }) { Text("بعدی ◀") }
+        } else {
+            Text("🎉 حالا می‌دانی!", style = MaterialTheme.typography.labelLarge)
         }
     }
 }
