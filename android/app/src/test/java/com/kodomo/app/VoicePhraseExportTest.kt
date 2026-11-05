@@ -46,6 +46,11 @@ class VoicePhraseExportTest {
         }
         com.kodomo.app.domain.engine.ProjectTemplates.all.forEach { phrases += it.title }
         com.kodomo.app.domain.model.Buddy.entries.forEach { phrases += it.title }
+        com.kodomo.app.ui.kids.games.adventure.AdventureThemes.all.forEach { theme ->
+            theme.stages.forEach { phrases += it.title; phrases += it.story }
+            theme.sortColors.forEach { phrases += "فقط رنگ ${it.first}" }
+        }
+        phrases += listOf("دست‌ها را مثل هواپیما باز کن", "یک دستت را بالا ببر", "هر دو دست را بالا ببر")
 
         val normalized = phrases.map(VoiceKeys::normalize).filter { it.isNotEmpty() }.distinct()
         val out = File("build/voice/phrases.tsv").apply { parentFile?.mkdirs() }

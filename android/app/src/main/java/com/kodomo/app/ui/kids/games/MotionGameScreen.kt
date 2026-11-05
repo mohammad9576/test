@@ -108,6 +108,19 @@ fun MotionGameScreen(game: MotionGame, onBack: () -> Unit, viewModel: MotionGame
     val leveled = game.kind.leveled
     TrackActivity(if (game.kind == com.kodomo.app.domain.model.GameKind.ART) ActivityCategory.ART else ActivityCategory.GAME, game.title, game.name)
     LaunchedEffect(unlocked) { if (level == null && unlocked != null) level = unlocked }
+    // Background music for every game (adventures choose their own theme); quiet so voice stays clear.
+    var musicOn by remember { mutableStateOf(com.kodomo.app.ui.fx.GameMusic.enabled) }
+    androidx.compose.runtime.DisposableEffect(game) {
+        val theme = when (game.kind) {
+            com.kodomo.app.domain.model.GameKind.PARTY -> com.kodomo.app.ui.fx.GameMusic.Theme.PARTY
+            com.kodomo.app.domain.model.GameKind.BODY, com.kodomo.app.domain.model.GameKind.SPORT -> com.kodomo.app.ui.fx.GameMusic.Theme.SPORT
+            com.kodomo.app.domain.model.GameKind.ADVENTURE -> com.kodomo.app.ui.fx.GameMusic.Theme.HERO
+            com.kodomo.app.domain.model.GameKind.SENSOR -> com.kodomo.app.ui.fx.GameMusic.Theme.FOREST
+            else -> com.kodomo.app.ui.fx.GameMusic.Theme.CALM
+        }
+        if (game.kind != com.kodomo.app.domain.model.GameKind.QUEST) com.kodomo.app.ui.fx.GameMusic.play(theme)
+        onDispose { com.kodomo.app.ui.fx.GameMusic.release() }
+    }
 
     val onFinish: (Int, Boolean) -> Unit = { score, passed ->
         viewModel.onGameFinished(score, passed, level ?: 1) { r ->
@@ -120,6 +133,11 @@ fun MotionGameScreen(game: MotionGame, onBack: () -> Unit, viewModel: MotionGame
         title = game.title,
         onBack = onBack,
         actions = {
+            androidx.compose.material3.IconButton(onClick = {
+                musicOn = !musicOn
+                com.kodomo.app.ui.fx.GameMusic.enabled = musicOn
+                com.kodomo.app.ui.fx.GameSfx.enabled = musicOn
+            }) { Text(if (musicOn) "🔊" else "🔇") }
             if (leveled && level != null) {
                 Text(
                     "مرحله ${level!!.fa()}",
@@ -143,7 +161,7 @@ fun MotionGameScreen(game: MotionGame, onBack: () -> Unit, viewModel: MotionGame
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
                 ) {
-                    LaunchedEffect(r) { com.kodomo.app.ui.fx.Sfx.success() }
+                    LaunchedEffect(r) { if (r.passed) com.kodomo.app.ui.fx.GameSfx.cheer() else com.kodomo.app.ui.fx.Sfx.success() }
                     KodomoMascot(if (r.passed) MascotMood.EXCITED else MascotMood.HAPPY, size = 170.dp)
                     if (leveled) {
                         Text(
@@ -212,6 +230,10 @@ fun MotionGameScreen(game: MotionGame, onBack: () -> Unit, viewModel: MotionGame
                             MotionGame.SLIDE_PUZZLE -> SlidePuzzleGame(lvl, onFinish)
                             MotionGame.COLOR_SEQUENCE -> ColorSequenceGame(lvl, onFinish)
                             MotionGame.MATH_BALLOONS -> MathBalloonsGame(lvl, onFinish)
+                            MotionGame.FOREST_QUEST -> com.kodomo.app.ui.kids.games.adventure.AdventureGame("forest", lvl, onFinish)
+                            MotionGame.HERO_QUEST -> com.kodomo.app.ui.kids.games.adventure.AdventureGame("hero", lvl, onFinish)
+                            MotionGame.SPACE_QUEST -> com.kodomo.app.ui.kids.games.adventure.AdventureGame("space", lvl, onFinish)
+                            MotionGame.OCEAN_QUEST -> com.kodomo.app.ui.kids.games.adventure.AdventureGame("ocean", lvl, onFinish)
                             MotionGame.BOXING -> com.kodomo.app.ui.kids.games.pose.BoxingGame(lvl, onFinish)
                             MotionGame.SKI -> com.kodomo.app.ui.kids.games.pose.SkiGame(lvl, onFinish)
                             MotionGame.JUMP_ROPE -> com.kodomo.app.ui.kids.games.pose.JumpRopeGame(lvl, onFinish)
