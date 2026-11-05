@@ -112,7 +112,9 @@ fun KodomoNavHost(navController: NavHostController, startDestination: String) {
         kid(Routes.KID_CHORES, toProfiles) { _, _ -> com.kodomo.app.ui.kids.family.ChoresScreen(onBack = back) }
         kid(Routes.KID_LIVE_TV, toProfiles) { _, _ -> com.kodomo.app.ui.kids.video.LiveTvScreen(onBack = back) }
         kid(Routes.KID_GAMES, toProfiles) { childId, _ ->
-            GamesScreen(onBack = back, onPlay = { game -> navController.navigate(Routes.kidGame(childId, game)) })
+            com.kodomo.app.ui.kids.wellbeing.StudyFirst(childId, onStudy = { navController.navigate(Routes.kidStudy(childId)) }, onBack = back) {
+                GamesScreen(onBack = back, onPlay = { game -> navController.navigate(Routes.kidGame(childId, game)) })
+            }
         }
         kid(Routes.KID_GAME, toProfiles, listOf(stringArg(Routes.ARG_ID))) { _, entry ->
             val game = MotionGame.valueOf(entry.stringArg(Routes.ARG_ID))
@@ -186,8 +188,10 @@ fun KodomoNavHost(navController: NavHostController, startDestination: String) {
                 onOpenAllowedApps = { navController.navigate(Routes.PARENT_ALLOWED_APPS) },
                 onOpenTelewebion = { navController.navigate(Routes.PARENT_TELEWEBION) },
                 onOpenSites = { navController.navigate(Routes.PARENT_SITES) },
+                onOpenWellbeing = { navController.navigate(Routes.PARENT_WELLBEING) },
             )
         }
+        composable(Routes.PARENT_WELLBEING) { com.kodomo.app.ui.parent.wellbeing.WellbeingScreen(onBack = back) }
         composable(Routes.PARENT_SITES) { com.kodomo.app.ui.parent.apps.SafeSitesScreen(onBack = back) }
         composable(Routes.PARENT_TELEWEBION) { com.kodomo.app.ui.parent.ratings.TelewebionPickerScreen(onBack = back) }
         composable(Routes.PARENT_CONTENT, arguments = listOf(stringArg(Routes.ARG_ID))) { entry ->

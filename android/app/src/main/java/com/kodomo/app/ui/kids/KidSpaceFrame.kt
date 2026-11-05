@@ -57,7 +57,10 @@ class KidSpaceViewModel @Inject constructor(
     private val screenTime: ScreenTimeManager,
     val voice: MascotVoice,
     val buddies: com.kodomo.app.data.prefs.BuddyStore,
+    wellbeingStore: com.kodomo.app.data.prefs.WellbeingStore,
 ) : ViewModel() {
+    val wellbeing = wellbeingStore.state
+
     val dialogue = MascotDialogueEngine()
     val screenState: StateFlow<ScreenTimeManager.State> = screenTime.state
     val events = screenTime.events
@@ -84,12 +87,16 @@ class KidSpaceScope(
     val celebrate: () -> Unit = {},
     /** Saves the companion character the child picked. */
     val chooseBuddy: (com.kodomo.app.domain.model.Buddy) -> Unit = {},
+    /** Opens the dialer for an emergency call to a parent. */
+    val callParent: (String) -> Unit = {},
 ) {
     /** Speaks [text] when the age tier wants voice guidance for every event (toddlers). */
     fun guide(text: String) {
         if (spec.voiceGuidance) voice.speak(text)
     }
 }
+
+val LocalWellbeing = androidx.compose.runtime.compositionLocalOf { com.kodomo.app.data.prefs.Wellbeing() }
 
 val LocalKidSpace = staticCompositionLocalOf<KidSpaceScope> { error("Not inside the kids space") }
 
@@ -134,6 +141,20 @@ fun KidSpaceFrame(childId: Long, onParentExit: () -> Unit, content: @Composable 
         }
     }
 
+    val wellbeing by vm.wellbeing.collectAsStateWithLifecycle(com.kodomo.app.data.prefs.Wellbeing())
+    var eyeBreak by remember { mutableStateOf(false) }
+    val context = androidx.compose.ui.platform.LocalContext.current
+    LaunchedEffect(wellbeing.eyeBreakMinutes) {
+        val minutes = wellbeing.eyeBreakMinutes
+        if (minutes <= 0) return@LaunchedEffect
+        while (true) {
+            kotlinx.coroutines.delay(minutes * 60_000L)
+            if (vm.screenState.value.lock == ScreenTimeManager.LockReason.NONE) eyeBreak = true
+            while (eyeBreak) kotlinx.coroutines.delay(1000)
+        }
+    }
+    com.kodomo.app.ui.kids.wellbeing.VolumeGuard(wellbeing.maxVolumePercent)
+
     val current = child ?: return
     val spec = AgeUiSpec.forGroup(current.ageGroup())
     val scope = remember(current, spec) {
@@ -152,13 +173,14 @@ fun KidSpaceFrame(childId: Long, onParentExit: () -> Unit, content: @Composable 
                 vm.voice.speak(b.title)
                 partyScope.launch { vm.buddies.set(current.id, b) }
             },
+            callParent = { phone -> com.kodomo.app.ui.kids.wellbeing.EmergencyCall.dial(context, phone, kiosk::launchExternalApp) },
         )
     }
 
     val buddy by remember(current.id) { vm.buddies.observe(current.id) }.collectAsStateWithLifecycle(com.kodomo.app.domain.model.Buddy.ROBOT)
     LaunchedEffect(buddy) { vm.voice.style = com.kodomo.app.ui.mascot.MascotVoice.Style(buddy.voicePitch, buddy.voiceSpeed, buddy.male) }
     KidsTheme(spec = spec, darkMode = current.darkMode) {
-        CompositionLocalProvider(LocalKidSpace provides scope, com.kodomo.app.ui.mascot.LocalBuddy provides buddy) {
+        CompositionLocalProvider(LocalKidSpace provides scope, com.kodomo.app.ui.mascot.LocalBuddy provides buddy, LocalWellbeing provides wellbeing) {
             Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
                 com.kodomo.app.ui.fx.KidsBackground(spec.group, current.darkMode)
                 content()
@@ -169,7 +191,11 @@ fun KidSpaceFrame(childId: Long, onParentExit: () -> Unit, content: @Composable 
                         reason = state.lock,
                         line = if (state.lock == ScreenTimeManager.LockReason.BEDTIME) vm.dialogue.bedtime(current) else vm.dialogue.timeIsUp(current),
                         onParent = { showGate = GatePurpose.EXTEND },
+                        call = { com.kodomo.app.ui.kids.wellbeing.CallParentsRow(wellbeing, scope.callParent) },
                     )
+                }
+                if (eyeBreak && state.lock == ScreenTimeManager.LockReason.NONE) {
+                    com.kodomo.app.ui.kids.wellbeing.EyeBreakOverlay(current.name, { vm.voice.speak(it) }) { eyeBreak = false }
                 }
             }
             warning?.let { line ->
@@ -205,9 +231,10 @@ fun KidSpaceFrame(childId: Long, onParentExit: () -> Unit, content: @Composable 
 private enum class GatePurpose { EXIT, EXTEND }
 
 @Composable
-private fun LockOverlay(child: Child, reason: ScreenTimeManager.LockReason, line: MascotLine, onParent: () -> Unit) {
+private fun LockOverlay(child: Child, reason: ScreenTimeManager.LockReason, line: MascotLine, onParent: () -> Unit, call: @Composable () -> Unit = {}) {
     BackHandler(enabled = true) { }
     val bedtime = reason == ScreenTimeManager.LockReason.BEDTIME
+    val school = reason == ScreenTimeManager.LockReason.SCHOOL
     val gradient = if (bedtime) {
         Brush.verticalGradient(listOf(Color(0xFF14213D), Color(0xFF283A5B)))
     } else {
@@ -221,21 +248,24 @@ private fun LockOverlay(child: Child, reason: ScreenTimeManager.LockReason, line
         contentAlignment = Alignment.Center,
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(if (bedtime) "🌙" else "🌳", style = MaterialTheme.typography.displayMedium)
+            Text(if (bedtime) "🌙" else if (school) "🏫" else "🌳", style = MaterialTheme.typography.displayMedium)
             KodomoMascot(line.mood, size = 200.dp)
-            Text(
+            if (!school) Text(
                 line.text,
                 style = MaterialTheme.typography.headlineSmall,
                 textAlign = TextAlign.Center,
                 color = if (bedtime) Color.White else MaterialTheme.colorScheme.onBackground,
             )
             Text(
-                if (bedtime) "وقت خواب ${child.name} رسیده است." else "زمان امروز ${child.name} تمام شد. بیا یک بازی بیرون از صفحه انجام بدیم!",
+                if (bedtime) "وقت خواب ${child.name} رسیده است."
+                else if (school) "الان وقت مدرسه و درس است، ${child.name} جان. بعد از مدرسه دوباره همدیگر را می‌بینیم!"
+                else "زمان امروز ${child.name} تمام شد. بیا یک بازی بیرون از صفحه انجام بدیم!",
                 style = MaterialTheme.typography.bodyLarge,
                 textAlign = TextAlign.Center,
                 color = if (bedtime) Color.White.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(Modifier.height(16.dp))
+            call()
             OutlinedButton(onClick = onParent, modifier = Modifier.fillMaxWidth()) {
                 Text("ورود والدین برای ۱۵ دقیقه‌ی بیشتر", color = if (bedtime) Color.White else MaterialTheme.colorScheme.primary)
             }

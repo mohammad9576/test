@@ -221,6 +221,9 @@ fun KidHomeScreen(onOpen: (String) -> Unit, childId: Long, viewModel: KidHomeVie
                 },
             )
         }
+        item(span = { GridItemSpan(maxLineSpan) }) {
+            com.kodomo.app.ui.kids.wellbeing.CallParentsRow(com.kodomo.app.ui.kids.LocalWellbeing.current, space.callParent)
+        }
         item(span = { GridItemSpan(maxLineSpan) }) { Spacer(Modifier.height(24.dp)) }
     }
 }

@@ -93,6 +93,7 @@ class AppGuardService : Service() {
             val fg = foregroundPackage() ?: continue
             if (fg == packageName) { bubble.hide(); continue }
             if (fg in ignoredPackages) continue
+            if (com.kodomo.app.ui.kids.wellbeing.EmergencyCall.active) { bubble.hide(); continue }
             val allowed = session.current().allowedApps
             val blocked = state.lock != ScreenTimeManager.LockReason.NONE || fg !in allowed
             if (blocked) {

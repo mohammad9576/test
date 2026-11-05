@@ -49,6 +49,7 @@ apps|7|kid/{child}/apps|4
 school|9|kid/{child}/school|4
 parent_hub|7|parent|6
 parent_sites|7|parent/sites|4
+parent_wellbeing|7|parent/wellbeing|4
 profiles|7|profiles|4
 "
 : > "$OUT/report.txt"

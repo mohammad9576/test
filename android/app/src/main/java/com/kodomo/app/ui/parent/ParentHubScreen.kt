@@ -65,6 +65,7 @@ fun ParentHubScreen(
     onOpenAllowedApps: () -> Unit,
     onOpenTelewebion: () -> Unit,
     onOpenSites: () -> Unit,
+    onOpenWellbeing: () -> Unit = {},
     viewModel: ParentHubViewModel = hiltViewModel(),
 ) {
     var tab by rememberSaveable { mutableTabState() }
@@ -101,7 +102,7 @@ fun ParentHubScreen(
             HubTab.REPORTS -> ReportsTab(viewModel, modifier)
             HubTab.RATINGS -> RatingsTab(viewModel, onOpenContent, onOpenTelewebion, modifier)
             HubTab.COMMUNITY -> CommunityTab(viewModel, onOpenArticle, onOpenTopic, modifier)
-            HubTab.FAMILY -> FamilyTab(viewModel, onEditChild, onAddChild, onOpenGallery, onOpenCloud, onOpenAllowedApps, onOpenSites, modifier)
+            HubTab.FAMILY -> FamilyTab(viewModel, onEditChild, onAddChild, onOpenGallery, onOpenCloud, onOpenAllowedApps, onOpenSites, modifier, onOpenWellbeing = onOpenWellbeing)
         }
     }
 }

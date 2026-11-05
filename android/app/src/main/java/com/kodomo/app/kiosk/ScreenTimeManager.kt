@@ -40,8 +40,15 @@ class ScreenTimeManager @Inject constructor(
     private val familyRepository: FamilyRepository,
     private val liveUsageSocket: LiveUsageSocket,
     @ApplicationScope private val scope: CoroutineScope,
+    wellbeingStore: com.kodomo.app.data.prefs.WellbeingStore,
 ) {
-    enum class LockReason { NONE, DAILY_LIMIT, BEDTIME }
+    enum class LockReason { NONE, DAILY_LIMIT, BEDTIME, SCHOOL }
+
+    @Volatile private var wellbeing = com.kodomo.app.data.prefs.Wellbeing()
+
+    init {
+        scope.launch { wellbeingStore.state.collect { wellbeing = it } }
+    }
 
     data class State(
         val child: Child? = null,
@@ -241,7 +248,10 @@ class ScreenTimeManager @Inject constructor(
         segmentStart = Instant.now()
     }
 
-    private fun limitSeconds(): Long = (settings?.dailyLimitMinutes ?: 60) * 60L + bonusSeconds
+    private fun limitSeconds(): Long {
+        val weekend = if (wellbeing.isWeekend(java.time.LocalDate.now().dayOfWeek)) wellbeing.weekendExtraMinutes * 60L else 0L
+        return (settings?.dailyLimitMinutes ?: 60) * 60L + weekend + bonusSeconds
+    }
 
     private fun evaluateLocked() {
         val current = _state.value
@@ -249,6 +259,7 @@ class ScreenTimeManager @Inject constructor(
         val s = settings
         val newLock = when {
             s != null && s.bedtimeEnabled && isBedtime(LocalTime.now(), s.bedtimeStartMinutes, s.bedtimeEndMinutes) -> LockReason.BEDTIME
+            wellbeing.inSchoolHours(java.time.LocalDateTime.now()) && bonusSeconds == 0L -> LockReason.SCHOOL
             current.usedSeconds >= current.limitSeconds -> LockReason.DAILY_LIMIT
             else -> LockReason.NONE
         }
@@ -257,7 +268,7 @@ class ScreenTimeManager @Inject constructor(
             when (newLock) {
                 LockReason.DAILY_LIMIT -> _events.tryEmit(Event.TimeUp(child))
                 LockReason.BEDTIME -> _events.tryEmit(Event.Bedtime(child))
-                LockReason.NONE -> Unit
+                LockReason.SCHOOL, LockReason.NONE -> Unit
             }
         }
         if (newLock == LockReason.NONE && !warningIssued && current.remainingSeconds in 1..WARNING_SECONDS) {
