@@ -74,7 +74,7 @@ fun EmojiCover(emoji: String, colorStart: Long, colorEnd: Long, modifier: Modifi
             .background(gradientOf(colorStart, colorEnd)),
         contentAlignment = Alignment.Center,
     ) {
-        Text(emoji, fontSize = emojiSize.sp)
+        com.kodomo.app.ui.fx.Emoji(emoji, (emojiSize * 1.25f).dp)
     }
 }
 
@@ -149,7 +149,7 @@ fun ModuleTile(
             drawCircle(Color.White.copy(alpha = 0.10f), size.minDimension * 0.16f, androidx.compose.ui.geometry.Offset(size.width * 0.1f, size.height * (0.2f + bob * 0.08f)))
         }
         Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-            Text(emoji, fontSize = spec.iconSizeSp.sp, modifier = Modifier.graphicsLayer { rotationZ = wiggle * 0.5f; translationY = -bob * 6f })
+            com.kodomo.app.ui.fx.Emoji(emoji, (spec.iconSizeSp * 1.3f).dp, modifier = Modifier.graphicsLayer { rotationZ = wiggle * 0.5f; translationY = -bob * 6f })
             if (spec.showCardLabels) {
                 Spacer(Modifier.height(6.dp))
                 Text(

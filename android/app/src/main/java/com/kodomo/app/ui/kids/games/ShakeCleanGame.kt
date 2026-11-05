@@ -72,7 +72,7 @@ fun ShakeCleanGame(level: Int, onFinish: (Int, Boolean) -> Unit) {
         LinearProgressIndicator(progress = { clean / spots.size.toFloat() }, modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), color = KodomoColors.Sky)
         Text("گوشی را محکم در دست بگیر و تکانش بده! (تکان‌ها: ${shakes.fa()})", style = MaterialTheme.typography.bodyMedium)
         Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
-            Text("🐶", fontSize = 220.sp)
+            com.kodomo.app.ui.fx.Emoji("🐶", 264.dp)
             Canvas(Modifier.size(300.dp)) {
                 spots.forEach { spot ->
                     if (spot.dirt > 0f) {

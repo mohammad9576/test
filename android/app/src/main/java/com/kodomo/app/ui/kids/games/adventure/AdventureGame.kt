@@ -58,6 +58,7 @@ import com.google.mlkit.vision.pose.PoseLandmark
 import com.kodomo.app.core.util.fa
 import com.kodomo.app.ui.fx.GameMusic
 import com.kodomo.app.ui.fx.GameSfx
+import com.kodomo.app.ui.fx.drawEmojiImage
 import com.kodomo.app.ui.kids.LocalKidSpace
 import com.kodomo.app.ui.kids.games.pose.BodyPose
 import com.kodomo.app.ui.kids.games.pose.PoseStage
@@ -230,7 +231,14 @@ private class Scene {
 }
 
 /** Measured emoji/text layouts are cached: measuring every frame is the most expensive part of drawing. */
-private class Glyphs(private val measurer: TextMeasurer) {
+private class Glyphs(private val measurer: TextMeasurer, private val picture: (String) -> androidx.compose.ui.graphics.ImageBitmap?) {
+    /** Draws an emoji as its 3D picture when bundled, otherwise as text. Size is in sp-like units. */
+    fun emoji(scope: DrawScope, text: String, sizeSp: Int, center: Offset, alpha: Float = 1f) {
+        val img = picture(text)
+        if (img != null) with(scope) { drawEmojiImage(img, center, sizeSp * density * 1.25f, alpha) }
+        else with(scope) { drawGlyph(get(text, sizeSp), center, alpha) }
+    }
+
     private val cache = HashMap<String, TextLayoutResult>()
     fun get(text: String, sizeSp: Int, color: Color = Color.Unspecified, bold: Boolean = false): TextLayoutResult =
         cache.getOrPut("$text|$sizeSp|${color.value}|$bold") {
@@ -241,7 +249,8 @@ private class Glyphs(private val measurer: TextMeasurer) {
 @Composable
 private fun rememberGlyphs(): Glyphs {
     val measurer = rememberTextMeasurer()
-    return remember(measurer) { Glyphs(measurer) }
+    val picture = com.kodomo.app.ui.fx.rememberEmojiPainter()
+    return remember(measurer) { Glyphs(measurer, picture) }
 }
 
 private fun DrawScope.drawGlyph(g: TextLayoutResult, center: Offset, alpha: Float = 1f) {
@@ -458,7 +467,7 @@ private fun CatchMission(theme: AdventureTheme, stageIndex: Int, combo: Boolean,
         scene.things.forEach { t ->
             val c = Offset(size.width * t.x, size.height * t.y)
             drawCircle((if (t.kind == Kind.BAD) Color.Red else theme.accent).copy(alpha = 0.22f), size.minDimension * 0.06f, c)
-            drawGlyph(glyphs.get(t.emoji, 44), c)
+            glyphs.emoji(this, t.emoji, 44, c)
         }
         drawCommon(scene, glyphs, theme)
     }
@@ -514,7 +523,7 @@ private fun SortMission(theme: AdventureTheme, stageIndex: Int, done: (Int, Bool
             val c = Offset(size.width * t.x, size.height * t.y)
             drawCircle(theme.sortColors[t.color].second, size.minDimension * 0.065f, c)
             drawCircle(Color.White.copy(alpha = 0.5f), size.minDimension * 0.065f, c, style = Stroke(4f))
-            drawGlyph(glyphs.get(t.emoji, 34), c)
+            glyphs.emoji(this, t.emoji, 34, c)
         }
         drawCommon(scene, glyphs, theme)
     }
@@ -564,9 +573,9 @@ private fun TwoHandsMission(theme: AdventureTheme, stageIndex: Int, done: (Int, 
             val r = size.minDimension * 0.15f
             drawCircle(theme.accent.copy(alpha = 0.18f + 0.1f * sin(scene.time * 6f)), r * 1.2f, c)
             drawArc(theme.accent, -90f, 360f * t.hold, false, topLeft = c - Offset(r * 1.25f, r * 1.25f), size = Size(r * 2.5f, r * 2.5f), style = Stroke(12f, cap = StrokeCap.Round))
-            drawGlyph(glyphs.get(t.emoji, 76), c)
-            drawGlyph(glyphs.get("✋", 30), c + Offset(-r * 1.25f, 0f), 0.7f)
-            drawGlyph(glyphs.get("🤚", 30), c + Offset(r * 1.25f, 0f), 0.7f)
+            glyphs.emoji(this, t.emoji, 76, c)
+            glyphs.emoji(this, "✋", 30, c + Offset(-r * 1.25f, 0f), 0.7f)
+            glyphs.emoji(this, "🤚", 30, c + Offset(r * 1.25f, 0f), 0.7f)
         }
         drawCommon(scene, glyphs, theme)
     }
@@ -621,13 +630,13 @@ private fun DodgeMission(theme: AdventureTheme, stageIndex: Int, done: (Int, Boo
             0 -> {
                 val y = h * (0.15f + 0.1f * approach)
                 drawRoundRect(col.copy(alpha = 0.55f + approach * 0.35f), Offset(w * (0.5f - scale / 2), y), Size(w * scale, h * 0.12f * scale + 10f), CornerRadius(30f))
-                repeat(5) { i -> drawGlyph(glyphs.get(theme.lowObstacle, (24 + 40 * approach).toInt()), Offset(w * (0.5f - scale / 2 + scale * (i + 0.5f) / 5f), y + h * 0.06f * scale)) }
+                repeat(5) { i -> glyphs.emoji(this, theme.lowObstacle, (24 + 40 * approach).toInt(), Offset(w * (0.5f - scale / 2 + scale * (i + 0.5f) / 5f), y + h * 0.06f * scale)) }
             }
             else -> {
                 val leftSide = kind == 1
                 val x0 = if (leftSide) w * (0.5f - scale / 2) else w * 0.5f
                 drawRoundRect(col.copy(alpha = 0.5f + approach * 0.35f), Offset(x0, h * (0.5f - scale / 2)), Size(w * scale / 2, h * scale), CornerRadius(30f))
-                drawGlyph(glyphs.get(theme.sideObstacle, (30 + 60 * approach).toInt()), Offset(x0 + w * scale / 4, h * 0.5f))
+                glyphs.emoji(this, theme.sideObstacle, (30 + 60 * approach).toInt(), Offset(x0 + w * scale / 4, h * 0.5f))
             }
         }
         drawCommon(scene, glyphs, theme)
@@ -685,15 +694,15 @@ private fun RescueMission(theme: AdventureTheme, stageIndex: Int, done: (Int, Bo
         drawDecor(theme, scene.time)
         val c = Offset(size.width * friendAt.x, size.height * friendAt.y)
         if (saved < target) {
-            drawGlyph(glyphs.get(theme.friend, 64), c)
+            glyphs.emoji(this, theme.friend, 64, c)
             locks.forEach { l ->
                 val lc = Offset(size.width * l.x, size.height * l.y)
                 drawLine(Color.White.copy(alpha = 0.5f), c, lc, strokeWidth = 4f)
                 drawCircle(Color.White.copy(alpha = 0.25f), size.minDimension * 0.055f, lc)
-                drawGlyph(glyphs.get(theme.cage, 34), lc)
+                glyphs.emoji(this, theme.cage, 34, lc)
             }
         }
-        scene.things.forEach { t -> drawGlyph(glyphs.get(t.emoji, 42), Offset(size.width * t.x, size.height * t.y)) }
+        scene.things.forEach { t -> glyphs.emoji(this, t.emoji, 42, Offset(size.width * t.x, size.height * t.y)) }
         drawCommon(scene, glyphs, theme)
     }
 }
@@ -770,7 +779,7 @@ private fun MemoryMission(theme: AdventureTheme, stageIndex: Int, done: (Int, Bo
             val on = lit == i
             drawCircle(padColors[i].copy(alpha = if (on) 0.95f else 0.35f), r * if (on) 1.15f else 1f, c)
             drawCircle(Color.White.copy(alpha = if (on) 0.9f else 0.4f), r * if (on) 1.15f else 1f, c, style = Stroke(6f))
-            drawGlyph(glyphs.get(theme.good[i % theme.good.size], 36), c)
+            glyphs.emoji(this, theme.good[i % theme.good.size], 36, c)
         }
         drawCommon(scene, glyphs, theme)
     }
@@ -890,18 +899,18 @@ private fun ReactionMission(theme: AdventureTheme, stageIndex: Int, done: (Int, 
         val h = size.height
         when (event) {
             0 -> {
-                drawGlyph(glyphs.get(theme.bad.first(), 80), Offset(w * 0.5f, h * (0.1f + 0.3f * (1f - window / reactTime))))
+                glyphs.emoji(this, theme.bad.first(), 80, Offset(w * 0.5f, h * (0.1f + 0.3f * (1f - window / reactTime))))
                 if (shieldUp) drawArc(Color(0xFF40C4FF).copy(alpha = 0.6f), 180f, 180f, false, topLeft = Offset(w * 0.2f, h * 0.15f), size = Size(w * 0.6f, h * 0.5f), style = Stroke(14f))
             }
             1, 2 -> {
                 val x = if (event == 1) w * 0.75f else w * 0.25f
                 drawRoundRect(Color(0xFFE53935).copy(alpha = 0.35f), Offset(x - w * 0.22f, 0f), Size(w * 0.44f, h), CornerRadius(20f))
-                drawGlyph(glyphs.get(theme.sideObstacle, 70), Offset(x, h * 0.5f))
+                glyphs.emoji(this, theme.sideObstacle, 70, Offset(x, h * 0.5f))
             }
             3 -> {
                 val c = Offset(w * catchAt.x, h * catchAt.y)
                 drawCircle(theme.accent.copy(alpha = 0.3f), size.minDimension * 0.08f * (1f + 0.2f * sin(scene.time * 10f)), c)
-                drawGlyph(glyphs.get(theme.good.first(), 52), c)
+                glyphs.emoji(this, theme.good.first(), 52, c)
             }
         }
         if (event >= 0) drawRect(Color.White.copy(alpha = 0.8f), Offset(0f, h - 10f), Size(w * (window / reactTime).coerceIn(0f, 1f), 10f))
@@ -976,13 +985,13 @@ private fun BossMission(theme: AdventureTheme, done: (Int, Boolean) -> Unit) {
         drawRoundRect(Color(0xFFE53935), Offset(w * 0.15f, 12f), Size(w * 0.7f * hp / maxHp.toFloat(), 22f), CornerRadius(11f))
         val bc = Offset(w * bossX, h * 0.28f)
         drawCircle(Color(0xFF4A148C).copy(alpha = 0.35f + 0.15f * sin(scene.time * 3f)), size.minDimension * 0.22f, bc)
-        drawGlyph(glyphs.get(theme.boss, 120), bc + Offset(if (hitFlash > 0f) sin(scene.time * 60f) * 12f else 0f, 0f))
+        glyphs.emoji(this, theme.boss, 120, bc + Offset(if (hitFlash > 0f) sin(scene.time * 60f) * 12f else 0f, 0f))
         spot?.let { s ->
             val c = Offset(w * s.x, h * s.y)
             drawCircle(Color(0xFFFFEB3B).copy(alpha = 0.6f), size.minDimension * 0.06f * (1f + 0.3f * sin(scene.time * 12f)), c)
             drawCircle(Color.White, size.minDimension * 0.025f, c)
         }
-        scene.things.forEach { t -> drawGlyph(glyphs.get(t.emoji, 46), Offset(w * t.x, h * t.y)) }
+        scene.things.forEach { t -> glyphs.emoji(this, t.emoji, 46, Offset(w * t.x, h * t.y)) }
         drawCommon(scene, glyphs, theme)
     }
 }

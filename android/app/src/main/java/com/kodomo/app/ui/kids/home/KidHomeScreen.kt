@@ -251,7 +251,7 @@ private fun BuddyChooserRow() {
             .padding(horizontal = 14.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(buddy.emoji, fontSize = 22.sp)
+        com.kodomo.app.ui.fx.Emoji(buddy.emoji, 26.dp)
         Spacer(Modifier.width(8.dp))
         Text("دوست من: ${buddy.title}", style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f))
         Text("عوض کن 🔄", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)

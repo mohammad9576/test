@@ -133,9 +133,9 @@ fun InterestsScreen(onBack: () -> Unit, onOpen: (String) -> Unit = {}, viewModel
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center,
                 ) {
-                    Box { Text(interest.emoji, fontSize = 38.sp) }
+                    Box { com.kodomo.app.ui.fx.Emoji(interest.emoji, 46.dp) }
                     Text(interest.label, style = MaterialTheme.typography.labelLarge)
-                    if (on) Text("✅", fontSize = 14.sp)
+                    if (on) com.kodomo.app.ui.fx.Emoji("✅", 17.dp)
                 }
             }
             item(span = { GridItemSpan(maxLineSpan) }) {
@@ -153,7 +153,7 @@ fun InterestsScreen(onBack: () -> Unit, onOpen: (String) -> Unit = {}, viewModel
                             .padding(12.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text(s.emoji, fontSize = 34.sp)
+                        com.kodomo.app.ui.fx.Emoji(s.emoji, 41.dp)
                         androidx.compose.foundation.layout.Spacer(Modifier.padding(horizontal = 6.dp))
                         Column(Modifier.weight(1f)) {
                             Text(s.title, style = MaterialTheme.typography.titleSmall)

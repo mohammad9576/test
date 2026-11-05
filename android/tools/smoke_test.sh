@@ -53,7 +53,7 @@ profiles|7|profiles|4
 "
 : > "$OUT/report.txt"
 i=0
-echo "$SCREENS" | while IFS='|' read -r name age route wait; do
+while IFS='|' read -r name age route wait <&3; do
   [ -z "$name" ] && continue
   i=$((i+1))
   adb logcat -c
@@ -70,7 +70,7 @@ echo "$SCREENS" | while IFS='|' read -r name age route wait; do
   else
     echo "OK $name" >> "$OUT/report.txt"
   fi
-done
+done 3<<< "$SCREENS"
 # smaller screenshots for review
 command -v mogrify >/dev/null && mogrify -resize 540x "$OUT"/*.png
 cat "$OUT/report.txt"

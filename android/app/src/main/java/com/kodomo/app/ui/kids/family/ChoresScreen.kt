@@ -90,7 +90,7 @@ fun ChoresScreen(onBack: () -> Unit, viewModel: ChoresViewModel = hiltViewModel(
                         .padding(14.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(chore.emoji, fontSize = 38.sp)
+                    com.kodomo.app.ui.fx.Emoji(chore.emoji, 46.dp)
                     Spacer(Modifier.width(12.dp))
                     Column(Modifier.weight(1f)) {
                         Text(chore.title, style = MaterialTheme.typography.titleMedium)

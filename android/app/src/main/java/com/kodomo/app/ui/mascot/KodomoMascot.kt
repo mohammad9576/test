@@ -283,9 +283,9 @@ fun BuddyMascot(buddy: com.kodomo.app.domain.model.Buddy, mood: MascotMood, modi
                 }
             }
         }
-        Text(
+        com.kodomo.app.ui.fx.Emoji(
             buddy.emoji,
-            fontSize = (size.value * 0.5f).sp,
+            size * 0.62f,
             modifier = Modifier.graphicsLayer {
                 val bounce = if (mood == MascotMood.SLEEPY) 0.02f else if (mood == MascotMood.EXCITED) 0.09f else 0.04f
                 translationY = -kotlin.math.abs(wave) * size.toPx() * bounce

@@ -42,7 +42,8 @@ class KidsLauncherActivity : ComponentActivity(), KioskController {
             com.kodomo.app.core.demo.DemoMode.age = intent?.getIntExtra("demo_age", 7) ?: 7
         }
         super.onCreate(savedInstanceState)
-        window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        // Screenshots are blocked for the children's privacy – except in the debug demo mode used by the smoke test.
+        if (com.kodomo.app.core.demo.DemoMode.route == null) window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) window.setHideOverlayWindows(true)
         lifecycleScope.launch {
             // Keeps the lock-task whitelist in sync with the parent-approved apps.

@@ -325,7 +325,7 @@ fun FruitCatchGame(level: Int, onFinish: (Int, Boolean) -> Unit) {
             val w = maxWidth
             val h = maxHeight
             items.forEach { f ->
-                Text(f.emoji, fontSize = 34.sp, modifier = Modifier.offset(x = w * f.x - 17.dp, y = h * f.y))
+                com.kodomo.app.ui.fx.Emoji(f.emoji, 41.dp, modifier = Modifier.offset(x = w * f.x - 17.dp, y = h * f.y))
             }
             Box(
                 Modifier
@@ -333,7 +333,7 @@ fun FruitCatchGame(level: Int, onFinish: (Int, Boolean) -> Unit) {
                     .size(width = w * basketWidth, height = 44.dp)
                     .background(Color(0xFFB07A44), RoundedCornerShape(bottomStart = 22.dp, bottomEnd = 22.dp, topStart = 6.dp, topEnd = 6.dp)),
                 contentAlignment = Alignment.Center,
-            ) { Text("🧺", fontSize = 26.sp) }
+            ) { com.kodomo.app.ui.fx.Emoji("🧺", 31.dp) }
         }
     }
 }
@@ -600,7 +600,7 @@ fun ColorSequenceGame(level: Int, onFinish: (Int, Boolean) -> Unit) {
                                     }
                                 },
                             contentAlignment = Alignment.Center,
-                        ) { Text(padEmojis[p], fontSize = 44.sp) }
+                        ) { com.kodomo.app.ui.fx.Emoji(padEmojis[p], 53.dp) }
                     }
                 }
             }

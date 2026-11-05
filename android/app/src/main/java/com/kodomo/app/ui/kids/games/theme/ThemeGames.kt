@@ -149,9 +149,9 @@ fun CarRaceGame(level: Int, onFinish: (Int, Boolean) -> Unit) {
                 }
             }
             things.forEach { t ->
-                Text(t.emoji, fontSize = 40.sp, modifier = Modifier.offset(x = w * ((t.lane + 0.5f) / 3f) - 22.dp, y = h * t.y))
+                com.kodomo.app.ui.fx.Emoji(t.emoji, 48.dp, modifier = Modifier.offset(x = w * ((t.lane + 0.5f) / 3f) - 22.dp, y = h * t.y))
             }
-            Text("🏎️", fontSize = 54.sp, modifier = Modifier.offset(x = w * carX - 30.dp, y = h * 0.8f))
+            com.kodomo.app.ui.fx.Emoji("🏎️", 65.dp, modifier = Modifier.offset(x = w * carX - 30.dp, y = h * 0.8f))
         }
         Text("برای عوض کردن خط، به چپ و راست بکش یا روی آن سمت بزن.", style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(6.dp))
     }
@@ -241,7 +241,7 @@ fun SpaceGuardGame(level: Int, onFinish: (Int, Boolean) -> Unit) {
                 drawArc(Color(0xFF4FC3F7).copy(alpha = 0.5f), 180f, 180f, false, Offset(-this.size.width * 0.1f, this.size.height * 0.93f), Size(this.size.width * 1.2f, this.size.height * 0.3f), style = Stroke(6f))
             }
             meteors.forEach { m -> Text(if (m.hp > 1) "🪨" else "☄️", fontSize = 36.sp, modifier = Modifier.offset(x = w * m.x - 20.dp, y = h * m.y)) }
-            Text("🚀", fontSize = 48.sp, modifier = Modifier.offset(x = w * shipX - 26.dp, y = h * 0.84f))
+            com.kodomo.app.ui.fx.Emoji("🚀", 58.dp, modifier = Modifier.offset(x = w * shipX - 26.dp, y = h * 0.84f))
         }
     }
 }
@@ -297,7 +297,7 @@ fun BakeryGame(level: Int, onFinish: (Int, Boolean) -> Unit) {
             Modifier.fillMaxWidth().background(Color(0xFFFFF8E1), RoundedCornerShape(18.dp)).padding(10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text("🧒", fontSize = 40.sp)
+            com.kodomo.app.ui.fx.Emoji("🧒", 48.dp)
             Text(
                 "سفارش: کیک ${cakeBases[order.base].first.drop(3)} با خامه‌ی ${creams[order.cream].first} و ${toppings[order.topping]}" +
                     if (order.candles > 0) " و ${order.candles.fa()} شمع" else "",
@@ -413,7 +413,7 @@ fun StylistGame(level: Int, onFinish: (Int, Boolean) -> Unit) {
             contentAlignment = Alignment.Center,
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("🧒", fontSize = 64.sp)
+                com.kodomo.app.ui.fx.Emoji("🧒", 77.dp)
                 Text(chosen.joinToString(""), fontSize = 26.sp)
             }
         }
@@ -433,7 +433,7 @@ fun StylistGame(level: Int, onFinish: (Int, Boolean) -> Unit) {
                         .background(if (on) KodomoColors.Green.copy(alpha = 0.3f) else MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(14.dp))
                         .bouncyClick { if (on) chosen.remove(item) else chosen.add(item) },
                     contentAlignment = Alignment.Center,
-                ) { Text(item, fontSize = 28.sp) }
+                ) { com.kodomo.app.ui.fx.Emoji(item, 34.dp) }
             }
         }
         Button(onClick = { check() }, enabled = chosen.isNotEmpty(), modifier = Modifier.fillMaxWidth()) { Text("آماده‌ام! ✅") }

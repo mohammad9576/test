@@ -172,9 +172,9 @@ fun TapRaceGame(onFinish: (Int, Boolean) -> Unit) {
             ) {
                 Text("${p.emoji} ${p.name}", style = MaterialTheme.typography.titleLarge, color = p.color, fontWeight = FontWeight.Black)
                 Box(Modifier.fillMaxWidth().height(56.dp).background(Color(0xFF455A64), RoundedCornerShape(12.dp))) {
-                    Text("🏁", fontSize = 30.sp, modifier = Modifier.align(Alignment.CenterEnd))
+                    com.kodomo.app.ui.fx.Emoji("🏁", 36.dp, modifier = Modifier.align(Alignment.CenterEnd))
                     androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxSize()) {
-                        Text("🏎️", fontSize = 34.sp, modifier = Modifier.padding(start = (maxWidth - 48.dp) * pos).align(Alignment.CenterStart))
+                        com.kodomo.app.ui.fx.Emoji("🏎️", 41.dp, modifier = Modifier.padding(start = (maxWidth - 48.dp) * pos).align(Alignment.CenterStart))
                     }
                 }
                 Text("بزن! بزن! 👆", style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
@@ -236,7 +236,7 @@ fun ReflexDuelGame(onFinish: (Int, Boolean) -> Unit) {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
             ) {
-                Text(p.emoji, fontSize = 54.sp)
+                com.kodomo.app.ui.fx.Emoji(p.emoji, 65.dp)
                 Text("امتیاز: ${scores[i].fa()} از ${target.fa()}", style = MaterialTheme.typography.titleMedium, color = p.color, fontWeight = FontWeight.Bold)
                 if (roundWinner == i) Text("⚡ تو زودتر زدی!", style = MaterialTheme.typography.titleMedium)
             }
@@ -371,7 +371,7 @@ fun TugOfWarGame(onFinish: (Int, Boolean) -> Unit) {
             players,
             center = {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("🪢", fontSize = 64.sp, modifier = Modifier.padding(top = (if (shift > 0) shift * 120 else 0f).dp, bottom = (if (shift < 0) -shift * 120 else 0f).dp))
+                    com.kodomo.app.ui.fx.Emoji("🪢", 77.dp, modifier = Modifier.padding(top = (if (shift > 0) shift * 120 else 0f).dp, bottom = (if (shift < 0) -shift * 120 else 0f).dp))
                     winner?.let { WinnerBanner(it, { match++ }) { onFinish(10, true) } }
                 }
             },
@@ -388,7 +388,7 @@ fun TugOfWarGame(onFinish: (Int, Boolean) -> Unit) {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
             ) {
-                Text(p.emoji, fontSize = 50.sp)
+                com.kodomo.app.ui.fx.Emoji(p.emoji, 60.dp)
                 Text(if (topTeam) "تیم بالا" else "تیم پایین", color = p.color, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 Text("بکش! 💪", style = MaterialTheme.typography.titleLarge)
             }
@@ -435,8 +435,8 @@ fun SnapMatchGame(onFinish: (Int, Boolean) -> Unit) {
                         Modifier.background(Color.White, RoundedCornerShape(24.dp)).padding(12.dp),
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        Text(left, fontSize = 52.sp)
-                        Text(right, fontSize = 52.sp)
+                        com.kodomo.app.ui.fx.Emoji(left, 62.dp)
+                        com.kodomo.app.ui.fx.Emoji(right, 62.dp)
                     }
                 }
             },
@@ -456,7 +456,7 @@ fun SnapMatchGame(onFinish: (Int, Boolean) -> Unit) {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Bottom,
             ) {
-                Text(p.emoji, fontSize = 44.sp)
+                com.kodomo.app.ui.fx.Emoji(p.emoji, 53.dp)
                 Text("${scores[i].fa()} از ${target.fa()}", color = p.color, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black)
                 Spacer(Modifier.height(8.dp))
             }
