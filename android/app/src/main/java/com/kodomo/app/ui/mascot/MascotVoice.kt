@@ -54,6 +54,28 @@ class MascotVoice @Inject constructor(@ApplicationContext private val context: C
 
     fun speak(text: String, listener: Listener? = null) = speakAll(listOf(text), listener)
 
+    /** Speaks and suspends until the sentence has finished (or [timeoutMillis] passed / nothing could be played). */
+    suspend fun speakAndWait(text: String, timeoutMillis: Long = 8_000) {
+        val done = kotlinx.coroutines.CompletableDeferred<Unit>()
+        speakAll(listOf(text), object : Listener { override fun onDone() { done.complete(Unit) } })
+        kotlinx.coroutines.withTimeoutOrNull(timeoutMillis) { done.await() }
+    }
+
+    /**
+     * The voice character: playback pitch/speed applied to every clip and to the device TTS, so each companion
+     * (panda, lamb, dolphin …) speaks with its own voice from the same recordings.
+     */
+    data class Style(val pitch: Float, val speed: Float)
+
+    @Volatile var style: Style = Style(1.08f, 1.0f)
+        set(value) {
+            field = value
+            if (ttsReady) {
+                tts.setPitch(1.1f * value.pitch)
+                tts.setSpeechRate(0.95f * value.speed)
+            }
+        }
+
     /** Speaks a robot line: the personalised text through TTS if available, otherwise the recorded name-free variant. */
     fun speakLine(line: MascotLine) {
         if (persianTtsAvailable && line.speech.none { hasClip(it) }) speak(line.text) else speakAll(line.speech)
@@ -114,8 +136,9 @@ class MascotVoice @Inject constructor(@ApplicationContext private val context: C
             }
             mp.prepare()
             player = mp
+            runCatching { mp.playbackParams = android.media.PlaybackParams().setPitch(style.pitch).setSpeed(style.speed) }
             mp.start()
-            if (listener != null) scheduleWords(text, mp.duration.toLong(), token, listener)
+            if (listener != null) scheduleWords(text, (mp.duration / style.speed).toLong(), token, listener)
         } catch (e: Exception) {
             Log.w(TAG, "Unable to play narration clip", e)
             onComplete()
@@ -161,8 +184,8 @@ class MascotVoice @Inject constructor(@ApplicationContext private val context: C
     private fun onTtsReady() {
         val result = tts.setLanguage(Locale("fa", "IR"))
         persianTtsAvailable = result != TextToSpeech.LANG_MISSING_DATA && result != TextToSpeech.LANG_NOT_SUPPORTED
-        tts.setSpeechRate(0.92f)
-        tts.setPitch(1.15f)
+        tts.setSpeechRate(0.95f * style.speed)
+        tts.setPitch(1.1f * style.pitch)
         ttsReady = true
         Log.i(TAG, "Narration clips: ${clips.size}, Persian TTS available: $persianTtsAvailable")
     }

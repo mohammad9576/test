@@ -3,6 +3,7 @@ package com.kodomo.app.ui.parent.ratings
 import android.webkit.WebView
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -54,6 +55,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -101,7 +103,13 @@ class TelewebionPickerViewModel @Inject constructor(
     private val client: KodoumoClient,
     private val importer: KodoumoImporter,
     private val reviewRequests: com.kodomo.app.data.remote.ReviewRequestSender,
+    private val db: com.kodomo.app.data.local.KodomoDatabase,
 ) : ViewModel() {
+    /** Cartoons already approved through this screen. */
+    val approved = db.contentDao().observeParentApprovedVideos()
+        .stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    fun remove(id: String) = viewModelScope.launch { db.contentDao().delete(id) }
 
     data class State(
         val searching: Boolean = false,
@@ -212,6 +220,8 @@ fun TelewebionPickerScreen(onBack: () -> Unit, viewModel: TelewebionPickerViewMo
                         "صفحه‌ی کارتون موردنظر را باز کنید، سپس دکمه‌ی زیر را بزنید. کودک فقط همین صفحه را می‌بیند و نمی‌تواند به جای دیگری برود.",
                         style = MaterialTheme.typography.bodySmall,
                     )
+                    val approved by viewModel.approved.collectAsStateWithLifecycle()
+                    if (approved.isNotEmpty()) ApprovedStrip(approved, viewModel::remove)
                     val isListing = WebLockRules.samePage(TELEWEBION_KIDS, pageUrl)
                     Button(
                         onClick = {
@@ -392,6 +402,38 @@ private fun ParentOnlyApprovalCard(onApprove: (minAge: Int, note: String) -> Uni
             Text("این کارتون را دیده‌ام و مسئولیت تأیید آن با من است.", style = MaterialTheme.typography.bodySmall)
         }
         Button(onClick = { onApprove(minAge, note) }, enabled = confirmed, modifier = Modifier.fillMaxWidth()) { Text("تأیید من و ارسال درخواست ارزیابی") }
+    }
+}
+
+/** The cartoons the family has added, with age and episode count; long list scrolls sideways. */
+@Composable
+private fun ApprovedStrip(list: List<com.kodomo.app.data.local.entity.ContentEntity>, onRemove: (String) -> Unit) {
+    var confirm by remember { mutableStateOf<com.kodomo.app.data.local.entity.ContentEntity?>(null) }
+    Text("کارتون‌های افزوده‌شده (${list.size.fa()}) – برای حذف روی هر کدام بزنید", style = MaterialTheme.typography.labelLarge)
+    androidx.compose.foundation.lazy.LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        items(list.size) { i ->
+            val e = list[i]
+            val episodes = e.episodes?.lines()?.size ?: 1
+            Column(
+                Modifier
+                    .size(width = 150.dp, height = 64.dp)
+                    .background(MaterialTheme.colorScheme.surfaceVariant, androidx.compose.foundation.shape.RoundedCornerShape(14.dp))
+                    .clickable { confirm = e }
+                    .padding(8.dp),
+            ) {
+                Text(e.title, style = MaterialTheme.typography.labelLarge, maxLines = 1)
+                Text("${e.minAge.fa()}+ سال • ${episodes.fa()} قسمت" + if (e.parentOnly) " • تأیید والد" else " • کدومو", style = MaterialTheme.typography.labelSmall)
+            }
+        }
+    }
+    confirm?.let { e ->
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { confirm = null },
+            title = { Text("حذف «${e.title}»؟") },
+            text = { Text("این کارتون دیگر برای کودک نمایش داده نمی‌شود.") },
+            confirmButton = { androidx.compose.material3.TextButton(onClick = { onRemove(e.id); confirm = null }) { Text("حذف") } },
+            dismissButton = { androidx.compose.material3.TextButton(onClick = { confirm = null }) { Text("انصراف") } },
+        )
     }
 }
 

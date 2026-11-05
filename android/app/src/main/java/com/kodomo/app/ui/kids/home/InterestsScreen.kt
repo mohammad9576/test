@@ -53,7 +53,7 @@ data class Suggestion(val title: String, val emoji: String, val kind: String, va
 /** Which Kodomo games fit which interest. */
 private val gamesByInterest: Map<Interest, List<com.kodomo.app.domain.model.MotionGame>> =
     mapOf(
-        Interest.SPORT to listOf(G.PING_PONG, G.PENALTY, G.GOALKEEPER, G.JUMPING_JACKS, G.SHAPE_WALL),
+        Interest.SPORT to listOf(G.BOXING, G.SKI, G.SPRINT_RACE, G.BASKETBALL, G.SQUAT, G.JUMP_ROPE, G.PING_PONG, G.PENALTY, G.GOALKEEPER, G.JUMPING_JACKS, G.SHAPE_WALL),
         Interest.ART to listOf(G.FREE_DRAW, G.COLORING, G.STYLIST, G.BAKERY),
         Interest.GAMES to listOf(G.TAP_RACE, G.AIR_HOCKEY, G.MEMORY_CARDS, G.CAR_RACE, G.SNAP_MATCH),
         Interest.SCIENCE to listOf(G.MATH_BALLOONS, G.SLIDE_PUZZLE, G.COLOR_SEQUENCE, G.TILT_RESCUE),

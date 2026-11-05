@@ -62,7 +62,7 @@ import kotlin.random.Random
 
 /** Camera stage shared by all body games: preview, skeleton, a game layer and the «step back» coaching hint. */
 @Composable
-private fun PoseStage(
+internal fun PoseStage(
     tracker: PoseTracker,
     hud: String,
     modifier: Modifier = Modifier,
@@ -109,7 +109,7 @@ private fun PoseStage(
 }
 
 /** Hand positions of the current pose in stage pixels. */
-private fun handsOnStage(pose: BodyPose?, stage: IntSize): List<Offset> {
+internal fun handsOnStage(pose: BodyPose?, stage: IntSize): List<Offset> {
     if (pose == null || stage == IntSize.Zero) return emptyList()
     val size = Size(stage.width.toFloat(), stage.height.toFloat())
     return pose.hands.map { pose.toScreen(it, size) }
@@ -266,46 +266,44 @@ fun PoseMatchGame(level: Int, onFinish: (Int, Boolean) -> Unit) {
     val target = sequence.getOrNull(index)
     val finish by rememberUpdatedState(onFinish)
 
+    var listening by remember { mutableStateOf(true) }
     LaunchedEffect(index) {
         val t = sequence.getOrNull(index)
         if (t == null) {
             finish(score * 5, score >= (sequence.size * 0.7f).toInt())
             return@LaunchedEffect
         }
-        space.voice.speak(t.prompt)
         hold = 0f
-        remaining = 12
-        var lastTick = System.currentTimeMillis()
-        var spokeHold = false
+        remaining = 15
+        // Let the character finish the instruction before the clock starts; nothing interrupts it.
+        listening = true
+        space.voice.speakAndWait(t.prompt, timeoutMillis = 6_000)
+        listening = false
+        val started = System.currentTimeMillis()
+        var lastTick = started
         while (true) {
             delay(80)
             val now = System.currentTimeMillis()
+            remaining = (15 - ((now - started) / 1_000).toInt()).coerceAtLeast(0)
             val pose = tracker.pose
             if (pose != null && t.matches(pose)) {
                 hold += (now - lastTick) / (1_100f + level * 120f)
-                if (!spokeHold) {
-                    spokeHold = true
-                    space.voice.speak(VoicePhrases.POSE_HOLD)
-                }
             } else {
                 hold = (hold - 0.04f).coerceAtLeast(0f)
             }
             lastTick = now
             if (hold >= 1f) {
                 score++
-                space.voice.speak(VoicePhrases.POSE_DONE)
-                delay(900)
+                com.kodomo.app.ui.fx.Sfx.success()
+                delay(700)
+                index++
+                break
+            }
+            if (remaining == 0) {
                 index++
                 break
             }
         }
-    }
-    LaunchedEffect(index) {
-        repeat(12) {
-            delay(1_000)
-            remaining = 11 - it
-        }
-        if (index < sequence.size && hold < 1f) index++
     }
 
     Column(Modifier.fillMaxSize()) {
@@ -316,7 +314,10 @@ fun PoseMatchGame(level: Int, onFinish: (Int, Boolean) -> Unit) {
             Column(Modifier.weight(1f)) {
                 Text(target?.prompt ?: VoicePhrases.POSE_DONE, style = MaterialTheme.typography.titleMedium)
                 LinearProgressIndicator(progress = { hold.coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp), color = KodomoColors.Green)
-                Text("ژست ${(index + 1).coerceAtMost(sequence.size).fa()} از ${sequence.size.fa()} • امتیاز ${score.fa()} • ⏱ ${remaining.fa()}", style = MaterialTheme.typography.labelLarge)
+                Text(
+                    if (listening) "👂 گوش کن…" else "ژست ${(index + 1).coerceAtMost(sequence.size).fa()} از ${sequence.size.fa()} • امتیاز ${score.fa()} • ⏱ ${remaining.fa()}",
+                    style = MaterialTheme.typography.labelLarge,
+                )
             }
         }
         PoseStage(tracker, "", Modifier.weight(1f), layer = {})

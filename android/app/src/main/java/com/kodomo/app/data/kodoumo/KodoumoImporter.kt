@@ -93,7 +93,8 @@ class KodoumoImporter @Inject constructor(
         require(!item.underEvaluation && !review.underEvaluation) { "این اثر هنوز در کدومو در حال ارزیابی است." }
         require((review.age ?: item.age) != null) { "کدومو هنوز برای این اثر رده‌ی سنی ثبت نکرده است." }
         val category = videoCategoryOf(item.typeSlug + " " + review.typeLabel)
-        val entity = toEntity(category, item, review).copy(type = ContentType.VIDEO, mediaUrl = mediaUrl.trim(), episodes = encodeEpisodes(episodes))
+        // Own id per approved page: several cartoons never overwrite each other (search results may lack a review id).
+        val entity = toEntity(category, item, review).copy(id = approvedId(mediaUrl), type = ContentType.VIDEO, mediaUrl = mediaUrl.trim(), episodes = encodeEpisodes(episodes))
         db.contentDao().upsertAll(listOf(entity))
         return entity
     }
@@ -103,7 +104,7 @@ class KodoumoImporter @Inject constructor(
      * clearly marked «تأیید والدین؛ در انتظار ارزیابی», and an evaluation request goes to the Kodomo team.
      */
     suspend fun saveParentApprovedVideo(title: String, pageUrl: String, minAge: Int, note: String, episodes: List<com.kodomo.app.domain.model.Episode>): ContentEntity {
-        val id = "parent_" + Integer.toHexString(pageUrl.trim().hashCode())
+        val id = approvedId(pageUrl)
         val entity = ContentEntity(
             id = id, type = ContentType.VIDEO, title = title.trim().ifBlank { "کارتون تأییدشده" },
             description = "این کارتون را پدر یا مادرت برایت انتخاب کرده‌اند.",
@@ -117,6 +118,11 @@ class KodoumoImporter @Inject constructor(
         )
         db.contentDao().upsertAll(listOf(entity))
         return entity
+    }
+
+    private fun approvedId(pageUrl: String): String {
+        val key = android.net.Uri.parse(pageUrl.trim()).let { (it.host.orEmpty().removePrefix("www.") + it.path.orEmpty()).trimEnd('/') }
+        return com.kodomo.app.domain.engine.ContentPolicy.PARENT_APPROVED_PREFIX + Integer.toHexString(key.hashCode())
     }
 
     private fun encodeEpisodes(episodes: List<com.kodomo.app.domain.model.Episode>): String? =

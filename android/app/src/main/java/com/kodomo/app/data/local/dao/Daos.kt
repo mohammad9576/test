@@ -119,6 +119,12 @@ abstract class ContentDao {
     @Query("SELECT mediaUrl FROM content WHERE id = :id")
     abstract suspend fun mediaUrl(id: String): String?
 
+    @Query("SELECT * FROM content WHERE id LIKE 'tw_%' ORDER BY title")
+    abstract fun observeParentApprovedVideos(): Flow<List<ContentEntity>>
+
+    @Query("DELETE FROM content WHERE id = :id")
+    abstract suspend fun delete(id: String)
+
     @Query("SELECT episodes FROM content WHERE id = :id")
     abstract suspend fun episodes(id: String): String?
 

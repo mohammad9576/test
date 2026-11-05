@@ -15,8 +15,10 @@ import sys
 import edge_tts
 
 VOICE = "fa-IR-DilaraNeural"
-RATE = "-8%"
-PITCH = "+12Hz"
+RATE = "+3%"
+PITCH = "+0Hz"
+# Bump when the voice settings change: every clip is then re-recorded (the CI cache would otherwise keep old ones).
+STYLE = "dilara-natural-v2"
 CONCURRENCY = 6
 
 EMOJI = re.compile(
@@ -68,6 +70,11 @@ async def record(sem, key, text, out_dir, stats):
 async def main(tsv: str, out: str) -> None:
     out_dir = pathlib.Path(out)
     out_dir.mkdir(parents=True, exist_ok=True)
+    marker = out_dir / ".style"
+    if not marker.exists() or marker.read_text().strip() != STYLE:
+        for old in out_dir.glob("*.mp3"):
+            old.unlink()
+        marker.write_text(STYLE)
     rows = [line.split("\t", 1) for line in pathlib.Path(tsv).read_text(encoding="utf-8").splitlines() if "\t" in line]
     wanted = {key for key, _ in rows}
     for stale in out_dir.glob("*.mp3"):

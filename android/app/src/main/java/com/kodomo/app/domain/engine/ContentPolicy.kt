@@ -7,9 +7,13 @@ import com.kodomo.app.domain.model.ParentalSettings
 /** Applies the Kodomo rating against a child's age and the parent's tolerance thresholds. */
 object ContentPolicy {
 
+    const val PARENT_APPROVED_PREFIX = "tw_"
+
     fun isAllowed(item: ContentItem, age: Int, settings: ParentalSettings?): Boolean {
         val r = item.rating
         if (age < r.minAge || age > r.maxAge) return false
+        // Titles the parent approved one by one (Telewebion picker) were seen with their ratings: only the age applies.
+        if (item.id.startsWith(PARENT_APPROVED_PREFIX)) return true
         if (settings == null) return r.violence <= 2 && r.fear <= 2 && r.abnormality <= 1
         return r.violence <= settings.maxViolence &&
             r.fear <= settings.maxFear &&
@@ -19,7 +23,8 @@ object ContentPolicy {
     /** Ranks by matching interests first, then by educational score and peer approval. */
     fun rankForChild(items: List<ContentItem>, interests: Set<Interest>): List<ContentItem> =
         items.sortedWith(
-            compareByDescending<ContentItem> { it.interests.intersect(interests).size }
+            compareByDescending<ContentItem> { it.id.startsWith(PARENT_APPROVED_PREFIX) }
+                .thenByDescending { it.interests.intersect(interests).size }
                 .thenByDescending { it.rating.educational }
                 .thenByDescending { it.peerLikes - it.peerDislikes },
         )
