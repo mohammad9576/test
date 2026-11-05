@@ -148,7 +148,7 @@ fun KidSpaceFrame(childId: Long, onParentExit: () -> Unit, content: @Composable 
                 partyScope.launch { com.kodomo.app.ui.fx.Sfx.success() }
             },
             chooseBuddy = { b ->
-                vm.voice.style = com.kodomo.app.ui.mascot.MascotVoice.Style(b.voicePitch, b.voiceSpeed)
+                vm.voice.style = com.kodomo.app.ui.mascot.MascotVoice.Style(b.voicePitch, b.voiceSpeed, b.male)
                 vm.voice.speak(b.title)
                 partyScope.launch { vm.buddies.set(current.id, b) }
             },
@@ -156,7 +156,7 @@ fun KidSpaceFrame(childId: Long, onParentExit: () -> Unit, content: @Composable 
     }
 
     val buddy by remember(current.id) { vm.buddies.observe(current.id) }.collectAsStateWithLifecycle(com.kodomo.app.domain.model.Buddy.ROBOT)
-    LaunchedEffect(buddy) { vm.voice.style = com.kodomo.app.ui.mascot.MascotVoice.Style(buddy.voicePitch, buddy.voiceSpeed) }
+    LaunchedEffect(buddy) { vm.voice.style = com.kodomo.app.ui.mascot.MascotVoice.Style(buddy.voicePitch, buddy.voiceSpeed, buddy.male) }
     KidsTheme(spec = spec, darkMode = current.darkMode) {
         CompositionLocalProvider(LocalKidSpace provides scope, com.kodomo.app.ui.mascot.LocalBuddy provides buddy) {
             Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {

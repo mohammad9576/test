@@ -52,6 +52,14 @@ class VoicePhraseExportTest {
         }
         phrases += listOf("دست‌ها را مثل هواپیما باز کن", "یک دستت را بالا ببر", "هر دو دست را بالا ببر")
 
+        // Second, male voice for the boy companions: UI phrases, adventure stories and companion names (no books).
+        val male = linkedSetOf<String>()
+        male += VoicePhrases.all()
+        com.kodomo.app.ui.kids.games.adventure.AdventureThemes.all.forEach { t -> t.stages.forEach { male += it.title; male += it.story } }
+        com.kodomo.app.domain.model.Buddy.entries.forEach { male += it.title }
+        val maleNorm = male.map(VoiceKeys::normalize).filter { it.isNotEmpty() }.distinct()
+        File("build/voice/phrases_male.tsv").writeText(maleNorm.joinToString("\n") { "${VoiceKeys.key(it)}\t$it" } + "\n")
+
         val normalized = phrases.map(VoiceKeys::normalize).filter { it.isNotEmpty() }.distinct()
         val out = File("build/voice/phrases.tsv").apply { parentFile?.mkdirs() }
         out.writeText(normalized.joinToString("\n") { "${VoiceKeys.key(it)}\t$it" } + "\n")

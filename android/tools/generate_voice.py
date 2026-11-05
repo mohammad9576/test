@@ -14,7 +14,7 @@ import sys
 
 import edge_tts
 
-VOICE = "fa-IR-DilaraNeural"
+VOICE = sys.argv[3] if len(sys.argv) > 3 else "fa-IR-DilaraNeural"
 RATE = "+3%"
 PITCH = "+0Hz"
 # Bump when the voice settings change: every clip is then re-recorded (the CI cache would otherwise keep old ones).
@@ -71,10 +71,10 @@ async def main(tsv: str, out: str) -> None:
     out_dir = pathlib.Path(out)
     out_dir.mkdir(parents=True, exist_ok=True)
     marker = out_dir / ".style"
-    if not marker.exists() or marker.read_text().strip() != STYLE:
+    if not marker.exists() or marker.read_text().strip() != STYLE + VOICE:
         for old in out_dir.glob("*.mp3"):
             old.unlink()
-        marker.write_text(STYLE)
+        marker.write_text(STYLE + VOICE)
     rows = [line.split("\t", 1) for line in pathlib.Path(tsv).read_text(encoding="utf-8").splitlines() if "\t" in line]
     wanted = {key for key, _ in rows}
     for stale in out_dir.glob("*.mp3"):

@@ -55,8 +55,10 @@ jobs:
       - name: Restore narration clip cache
         uses: actions/cache@v4
         with:
-          path: android/app/src/main/assets/voice
-          key: voice-${{ hashFiles('android/app/build/voice/phrases.tsv') }}
+          path: |
+            android/app/src/main/assets/voice
+            android/app/src/main/assets/voice_m
+          key: voice-${{ hashFiles('android/app/build/voice/phrases.tsv', 'android/app/build/voice/phrases_male.tsv') }}
           restore-keys: voice-
 
       - name: Record Persian narration clips
@@ -64,6 +66,8 @@ jobs:
         run: |
           pip install --quiet edge-tts==7.2.3
           python3 tools/generate_voice.py app/build/voice/phrases.tsv app/src/main/assets/voice
+          python3 tools/generate_voice.py app/build/voice/phrases_male.tsv app/src/main/assets/voice_m fa-IR-FaridNeural
+          ls app/src/main/assets/voice_m | wc -l
           ls app/src/main/assets/voice | wc -l
 
       - name: Assemble debug APK

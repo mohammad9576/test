@@ -36,6 +36,8 @@ class MascotVoice @Inject constructor(@ApplicationContext private val context: C
     private val main = Handler(Looper.getMainLooper())
     private val clips: Set<String> = runCatching { context.assets.list("voice")?.map { it.removeSuffix(".mp3") }?.toSet() }
         .getOrNull().orEmpty()
+    private val maleClips: Set<String> = runCatching { context.assets.list("voice_m")?.map { it.removeSuffix(".mp3") }?.toSet() }
+        .getOrNull().orEmpty()
 
     private var player: MediaPlayer? = null
     private var generation = 0
@@ -65,7 +67,7 @@ class MascotVoice @Inject constructor(@ApplicationContext private val context: C
      * The voice character: playback pitch/speed applied to every clip and to the device TTS, so each companion
      * (panda, lamb, dolphin …) speaks with its own voice from the same recordings.
      */
-    data class Style(val pitch: Float, val speed: Float)
+    data class Style(val pitch: Float, val speed: Float, val male: Boolean = false)
 
     @Volatile var style: Style = Style(1.08f, 1.0f)
         set(value) {
@@ -122,7 +124,9 @@ class MascotVoice @Inject constructor(@ApplicationContext private val context: C
 
     private fun playClip(text: String, token: Int, listener: Listener?, onComplete: () -> Unit) {
         try {
-            val afd = context.assets.openFd("voice/${VoiceKeys.key(text)}.mp3")
+            val key = VoiceKeys.key(text)
+            val folder = if (style.male && key in maleClips) "voice_m" else "voice"
+            val afd = context.assets.openFd("$folder/$key.mp3")
             val mp = MediaPlayer()
             mp.setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build())
             mp.setDataSource(afd.fileDescriptor, afd.startOffset, afd.length)
