@@ -58,6 +58,7 @@ fun DashboardTab(viewModel: ParentHubViewModel, modifier: Modifier = Modifier) {
     LazyColumn(modifier, contentPadding = PaddingValues(bottom = 24.dp)) {
         item { ChildSwitcher(children, child, viewModel::selectChild) }
         item { PendingChoresCard(viewModel, children) }
+        item { child?.let { StudyCard(viewModel, it) } }
         val s = settings
         val c = child
         if (c == null || s == null) {
@@ -297,5 +298,62 @@ private fun PendingChoresCard(viewModel: ParentHubViewModel, children: List<com.
                 androidx.compose.material3.TextButton(onClick = { viewModel.resolveChore(p, false) }) { Text("نه") }
             }
         }
+    }
+}
+
+/** «درس و تمرین»: today's correct answers, the play-time reward rule and the child's school grade. */
+@Composable
+private fun StudyCard(viewModel: ParentHubViewModel, child: com.kodomo.app.domain.model.Child) {
+    val today by androidx.compose.runtime.remember(child.id) { viewModel.learning.today(child.id) }.collectAsStateWithLifecycle(com.kodomo.app.data.prefs.StudyToday(0, 0, 0))
+    val total by androidx.compose.runtime.remember(child.id) { viewModel.learning.totalCorrect(child.id) }.collectAsStateWithLifecycle(0)
+    val grade by androidx.compose.runtime.remember(child.id) { viewModel.learning.grade(child.id, child.ageYears()) }.collectAsStateWithLifecycle(com.kodomo.app.domain.learn.Grade.forAge(child.ageYears()))
+    val reward by viewModel.studyReward.collectAsStateWithLifecycle()
+    var editing by remember { mutableStateOf(false) }
+    com.kodomo.app.ui.components.KodomoCard(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp)) {
+        Text("📝 درس و تمرین ${child.name} • ${grade.label}", style = MaterialTheme.typography.titleMedium)
+        Text("امروز ${today.correct} جواب درست • تا حالا $total • جایزه‌های امروز: ${today.rewardsGranted}", style = MaterialTheme.typography.bodyMedium)
+        Text("قانون جایزه: هر ${reward.every} جواب درست = ${reward.minutes} دقیقه بازی (${if (reward.automatic) "خودکار" else "با تأیید شما"})", style = MaterialTheme.typography.labelMedium)
+        Row {
+            if (today.rewardsPending > 0) androidx.compose.material3.Button(onClick = { viewModel.approveStudyReward(child.id) }) { Text("تأیید جایزه (${today.rewardsPending})") }
+            androidx.compose.material3.TextButton(onClick = { editing = true }) { Text("تنظیمات") }
+        }
+    }
+    if (editing) {
+        var every by remember { mutableStateOf(reward.every.toFloat()) }
+        var minutes by remember { mutableStateOf(reward.minutes.toFloat()) }
+        var auto by remember { mutableStateOf(reward.automatic) }
+        var g by remember { mutableStateOf(grade) }
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { editing = false },
+            title = { Text("تنظیمات درس و تمرین") },
+            text = {
+                Column {
+                    Text("هر ${every.toInt()} جواب درست")
+                    androidx.compose.material3.Slider(value = every, onValueChange = { every = it }, valueRange = 3f..30f, steps = 26)
+                    Text("${minutes.toInt()} دقیقه زمان بازی جایزه")
+                    androidx.compose.material3.Slider(value = minutes, onValueChange = { minutes = it }, valueRange = 1f..30f, steps = 28)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        androidx.compose.material3.Switch(checked = auto, onCheckedChange = { auto = it })
+                        Spacer(Modifier.width(8.dp))
+                        Text(if (auto) "جایزه خودکار داده شود" else "جایزه بعد از تأیید من")
+                    }
+                    Text("پایه‌ی تحصیلی ${child.name}:", style = MaterialTheme.typography.labelLarge)
+                    androidx.compose.foundation.lazy.LazyRow(horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(6.dp)) {
+                        items(com.kodomo.app.domain.learn.Grade.entries.size) { i ->
+                            val gr = com.kodomo.app.domain.learn.Grade.entries[i]
+                            androidx.compose.material3.FilterChip(selected = g == gr, onClick = { g = gr }, label = { Text(gr.label) })
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = {
+                    viewModel.setStudyReward(com.kodomo.app.data.prefs.StudyReward(every.toInt(), minutes.toInt(), auto))
+                    viewModel.setGrade(child.id, g)
+                    editing = false
+                }) { Text("ذخیره") }
+            },
+            dismissButton = { androidx.compose.material3.TextButton(onClick = { editing = false }) { Text("انصراف") } },
+        )
     }
 }

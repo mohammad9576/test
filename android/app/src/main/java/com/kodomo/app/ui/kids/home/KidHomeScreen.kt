@@ -111,6 +111,8 @@ private fun modulesFor(child: Child): List<HomeModule> {
     val group = child.ageGroup()
     val all = buildList {
         add(HomeModule("فیلم و انیمیشن", "محتوای امن و رده‌بندی‌شده", "🎬", 0xFFBFE3FF to 0xFF5AA9E6, Routes.kidVideos(id)))
+        add(HomeModule("درس و تمرین", "مطابق پایه‌ی تحصیلی + جایزه‌ی بازی", "📝", 0xFFFFF59D to 0xFFF9A825, Routes.kidStudy(id)))
+        add(HomeModule("انگلیسی", "Hello! از صفر با تلفظ", "🔤", 0xFFD1C4E9 to 0xFF7E57C2, Routes.kidEnglish(id)))
         add(HomeModule("شبکه پویا", "کارتون زنده، فقط همین شبکه", "📺", 0xFFFFE0B2 to 0xFFFB8C00, Routes.kidLiveTv(id)))
         add(HomeModule("بازی و نقاشی", "بازی با بدن، حسگرها و نقاشی", "🤸", 0xFFFFD1DC to 0xFFF28AA6, Routes.kidGames(id)))
         add(HomeModule("کتاب", "صوتی، با صدای والد، خودم می‌خوانم", "📚", 0xFFFFE6A7 to 0xFFFFB648, Routes.kidBooks(id)))

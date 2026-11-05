@@ -20,7 +20,7 @@ import kotlin.random.Random
  * Tiny synthesizer for game audio (no audio files): layered sound effects and looping background music per theme.
  * Everything is rendered once to PCM and cached.
  */
-internal object Synth {
+object Synth {
     const val RATE = 22_050
 
     fun note(midi: Int): Float = 440f * 2f.pow((midi - 69) / 12f)

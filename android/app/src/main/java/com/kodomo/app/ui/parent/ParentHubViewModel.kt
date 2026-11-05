@@ -48,7 +48,16 @@ class ParentHubViewModel @Inject constructor(
     liveUsageSocket: LiveUsageSocket,
     private val kodoumo: com.kodomo.app.data.kodoumo.KodoumoImporter,
     private val chores: com.kodomo.app.data.prefs.ChoreStore,
+    val learning: com.kodomo.app.data.prefs.LearningStore,
 ) : ViewModel() {
+    val studyReward = learning.reward.stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5_000), com.kodomo.app.data.prefs.StudyReward())
+    val studyLog = learning.log.stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5_000), emptyList())
+    fun setStudyReward(r: com.kodomo.app.data.prefs.StudyReward) = viewModelScope.launch { learning.setReward(r) }
+    fun setGrade(childId: Long, grade: com.kodomo.app.domain.learn.Grade?) = viewModelScope.launch { learning.setGrade(childId, grade) }
+    fun approveStudyReward(childId: Long) = viewModelScope.launch {
+        val minutes = learning.approvePending(childId)
+        if (minutes > 0) screenTime.grantExtraMinutes(minutes)
+    }
     /** Chores the children marked as done, waiting for the parent. */
     val pendingChores = chores.pending.stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5_000), emptyList())
 

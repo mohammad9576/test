@@ -97,6 +97,18 @@ fun KodomoNavHost(navController: NavHostController, startDestination: String) {
         kid(Routes.KID_FEEDBACK, toProfiles, listOf(stringArg(Routes.ARG_ID))) { _, entry ->
             FeedbackScreen(contentId = entry.stringArg(Routes.ARG_ID), onDone = back)
         }
+        kid(Routes.KID_STUDY, toProfiles) { childId, _ ->
+            com.kodomo.app.ui.kids.study.StudyHomeScreen(
+                onBack = back,
+                onOpenUnit = { id -> navController.navigate(Routes.kidStudyUnit(childId, id)) },
+                onEnglish = { navController.navigate(Routes.kidEnglish(childId)) },
+            )
+        }
+        kid(Routes.KID_STUDY_UNIT, toProfiles, listOf(stringArg(Routes.ARG_ID))) { _, _ -> com.kodomo.app.ui.kids.study.StudyUnitScreen(onBack = back) }
+        kid(Routes.KID_ENGLISH, toProfiles) { childId, _ ->
+            com.kodomo.app.ui.kids.study.EnglishHomeScreen(onBack = back, onOpen = { id -> navController.navigate(Routes.kidEnglishUnit(childId, id)) })
+        }
+        kid(Routes.KID_ENGLISH_UNIT, toProfiles, listOf(stringArg(Routes.ARG_ID))) { _, _ -> com.kodomo.app.ui.kids.study.EnglishUnitScreen(onBack = back) }
         kid(Routes.KID_CHORES, toProfiles) { _, _ -> com.kodomo.app.ui.kids.family.ChoresScreen(onBack = back) }
         kid(Routes.KID_LIVE_TV, toProfiles) { _, _ -> com.kodomo.app.ui.kids.video.LiveTvScreen(onBack = back) }
         kid(Routes.KID_GAMES, toProfiles) { childId, _ ->
