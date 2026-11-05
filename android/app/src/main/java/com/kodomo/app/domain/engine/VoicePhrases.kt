@@ -70,7 +70,7 @@ object VoicePhrases {
 
     val homeModules = listOf(
         "فیلم و انیمیشن", "شبکه پویا", "بازی و نقاشی", "کتاب", "موسیقی", "آموزش", "تفکر و یادگیری", "مدرسه من", "کشف محتوا",
-        "مرورگر امن من", "پروژه‌های من", "برنامه‌های من", "پاداش‌ها", "علایق من",
+        "مرورگر امن من", "پروژه‌های من", "برنامه‌های من", "کمک به خانواده", "پاداش‌ها", "علایق من",
     )
 
     /** All static phrases of the UI layer (content narration is exported separately from the catalogs). */

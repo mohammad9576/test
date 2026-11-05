@@ -47,7 +47,15 @@ class ParentHubViewModel @Inject constructor(
     private val screenTime: ScreenTimeManager,
     liveUsageSocket: LiveUsageSocket,
     private val kodoumo: com.kodomo.app.data.kodoumo.KodoumoImporter,
+    private val chores: com.kodomo.app.data.prefs.ChoreStore,
 ) : ViewModel() {
+    /** Chores the children marked as done, waiting for the parent. */
+    val pendingChores = chores.pending.stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    fun resolveChore(item: com.kodomo.app.data.prefs.PendingChore, approved: Boolean) = viewModelScope.launch {
+        chores.resolve(item, approved)
+        if (approved) familyRepository.addStars(item.childId, item.chore.stars)
+    }
     private fun <T> stateOf(flow: kotlinx.coroutines.flow.Flow<T>, initial: T) = flow.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), initial)
 
     val family: StateFlow<Family?> = stateOf(familyRepository.observeFamily(), null)

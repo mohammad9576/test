@@ -97,6 +97,7 @@ fun KodomoNavHost(navController: NavHostController, startDestination: String) {
         kid(Routes.KID_FEEDBACK, toProfiles, listOf(stringArg(Routes.ARG_ID))) { _, entry ->
             FeedbackScreen(contentId = entry.stringArg(Routes.ARG_ID), onDone = back)
         }
+        kid(Routes.KID_CHORES, toProfiles) { _, _ -> com.kodomo.app.ui.kids.family.ChoresScreen(onBack = back) }
         kid(Routes.KID_LIVE_TV, toProfiles) { _, _ -> com.kodomo.app.ui.kids.video.LiveTvScreen(onBack = back) }
         kid(Routes.KID_GAMES, toProfiles) { childId, _ ->
             GamesScreen(onBack = back, onPlay = { game -> navController.navigate(Routes.kidGame(childId, game)) })

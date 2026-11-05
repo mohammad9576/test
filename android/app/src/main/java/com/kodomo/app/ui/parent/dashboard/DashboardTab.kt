@@ -57,6 +57,7 @@ fun DashboardTab(viewModel: ParentHubViewModel, modifier: Modifier = Modifier) {
 
     LazyColumn(modifier, contentPadding = PaddingValues(bottom = 24.dp)) {
         item { ChildSwitcher(children, child, viewModel::selectChild) }
+        item { PendingChoresCard(viewModel, children) }
         val s = settings
         val c = child
         if (c == null || s == null) {
@@ -274,5 +275,27 @@ private fun PermissionRow(label: String, granted: Boolean?, onClick: () -> Unit)
             modifier = Modifier.weight(1f),
         )
         if (granted != true) TextButton(onClick = onClick) { Text("تنظیم") }
+    }
+}
+
+/** «کمک به خانواده»: chores waiting for approval; approving gives the child the chore's stars. */
+@Composable
+private fun PendingChoresCard(viewModel: ParentHubViewModel, children: List<com.kodomo.app.domain.model.Child>) {
+    val pending by viewModel.pendingChores.collectAsStateWithLifecycle()
+    if (pending.isEmpty()) return
+    com.kodomo.app.ui.components.KodomoCard(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp)) {
+        Text("🧹 کارهای خانه که بچه‌ها انجام داده‌اند (${pending.size})", style = MaterialTheme.typography.titleMedium)
+        pending.take(8).forEach { p ->
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(p.chore.emoji, fontSize = 26.sp)
+                Spacer(Modifier.width(8.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(p.chore.title, style = MaterialTheme.typography.bodyMedium)
+                    Text("${children.firstOrNull { it.id == p.childId }?.name.orEmpty()} • ⭐ ${p.chore.stars}", style = MaterialTheme.typography.labelSmall)
+                }
+                androidx.compose.material3.TextButton(onClick = { viewModel.resolveChore(p, true) }) { Text("تأیید ✅") }
+                androidx.compose.material3.TextButton(onClick = { viewModel.resolveChore(p, false) }) { Text("نه") }
+            }
+        }
     }
 }

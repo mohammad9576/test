@@ -118,7 +118,7 @@ fun MotionGameScreen(game: MotionGame, onBack: () -> Unit, viewModel: MotionGame
             com.kodomo.app.domain.model.GameKind.SENSOR -> com.kodomo.app.ui.fx.GameMusic.Theme.FOREST
             else -> com.kodomo.app.ui.fx.GameMusic.Theme.CALM
         }
-        if (game.kind != com.kodomo.app.domain.model.GameKind.QUEST) com.kodomo.app.ui.fx.GameMusic.play(theme)
+        if (game.kind != com.kodomo.app.domain.model.GameKind.QUEST && game.kind != com.kodomo.app.domain.model.GameKind.LEARN_MOVE) com.kodomo.app.ui.fx.GameMusic.play(theme)
         onDispose { com.kodomo.app.ui.fx.GameMusic.release() }
     }
 
@@ -234,6 +234,8 @@ fun MotionGameScreen(game: MotionGame, onBack: () -> Unit, viewModel: MotionGame
                             MotionGame.HERO_QUEST -> com.kodomo.app.ui.kids.games.adventure.AdventureGame("hero", lvl, onFinish)
                             MotionGame.SPACE_QUEST -> com.kodomo.app.ui.kids.games.adventure.AdventureGame("space", lvl, onFinish)
                             MotionGame.OCEAN_QUEST -> com.kodomo.app.ui.kids.games.adventure.AdventureGame("ocean", lvl, onFinish)
+                            MotionGame.BODY_QUIZ -> com.kodomo.app.ui.kids.games.adventure.BodyQuizGame(lvl, onFinish)
+                            MotionGame.RHYTHM -> com.kodomo.app.ui.kids.games.adventure.RhythmGame(lvl, onFinish)
                             MotionGame.BOXING -> com.kodomo.app.ui.kids.games.pose.BoxingGame(lvl, onFinish)
                             MotionGame.SKI -> com.kodomo.app.ui.kids.games.pose.SkiGame(lvl, onFinish)
                             MotionGame.JUMP_ROPE -> com.kodomo.app.ui.kids.games.pose.JumpRopeGame(lvl, onFinish)

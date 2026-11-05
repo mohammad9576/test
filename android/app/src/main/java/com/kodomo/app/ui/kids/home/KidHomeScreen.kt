@@ -127,6 +127,7 @@ private fun modulesFor(child: Child): List<HomeModule> {
             add(HomeModule("پروژه‌های من", "کاردستی ۵ مرحله‌ای", "✂️", 0xFFF3DCC8 to 0xFFB57A4A, Routes.kidProjects(id)))
         }
         add(HomeModule("برنامه‌های من", "بازی‌ها و برنامه‌های مجاز", "📱", 0xFFE3DAFF to 0xFF7E57C2, Routes.kidApps(id)))
+        add(HomeModule("کمک به خانواده", "کار خوب انجام بده، ستاره بگیر", "🧹", 0xFFDCEDC8 to 0xFF7CB342, Routes.kidChores(id)))
         add(HomeModule("پاداش‌ها", "ستاره، مدال و جایزه‌ی خانوادگی", "🏆", 0xFFFFF1C7 to 0xFFFFC83D, Routes.kidRewards(id)))
         if (group != AgeGroup.TODDLER) add(HomeModule("علایق من", "انتخاب موضوع‌های مورد علاقه", "💚", 0xFFDDF7E8 to 0xFF3FA977, Routes.kidInterests(id)))
     }
