@@ -46,21 +46,27 @@ class AppGuardService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        startAsForeground()
+        running = true
         scope.launch { guardLoop() }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        // Every startForegroundService() must be answered with startForeground() – otherwise Android kills the app.
+        if (!startAsForeground()) {
+            stopSelf()
+            return START_NOT_STICKY
+        }
         if (intent?.action == ACTION_STOP) stopSelf()
-        return START_STICKY
+        return START_NOT_STICKY
     }
 
     override fun onDestroy() {
+        running = false
         scope.cancel()
         super.onDestroy()
     }
 
-    private fun startAsForeground() {
+    private fun startAsForeground(): Boolean = runCatching {
         val manager = getSystemService(NotificationManager::class.java)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             manager.createNotificationChannel(NotificationChannel(CHANNEL, "محافظ کدومو", NotificationManager.IMPORTANCE_MIN))
@@ -74,7 +80,7 @@ class AppGuardService : Service() {
             .build()
         val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE else 0
         ServiceCompat.startForeground(this, NOTIFICATION_ID, notification, type)
-    }
+    }.onFailure { Log.w(TAG, "startForeground refused", it) }.isSuccess
 
     private suspend fun guardLoop() {
         while (scope.isActive) {
@@ -134,12 +140,16 @@ class AppGuardService : Service() {
             "com.lbe.security.miui", "com.samsung.android.honeyboard",
         )
 
+        @Volatile private var running = false
+
         fun start(context: Context) {
+            if (running) return
             runCatching { androidx.core.content.ContextCompat.startForegroundService(context, Intent(context, AppGuardService::class.java)) }
                 .onFailure { Log.w(TAG, "Unable to start guard", it) }
         }
 
         fun stop(context: Context) {
+            if (!running) return
             context.stopService(Intent(context, AppGuardService::class.java))
         }
     }

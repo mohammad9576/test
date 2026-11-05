@@ -55,8 +55,9 @@ import kotlin.random.Random
 
 /** Kid-friendly ping pong against a gentle robot: drag the bottom paddle; first to five points wins. */
 @Composable
-fun PingPongGame(onFinish: (Int) -> Unit) {
+fun PingPongGame(onFinish: (Int) -> Unit, useCamera: Boolean = false) {
     val space = LocalKidSpace.current
+    val tracker = remember { PoseTracker() }
     val haptics = LocalHapticFeedback.current
     val measurer = rememberTextMeasurer()
     var area by remember { mutableStateOf(IntSize.Zero) }
@@ -72,6 +73,21 @@ fun PingPongGame(onFinish: (Int) -> Unit) {
     val paddleW = 0.26f
     val target = 5
 
+    if (useCamera) {
+        // The paddle follows the child's hands (mirrored selfie view, so moving right moves the paddle right).
+        LaunchedEffect(Unit) {
+            androidx.compose.runtime.snapshotFlow { tracker.frames }.collect {
+                val pose = tracker.pose ?: return@collect
+                if (area == IntSize.Zero) return@collect
+                val size = Size(area.width.toFloat(), area.height.toFloat())
+                val hands = pose.hands.map { pose.toScreen(it, size).x / size.width }
+                if (hands.isNotEmpty()) {
+                    val target = hands.average().toFloat().coerceIn(paddleW / 2, 1 - paddleW / 2)
+                    playerX += (target - playerX) * 0.55f
+                }
+            }
+        }
+    }
     LaunchedEffect(area) {
         if (area == IntSize.Zero) return@LaunchedEffect
         var last = withFrameNanos { it }
@@ -144,6 +160,10 @@ fun PingPongGame(onFinish: (Int) -> Unit) {
                     }
                 },
         ) {
+            if (useCamera) {
+                PoseCamera(tracker, Modifier.fillMaxSize())
+                Box(Modifier.fillMaxSize().background(Color(0x992E7D5B)))
+            }
             Canvas(Modifier.fillMaxSize()) {
                 val w = size.width
                 val h = size.height
@@ -161,7 +181,7 @@ fun PingPongGame(onFinish: (Int) -> Unit) {
                 drawCircle(Color.White, 18f, Offset(ball.x * w, ball.y * h))
                 drawCircle(Color(0xFFFFE6A7), 8f, Offset(ball.x * w - 5f, ball.y * h - 5f))
             }
-            Text("انگشتت را روی صفحه بکش 👆", color = Color.White.copy(alpha = 0.8f), modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 6.dp), style = MaterialTheme.typography.labelMedium)
+            Text(if (useCamera) "دستت را جلوی دوربین چپ و راست ببر 🙌" else "انگشتت را روی صفحه بکش 👆", color = Color.White.copy(alpha = 0.8f), modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 6.dp), style = MaterialTheme.typography.labelMedium)
             if (celebrate > 0) ConfettiBurst(celebrate)
         }
     }

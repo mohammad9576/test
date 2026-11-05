@@ -18,9 +18,9 @@ data class ParentGateChallenge(val left: Int, val right: Int, val operator: Oper
             Operator.TIMES -> left * right
         }
 
-    /** e.g. «۲۴ + ۱۷ = ؟» */
+    /** e.g. «۲۴ + ۱۷ = ؟», wrapped in a left-to-right isolate so the equation is not mirrored inside RTL text. */
     val questionPersian: String
-        get() = "${PersianDigits.toPersian(left)} ${operator.symbol} ${PersianDigits.toPersian(right)} = ؟"
+        get() = "\u2066${PersianDigits.toPersian(left)} ${operator.symbol} ${PersianDigits.toPersian(right)} = ؟\u2069"
 
     val questionLatin: String get() = "$left ${operator.symbol} $right = ?"
 

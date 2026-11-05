@@ -106,7 +106,11 @@ fun ParentGateDialog(
                 PinDots(length = pin.length)
                 Spacer(Modifier.height(12.dp))
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(challenge.questionPersian, style = MaterialTheme.typography.titleLarge, color = KodomoColors.GreenDark)
+                    Text(
+                        challenge.questionPersian,
+                        style = MaterialTheme.typography.titleLarge.copy(textDirection = androidx.compose.ui.text.style.TextDirection.Ltr),
+                        color = KodomoColors.GreenDark,
+                    )
                     OutlinedTextField(
                         value = answer,
                         onValueChange = { answer = it.take(4) },

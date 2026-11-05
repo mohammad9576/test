@@ -33,7 +33,7 @@ class DomainLogicTest {
     @Test
     fun parentGateAcceptsPersianAndLatinAnswers() {
         val challenge = ParentGateChallenge(24, 17, ParentGateChallenge.Operator.PLUS)
-        assertEquals("۲۴ + ۱۷ = ؟", challenge.questionPersian)
+        assertEquals("\u2066۲۴ + ۱۷ = ؟\u2069", challenge.questionPersian)
         assertTrue(challenge.isCorrect("41"))
         assertTrue(challenge.isCorrect("۴۱"))
         assertFalse(challenge.isCorrect("42"))

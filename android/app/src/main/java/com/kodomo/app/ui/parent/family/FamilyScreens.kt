@@ -122,6 +122,7 @@ fun FamilyTab(
         item { MemberRow(AvatarKind.ROBOT, "گالری محرمانه‌ی خاطرات", "عکس‌های رمزنگاری‌شده‌ی پروژه‌ها و لحظه‌های شاد", onOpenGallery) }
         item { MemberRow(AvatarKind.ROBOT, "حساب ابری و همگام‌سازی", "ورود با کد یکبارمصرف، پشتیبان پروفایل‌ها و پایش زنده", onOpenCloud) }
         item { OutlinedButton(onClick = { changePin = true }, modifier = Modifier.fillMaxWidth()) { Text("🔐 تغییر رمز والدین") } }
+        item { CrashReportCard() }
     }
 
     if (editFamily) {
@@ -310,5 +311,26 @@ fun MemoriesGalleryScreen(onBack: () -> Unit, viewModel: MemoriesViewModel = hil
                 }) { Text("حذف", color = MaterialTheme.colorScheme.error) }
             },
         )
+    }
+}
+
+/** Shows the last crash (if any) so the parent can copy it and send it to the developers. */
+@Composable
+private fun CrashReportCard() {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var report by remember { mutableStateOf(com.kodomo.app.core.CrashReporter.lastCrash(context)) }
+    val text = report ?: return
+    val clipboard = androidx.compose.ui.platform.LocalClipboardManager.current
+    KodomoCard(Modifier.fillMaxWidth()) {
+        SectionTitle("گزارش آخرین خطای برنامه")
+        Text("کدومو قبلاً با خطا بسته شده است. متن زیر را کپی کنید و برای پشتیبانی بفرستید.", style = MaterialTheme.typography.bodySmall)
+        Text(text.take(1_500), style = MaterialTheme.typography.labelSmall, maxLines = 14)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedButton(onClick = { clipboard.setText(androidx.compose.ui.text.AnnotatedString(text)) }) { Text("📋 کپی گزارش") }
+            TextButton(onClick = {
+                com.kodomo.app.core.CrashReporter.clear(context)
+                report = null
+            }) { Text("حذف") }
+        }
     }
 }

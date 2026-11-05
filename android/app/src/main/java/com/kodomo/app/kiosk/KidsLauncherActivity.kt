@@ -123,10 +123,25 @@ class KidsLauncherActivity : ComponentActivity(), KioskController {
         if (!deviceOwnerManager.isAdminActive) startActivity(deviceOwnerManager.adminActivationIntent())
     }
 
+    /** The Home role dialog only works when started for a result; if it is declined/unavailable, open Home settings. */
+    private val homeRoleLauncher = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()) {
+        if (!deviceOwnerManager.isDefaultHome) openHomeSettings()
+    }
+
     override fun requestDefaultHome() {
         if (deviceOwnerManager.isDefaultHome) return
-        runCatching { startActivity(deviceOwnerManager.defaultHomeIntent()) }
+        val intent = deviceOwnerManager.defaultHomeIntent()
+        if (intent.action == android.provider.Settings.ACTION_HOME_SETTINGS) {
+            openHomeSettings()
+        } else {
+            runCatching { homeRoleLauncher.launch(intent) }.onFailure { openHomeSettings() }
+        }
+    }
+
+    private fun openHomeSettings() {
+        runCatching { startActivity(Intent(android.provider.Settings.ACTION_HOME_SETTINGS)) }
             .recoverCatching { startActivity(deviceOwnerManager.defaultAppsSettingsIntent()) }
+            .recoverCatching { startActivity(Intent(android.provider.Settings.ACTION_SETTINGS)) }
     }
 
     private fun bringToFront() {

@@ -22,6 +22,7 @@ class KodomoApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        com.kodomo.app.core.CrashReporter.install(this)
         startupScope.launch {
             runCatching { catalogSeeder.seedIfEmpty() }.onFailure { Log.e("KodomoApp", "Catalog seeding failed", it) }
             // Refresh age ratings & reviews from kodoumo.ir (reachable from Iranian networks) at most twice a day.

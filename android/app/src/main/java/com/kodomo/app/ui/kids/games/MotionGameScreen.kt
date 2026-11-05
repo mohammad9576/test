@@ -119,6 +119,7 @@ fun MotionGameScreen(game: MotionGame, onBack: () -> Unit, viewModel: MotionGame
                             MotionGame.TILT_RESCUE -> TiltRescueGame(onFinish)
                             MotionGame.SHAKE_CLEAN -> ShakeCleanGame(onFinish)
                             MotionGame.PING_PONG -> PingPongGame(onFinish)
+                            MotionGame.PONG_BODY -> PingPongGame(onFinish, useCamera = true)
                             MotionGame.PENALTY -> PenaltyGame(onFinish)
                             MotionGame.GOALKEEPER -> GoalkeeperGame(onFinish)
                             MotionGame.JUMP_POP -> JumpPopGame(onFinish)

@@ -79,6 +79,7 @@ enum class GameKind(val label: String) { SPORT("بازی‌های ورزشی"), 
 enum class MotionGame(val title: String, val emoji: String, val description: String, val needsCamera: Boolean, val kind: GameKind) {
     PING_PONG("پینگ‌پنگ با ربات", "🏓", "راکت را با انگشت جابه‌جا کن و توپ را به ربات برگردان. هر کس زودتر ۵ امتیاز بگیرد برنده است!", false, GameKind.SPORT),
     PENALTY("ضربه‌ی پنالتی", "⚽", "انگشتت را روی توپ بکش و شوت بزن؛ دروازه‌بان را گول بزن و گل بزن!", false, GameKind.SPORT),
+    PONG_BODY("پینگ‌پنگ با دست (دوربین)", "🙌", "جلوی دوربین بایست و دستت را به چپ و راست ببر تا راکت حرکت کند!", true, GameKind.BODY),
     GOALKEEPER("دروازه‌بان قهرمان", "🧤", "جلوی دوربین بایست و با دست‌هایت توپ‌ها را بگیر تا گل نشوند.", true, GameKind.BODY),
     JUMP_POP("بپر و بترکان", "🎈", "جلوی دوربین بایست؛ با دست بادکنک‌ها را بترکان یا بالا بپر تا همه‌شان یکجا بترکند!", true, GameKind.BODY),
     STAR_CATCH("ستاره‌گیر", "⭐", "ستاره‌ها از آسمان می‌افتند؛ با دست‌هایت آن‌ها را بگیر و از ابرهای بارانی دور شو.", true, GameKind.BODY),
