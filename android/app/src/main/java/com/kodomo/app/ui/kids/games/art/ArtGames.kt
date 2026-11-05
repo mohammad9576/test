@@ -103,7 +103,7 @@ private data class PaintStroke(val color: Color, val width: Float, val points: L
 
 /** Free drawing with colours, three brush sizes, eraser, undo and «save to the family gallery». */
 @Composable
-fun FreeDrawGame(onFinish: (Int) -> Unit, viewModel: ArtViewModel = hiltViewModel()) {
+fun FreeDrawGame(onFinish: (Int, Boolean) -> Unit, viewModel: ArtViewModel = hiltViewModel()) {
     val space = LocalKidSpace.current
     val strokes = remember { mutableStateListOf<PaintStroke>() }
     var current by remember { mutableStateOf<PaintStroke?>(null) }
@@ -169,7 +169,7 @@ fun FreeDrawGame(onFinish: (Int) -> Unit, viewModel: ArtViewModel = hiltViewMode
                     val size = canvasSize
                     viewModel.save("نقاشی آزاد", render = { renderStrokes(snapshot, size) }) {
                         space.voice.speak(VoicePhrases.PAINT_SAVED)
-                        onFinish(10)
+                        onFinish(10, true)
                     }
                 },
                 modifier = Modifier.weight(1f),
@@ -199,7 +199,7 @@ private fun renderStrokes(strokes: List<PaintStroke>, size: IntSize): Bitmap {
 
 /** Tap-to-fill colouring page. Regions are vector paths in a 1000×1000 design space; later regions sit on top. */
 @Composable
-fun ColoringGame(onFinish: (Int) -> Unit, viewModel: ArtViewModel = hiltViewModel()) {
+fun ColoringGame(onFinish: (Int, Boolean) -> Unit, viewModel: ArtViewModel = hiltViewModel()) {
     val space = LocalKidSpace.current
     var pageIndex by remember { mutableIntStateOf(0) }
     val page = ColoringPages.all[pageIndex]
@@ -268,7 +268,7 @@ fun ColoringGame(onFinish: (Int) -> Unit, viewModel: ArtViewModel = hiltViewMode
                     val snapshot = fills.toList()
                     viewModel.save("رنگ‌آمیزی: ${page.title}", render = { ColoringPages.render(page, snapshot) }) {
                         space.voice.speak(VoicePhrases.PAINT_SAVED)
-                        onFinish(if (snapshot.all { it != null }) 12 else 6)
+                        onFinish(if (snapshot.all { it != null }) 12 else 6, snapshot.all { it != null })
                     }
                 },
                 modifier = Modifier.weight(1f),

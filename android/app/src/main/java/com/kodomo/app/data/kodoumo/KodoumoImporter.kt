@@ -85,6 +85,25 @@ class KodoumoImporter @Inject constructor(
         }
     }
 
+    /**
+     * Saves a parent-approved video (e.g. a Telewebion cartoon page) together with its kodoumo evaluation. Refuses
+     * items that kodoumo has not finished rating, so nothing unrated can reach a child.
+     */
+    suspend fun saveApprovedVideo(item: KodoumoListItem, review: KodoumoReview, mediaUrl: String): ContentEntity {
+        require(!item.underEvaluation && !review.underEvaluation) { "این اثر هنوز در کدومو در حال ارزیابی است." }
+        require((review.age ?: item.age) != null) { "کدومو هنوز برای این اثر رده‌ی سنی ثبت نکرده است." }
+        val category = videoCategoryOf(item.typeSlug + " " + review.typeLabel)
+        val entity = toEntity(category, item, review).copy(type = ContentType.VIDEO, mediaUrl = mediaUrl.trim())
+        db.contentDao().upsertAll(listOf(entity))
+        return entity
+    }
+
+    private fun videoCategoryOf(type: String) = when {
+        "serial" in type || "سریال" in type -> "serials"
+        "movie" in type || "سینمایی" in type || "فیلم" in type -> "movies"
+        else -> "animations"
+    }
+
     private fun labelOf(category: String) = when (category) {
         "animations" -> "انیمیشن"
         "movies" -> "فیلم سینمایی"

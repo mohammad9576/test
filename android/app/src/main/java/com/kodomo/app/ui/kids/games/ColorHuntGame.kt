@@ -90,12 +90,12 @@ class CenterColorSampler {
 }
 
 @Composable
-fun ColorHuntGame(onFinish: (Int) -> Unit) {
+fun ColorHuntGame(level: Int, onFinish: (Int, Boolean) -> Unit) {
     val space = LocalKidSpace.current
     val sampler = remember { CenterColorSampler() }
-    val sequence = remember { HuntColor.entries.shuffled() }
+    val sequence = remember { HuntColor.entries.shuffled().take((3 + level / 2).coerceAtMost(HuntColor.entries.size)) }
     var index by remember { mutableIntStateOf(0) }
-    var seconds by remember { mutableIntStateOf(90) }
+    var seconds by remember { mutableIntStateOf((95 - level * 6).coerceAtLeast(35)) }
     val hsv by sampler.hsv.collectAsState()
     val target = sequence.getOrNull(index)
     val matching = target?.matches(hsv[0], hsv[1], hsv[2]) == true
@@ -113,7 +113,7 @@ fun ColorHuntGame(onFinish: (Int) -> Unit) {
             delay(1_000)
             seconds--
         }
-        onFinish(index * 5 + if (index == sequence.size) seconds / 6 else 0)
+        onFinish(index * 5 + if (index == sequence.size) seconds / 6 else 0, index == sequence.size)
     }
 
     Column(Modifier.fillMaxSize().padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {

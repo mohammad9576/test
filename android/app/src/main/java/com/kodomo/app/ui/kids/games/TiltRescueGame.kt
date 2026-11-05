@@ -38,7 +38,7 @@ import kotlin.random.Random
 
 /** Tilt the phone to roll the rescue ball to the chicks while avoiding the mud holes. */
 @Composable
-fun TiltRescueGame(onFinish: (Int) -> Unit) {
+fun TiltRescueGame(level: Int, onFinish: (Int, Boolean) -> Unit) {
     val context = LocalContext.current
     var area by remember { mutableStateOf(IntSize.Zero) }
     var ball by remember { mutableStateOf(Offset.Zero) }
@@ -49,7 +49,7 @@ fun TiltRescueGame(onFinish: (Int) -> Unit) {
     val chicks = remember { mutableStateListOf<Offset>() }
     val holes = remember { mutableStateListOf<Offset>() }
     val measurer = rememberTextMeasurer()
-    val target = 10
+    val target = 5 + level * 2
 
     AccelerometerEffect { x, y, _ -> tilt = Offset(-x, y) }
 
@@ -62,7 +62,7 @@ fun TiltRescueGame(onFinish: (Int) -> Unit) {
         if (area == IntSize.Zero) return@LaunchedEffect
         ball = Offset(area.width / 2f, area.height / 2f)
         holes.clear()
-        repeat(4) { holes += randomPoint() }
+        repeat(2 + level) { holes += randomPoint() }
         chicks.clear()
         repeat(3) { chicks += randomPoint() }
         var last = withFrameNanos { it }
@@ -90,7 +90,7 @@ fun TiltRescueGame(onFinish: (Int) -> Unit) {
                 chicks += randomPoint()
             }
         }
-        onFinish(rescued * 5 + if (rescued >= target) timeLeft.toInt() / 3 else 0)
+        onFinish(rescued * 5 + if (rescued >= target) timeLeft.toInt() / 3 else 0, rescued >= target)
     }
 
     Column(Modifier.fillMaxSize()) {

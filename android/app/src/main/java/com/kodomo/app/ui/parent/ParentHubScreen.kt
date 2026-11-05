@@ -63,6 +63,7 @@ fun ParentHubScreen(
     onOpenGallery: () -> Unit,
     onOpenCloud: () -> Unit,
     onOpenAllowedApps: () -> Unit,
+    onOpenTelewebion: () -> Unit,
     viewModel: ParentHubViewModel = hiltViewModel(),
 ) {
     var tab by rememberSaveable { mutableTabState() }
@@ -97,7 +98,7 @@ fun ParentHubScreen(
         when (HubTab.entries[tab]) {
             HubTab.DASHBOARD -> DashboardTab(viewModel, modifier)
             HubTab.REPORTS -> ReportsTab(viewModel, modifier)
-            HubTab.RATINGS -> RatingsTab(viewModel, onOpenContent, modifier)
+            HubTab.RATINGS -> RatingsTab(viewModel, onOpenContent, onOpenTelewebion, modifier)
             HubTab.COMMUNITY -> CommunityTab(viewModel, onOpenArticle, onOpenTopic, modifier)
             HubTab.FAMILY -> FamilyTab(viewModel, onEditChild, onAddChild, onOpenGallery, onOpenCloud, onOpenAllowedApps, modifier)
         }

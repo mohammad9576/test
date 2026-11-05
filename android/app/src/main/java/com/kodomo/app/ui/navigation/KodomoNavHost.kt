@@ -97,6 +97,7 @@ fun KodomoNavHost(navController: NavHostController, startDestination: String) {
         kid(Routes.KID_FEEDBACK, toProfiles, listOf(stringArg(Routes.ARG_ID))) { _, entry ->
             FeedbackScreen(contentId = entry.stringArg(Routes.ARG_ID), onDone = back)
         }
+        kid(Routes.KID_LIVE_TV, toProfiles) { _, _ -> com.kodomo.app.ui.kids.video.LiveTvScreen(onBack = back) }
         kid(Routes.KID_GAMES, toProfiles) { childId, _ ->
             GamesScreen(onBack = back, onPlay = { game -> navController.navigate(Routes.kidGame(childId, game)) })
         }
@@ -155,8 +156,10 @@ fun KodomoNavHost(navController: NavHostController, startDestination: String) {
                 onOpenGallery = { navController.navigate(Routes.PARENT_GALLERY) },
                 onOpenCloud = { navController.navigate(Routes.PARENT_CLOUD) },
                 onOpenAllowedApps = { navController.navigate(Routes.PARENT_ALLOWED_APPS) },
+                onOpenTelewebion = { navController.navigate(Routes.PARENT_TELEWEBION) },
             )
         }
+        composable(Routes.PARENT_TELEWEBION) { com.kodomo.app.ui.parent.ratings.TelewebionPickerScreen(onBack = back) }
         composable(Routes.PARENT_CONTENT, arguments = listOf(stringArg(Routes.ARG_ID))) { entry ->
             ContentPassportScreen(contentId = entry.stringArg(Routes.ARG_ID), onBack = back)
         }

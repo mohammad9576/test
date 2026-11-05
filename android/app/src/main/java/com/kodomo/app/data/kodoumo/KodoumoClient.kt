@@ -87,6 +87,33 @@ class KodoumoClient @Inject constructor(private val http: OkHttpClient, private 
         return parseReview(root)
     }
 
+    /**
+     * Site search (`/search/?s=`), the same call as the website's search box. The response shape is not documented, so
+     * every object in it that looks like a review (has a slug and a title) is collected.
+     */
+    suspend fun search(query: String): List<KodoumoListItem> {
+        val url = "$BASE/search/".toHttpUrl().newBuilder().addQueryParameter("s", query.trim()).build().toString()
+        return parseSearch(get(url))
+    }
+
+    internal fun parseSearch(root: JsonElement): List<KodoumoListItem> {
+        val found = linkedMapOf<String, KodoumoListItem>()
+        fun visit(e: JsonElement) {
+            when (e) {
+                is JsonArray -> e.forEach { visit(it) }
+                is JsonObject -> {
+                    if (e["slug"] is JsonPrimitive && (e["reviewsTitle"] != null || e["title"] is JsonPrimitive)) {
+                        e.toListItem()?.takeIf { it.title.isNotBlank() }?.let { found.putIfAbsent(it.slug, it) }
+                    }
+                    e.values.forEach { if (it is JsonObject || it is JsonArray) visit(it) }
+                }
+                else -> Unit
+            }
+        }
+        visit(root)
+        return found.values.toList()
+    }
+
     /** Parses a review payload; `data` may be an object or a one-element array depending on the endpoint version. */
     internal fun parseReview(root: JsonObject): KodoumoReview {
         val d = when (val data = root["data"]) {

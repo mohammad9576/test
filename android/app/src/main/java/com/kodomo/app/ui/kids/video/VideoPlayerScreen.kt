@@ -82,10 +82,16 @@ fun VideoPlayerScreen(contentId: String, onBack: () -> Unit, onFinished: () -> U
         return
     }
 
-    val embed = if (source.startsWith("/")) null else VideoSource.parse(source) as? VideoSource.Embed
-    if (embed != null) {
-        EmbeddedVideoScreen(title = item.title, source = embed, onBack = onBack, onFinished = onFinished)
-        return
+    when (val parsed = if (source.startsWith("/")) null else VideoSource.parse(source)) {
+        is VideoSource.Embed -> {
+            EmbeddedVideoScreen(item.title, parsed.platform.label, onBack, onFinished) { EmbeddedVideoPlayer(parsed, it) }
+            return
+        }
+        is VideoSource.LockedPage -> {
+            EmbeddedVideoScreen(item.title, parsed.platform.label, onBack, onFinished) { LockedWebPlayer(WebLock.Pinned(parsed.pageUrl), it) }
+            return
+        }
+        else -> Unit
     }
 
     val player = remember(source) {
@@ -219,7 +225,13 @@ fun VideoPlayerScreen(contentId: String, onBack: () -> Unit, onFinished: () -> U
 
 /** Full-screen frame around the locked web embed: title bar, back button and an explicit «finished» action. */
 @Composable
-private fun EmbeddedVideoScreen(title: String, source: VideoSource.Embed, onBack: () -> Unit, onFinished: () -> Unit) {
+internal fun EmbeddedVideoScreen(
+    title: String,
+    platformLabel: String,
+    onBack: () -> Unit,
+    onFinished: (() -> Unit)?,
+    player: @Composable (Modifier) -> Unit,
+) {
     Column(Modifier.fillMaxSize().background(Color.Black)) {
         Row(
             Modifier.fillMaxWidth().statusBarsPadding().padding(12.dp),
@@ -231,13 +243,15 @@ private fun EmbeddedVideoScreen(title: String, source: VideoSource.Embed, onBack
             }
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(title, color = Color.White, style = MaterialTheme.typography.titleMedium)
-                Text("پخش امن از ${source.platform.label} • تأییدشده توسط کدومو", color = Color.White.copy(alpha = 0.7f), style = MaterialTheme.typography.labelSmall)
+                Text("پخش امن از $platformLabel • قفل‌شده روی همین صفحه", color = Color.White.copy(alpha = 0.7f), style = MaterialTheme.typography.labelSmall)
             }
             Box(Modifier.size(48.dp))
         }
-        EmbeddedVideoPlayer(source, Modifier.fillMaxWidth().weight(1f))
-        androidx.compose.material3.Button(onClick = onFinished, modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-            Text("تماشا تمام شد؛ نظرم را بگویم ✅")
+        player(Modifier.fillMaxWidth().weight(1f))
+        if (onFinished != null) {
+            androidx.compose.material3.Button(onClick = onFinished, modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+                Text("تماشا تمام شد؛ نظرم را بگویم ✅")
+            }
         }
     }
 }

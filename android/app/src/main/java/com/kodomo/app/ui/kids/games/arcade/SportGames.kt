@@ -55,7 +55,7 @@ import kotlin.random.Random
 
 /** Kid-friendly ping pong against a gentle robot: drag the bottom paddle; first to five points wins. */
 @Composable
-fun PingPongGame(onFinish: (Int) -> Unit, useCamera: Boolean = false) {
+fun PingPongGame(level: Int, onFinish: (Int, Boolean) -> Unit, useCamera: Boolean = false) {
     val space = LocalKidSpace.current
     val tracker = remember { PoseTracker() }
     val haptics = LocalHapticFeedback.current
@@ -70,8 +70,8 @@ fun PingPongGame(onFinish: (Int) -> Unit, useCamera: Boolean = false) {
     var celebrate by remember { mutableIntStateOf(0) }
     val trail = remember { mutableStateListOf<Offset>() }
     val finish by rememberUpdatedState(onFinish)
-    val paddleW = 0.26f
-    val target = 5
+    val paddleW = (0.3f - level * 0.012f).coerceAtLeast(0.18f)
+    val target = 3 + (level + 1) / 2
 
     if (useCamera) {
         // The paddle follows the child's hands (mirrored selfie view, so moving right moves the paddle right).
@@ -97,7 +97,8 @@ fun PingPongGame(onFinish: (Int) -> Unit, useCamera: Boolean = false) {
             val dt = ((now - last) / 1e9f).coerceAtMost(0.033f)
             last = now
             // robot follows the ball, deliberately a bit slow so children can win
-            val follow = (ball.x - robotX).coerceIn(-0.55f * dt, 0.55f * dt)
+            val robotSpeed = 0.4f + level * 0.07f
+            val follow = (ball.x - robotX).coerceIn(-robotSpeed * dt, robotSpeed * dt)
             robotX = (robotX + follow).coerceIn(paddleW / 2, 1 - paddleW / 2)
             var next = ball + velocity * (dt * speed)
             var v = velocity
@@ -140,7 +141,7 @@ fun PingPongGame(onFinish: (Int) -> Unit, useCamera: Boolean = false) {
             if (trail.size > 10) trail.removeAt(trail.lastIndex)
         }
         delay(1_200)
-        finish(you * 4 + if (you >= target) 10 else 0)
+        finish(you * 4 + if (you >= target) 10 else 0, you >= target)
     }
 
     Column(Modifier.fillMaxSize()) {
@@ -189,7 +190,7 @@ fun PingPongGame(onFinish: (Int) -> Unit, useCamera: Boolean = false) {
 
 /** Penalty shoot-out: swipe up from the ball; the goalkeeper dives (sometimes the wrong way). Five shots. */
 @Composable
-fun PenaltyGame(onFinish: (Int) -> Unit) {
+fun PenaltyGame(level: Int, onFinish: (Int, Boolean) -> Unit) {
     val space = LocalKidSpace.current
     val haptics = LocalHapticFeedback.current
     var area by remember { mutableStateOf(IntSize.Zero) }
@@ -220,7 +221,7 @@ fun PenaltyGame(onFinish: (Int) -> Unit) {
     LaunchedEffect(shot) {
         val aim = shot ?: return@LaunchedEffect
         flying = true
-        val dive = if (Random.nextFloat() < 0.55f) aim.x else Random.nextFloat() * 0.6f + 0.2f
+        val dive = if (Random.nextFloat() < (0.35f + level * 0.05f).coerceAtMost(0.8f)) aim.x else Random.nextFloat() * 0.6f + 0.2f
         val start = ball
         val steps = 32
         for (i in 1..steps) {
@@ -231,7 +232,7 @@ fun PenaltyGame(onFinish: (Int) -> Unit) {
             delay(16)
         }
         val inGoal = aim.x in 0.18f..0.82f && aim.y in 0.12f..0.36f
-        val saved = abs(keeperX - aim.x) < 0.13f
+        val saved = abs(keeperX - aim.x) < 0.1f + level * 0.008f
         shots++
         if (inGoal && !saved) {
             goals++
@@ -250,7 +251,7 @@ fun PenaltyGame(onFinish: (Int) -> Unit) {
         shot = null
         if (shots >= totalShots) {
             delay(500)
-            finish(goals * 5 + if (goals == totalShots) 10 else 0)
+            finish(goals * 5 + if (goals == totalShots) 10 else 0, goals >= 3)
         }
     }
 
@@ -324,7 +325,7 @@ fun PenaltyGame(onFinish: (Int) -> Unit) {
 
 /** Camera goalkeeper: balls fly at the screen; touch them with your hands before they arrive. Ten balls. */
 @Composable
-fun GoalkeeperGame(onFinish: (Int) -> Unit) {
+fun GoalkeeperGame(level: Int, onFinish: (Int, Boolean) -> Unit) {
     val space = LocalKidSpace.current
     val tracker = remember { PoseTracker() }
     val measurer = rememberTextMeasurer()
@@ -335,7 +336,7 @@ fun GoalkeeperGame(onFinish: (Int) -> Unit) {
     var progress by remember { mutableFloatStateOf(0f) }
     var celebrate by remember { mutableIntStateOf(0) }
     val finish by rememberUpdatedState(onFinish)
-    val totalBalls = 10
+    val totalBalls = 7 + level
 
     LaunchedEffect(Unit) {
         delay(2_000)
@@ -343,7 +344,7 @@ fun GoalkeeperGame(onFinish: (Int) -> Unit) {
             target = Offset(Random.nextFloat() * 0.7f + 0.15f, Random.nextFloat() * 0.55f + 0.2f)
             progress = 0f
             var saved = false
-            val duration = 2_600L - it * 120L
+            val duration = ((2_900L - level * 140L) - it * 60L).coerceAtLeast(1_100L)
             val start = System.currentTimeMillis()
             while (progress < 1f && !saved) {
                 delay(30)
@@ -366,7 +367,7 @@ fun GoalkeeperGame(onFinish: (Int) -> Unit) {
             progress = 0f
             delay(700)
         }
-        finish(saves * 3 + if (saves >= 8) 10 else 0)
+        finish(saves * 3 + if (saves >= totalBalls * 0.7f) 10 else 0, saves >= totalBalls * 0.7f)
     }
 
     Column(Modifier.fillMaxSize()) {

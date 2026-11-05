@@ -34,10 +34,10 @@ private data class Spot(val position: Offset, val radius: Float, val dirt: Float
 
 /** Shake the phone to wash the mud off the puppy. Each strong shake fades a mud spot. */
 @Composable
-fun ShakeCleanGame(onFinish: (Int) -> Unit) {
+fun ShakeCleanGame(level: Int, onFinish: (Int, Boolean) -> Unit) {
     val spots = remember {
         mutableStateListOf<Spot>().apply {
-            repeat(14) { add(Spot(Offset(Random.nextFloat(), Random.nextFloat()), Random.nextFloat() * 0.05f + 0.04f, 1f)) }
+            repeat(8 + level * 3) { add(Spot(Offset(Random.nextFloat(), Random.nextFloat()), Random.nextFloat() * 0.05f + 0.04f, 1f)) }
         }
     }
     var lastShake by remember { mutableLongStateOf(0L) }
@@ -59,11 +59,12 @@ fun ShakeCleanGame(onFinish: (Int) -> Unit) {
         }
     }
     LaunchedEffect(Unit) {
-        while (spots.any { it.dirt > 0f } && seconds < 90) {
+        val limit = (95 - level * 5).coerceAtLeast(40)
+        while (spots.any { it.dirt > 0f } && seconds < limit) {
             delay(1_000)
             seconds++
         }
-        onFinish(spots.count { it.dirt <= 0f } * 2 + (90 - seconds).coerceAtLeast(0) / 3)
+        onFinish(spots.count { it.dirt <= 0f } * 2 + (limit - seconds).coerceAtLeast(0) / 3, spots.all { it.dirt <= 0f })
     }
 
     Column(Modifier.fillMaxSize().padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {

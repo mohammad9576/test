@@ -55,7 +55,7 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @Composable
-fun RatingsTab(viewModel: ParentHubViewModel, onOpen: (String) -> Unit, modifier: Modifier = Modifier) {
+fun RatingsTab(viewModel: ParentHubViewModel, onOpen: (String) -> Unit, onOpenTelewebion: () -> Unit, modifier: Modifier = Modifier) {
     val items by viewModel.ratedContent.collectAsStateWithLifecycle()
     val status by viewModel.kodoumoStatus.collectAsStateWithLifecycle()
     val imported by viewModel.kodoumoCount.collectAsStateWithLifecycle()
@@ -92,6 +92,15 @@ fun RatingsTab(viewModel: ParentHubViewModel, onOpen: (String) -> Unit, modifier
                     enabled = status !is com.kodomo.app.data.kodoumo.KodoumoImporter.Status.Running,
                     modifier = Modifier.fillMaxWidth(),
                 ) { Text("دریافت تازه‌ترین ارزیابی‌ها از کدومو") }
+            }
+        }
+        item {
+            KodomoCard(Modifier.fillMaxWidth(), onClick = onOpenTelewebion) {
+                Text("📺 افزودن کارتون از تلوبیون", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    "بخش کودک تلوبیون را مرور کنید؛ برای هر کارتون، ارزیابی کدومو (سن، خشونت، ترس، ناهنجاری و نکات والدین) جستجو و نمایش داده می‌شود و فقط پس از تأیید شما و تطبیق با کدومو به کودک نشان داده می‌شود.",
+                    style = MaterialTheme.typography.bodySmall,
+                )
             }
         }
         item {

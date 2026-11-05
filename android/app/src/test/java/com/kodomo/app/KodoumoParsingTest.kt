@@ -76,5 +76,39 @@ class KodoumoParsingTest {
         assertTrue(s is VideoSource.Embed && s.embedUrl.contains("videohash/AbC12"))
         assertTrue(VideoSource.parse("https://youtu.be/dQw4w9WgXcQ") is VideoSource.Embed)
         assertTrue(VideoSource.parse("https://example.com/a.mp4") is VideoSource.Direct)
+        assertTrue(VideoSource.parse("https://telewebion.ir/live/pooya") is VideoSource.LockedPage)
+        assertTrue(VideoSource.parse("https://www.telewebion.com/episode/0x1234") is VideoSource.LockedPage)
+        assertTrue(VideoSource.parse("https://nottelewebion.ir.example.com/x") is VideoSource.Direct)
+    }
+
+    @Test
+    fun searchResultsAreCollectedFromAnyShape() {
+        val root = buildJsonObject {
+            put("data", buildJsonObject {
+                put("reviews", buildJsonArray {
+                    add(buildJsonObject { put("slug", "pout-pout"); put("reviewsTitle", "ماهی اخمو"); put("reviewsType", "animations"); put("reviewsAgeCategory", "<span class=\"age-tax\">3+ </span>") })
+                    add(buildJsonObject { put("slug", "x"); put("title", "") })
+                })
+            })
+        }
+        val items = KodoumoClient(okhttp3.OkHttpClient(), kotlinx.serialization.json.Json).parseSearch(root)
+        assertEquals(1, items.size)
+        assertEquals("ماهی اخمو", items[0].title)
+        assertEquals(3, items[0].age)
+    }
+
+    @Test
+    fun telewebionTitlesBecomeSearchTerms() {
+        assertEquals("ماهی اخمو", com.kodomo.app.ui.parent.ratings.cleanTelewebionTitle("انیمیشن ماهی اخمو - قسمت ۳ | تلوبیون"))
+    }
+
+    @Test
+    fun mathQuestionsAlwaysContainTheAnswer() {
+        val r = kotlin.random.Random(7)
+        repeat(200) {
+            val q = com.kodomo.app.ui.kids.games.brain.mathQuestion(1 + it % 10, r)
+            assertTrue(q.answer in q.options)
+            assertEquals(4, q.options.size)
+        }
     }
 }

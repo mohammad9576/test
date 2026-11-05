@@ -130,7 +130,7 @@ private fun DrawScope.drawBalloon(center: Offset, r: Float, color: Color) {
 
 /** Balloons rise; touch them with your «magic hands» or jump to pop every balloon on screen at once. */
 @Composable
-fun JumpPopGame(onFinish: (Int) -> Unit) {
+fun JumpPopGame(level: Int, onFinish: (Int, Boolean) -> Unit) {
     val space = LocalKidSpace.current
     val tracker = remember { PoseTracker() }
     val jump = remember { PoseJumpDetector() }
@@ -172,9 +172,9 @@ fun JumpPopGame(onFinish: (Int) -> Unit) {
             val dt = (now - last).coerceAtMost(50)
             last = now
             spawn += dt
-            if (spawn > 900 && balloons.size < 7) {
+            if (spawn > (1_050 - level * 60).coerceAtLeast(450) && balloons.size < 5 + level) {
                 spawn = 0
-                balloons += Floater(nextId++, Random.nextFloat() * 0.8f + 0.1f, 1.15f, Random.nextFloat() * 0.00007f + 0.00008f, balloonColors.random())
+                balloons += Floater(nextId++, Random.nextFloat() * 0.8f + 0.1f, 1.15f, (Random.nextFloat() * 0.00007f + 0.00008f) * (1f + level * 0.12f), balloonColors.random())
             }
             for (i in balloons.indices.reversed()) {
                 val b = balloons[i]
@@ -182,7 +182,7 @@ fun JumpPopGame(onFinish: (Int) -> Unit) {
                 if (ny < -0.15f) balloons.removeAt(i) else balloons[i] = b.copy(y = ny)
             }
         }
-        finish(popped * 2 + jumps * 3)
+        finish(popped * 2 + jumps * 3, popped >= 8 + level * 3)
     }
     LaunchedEffect(Unit) { while (seconds > 0) { delay(1_000); seconds-- } }
 
@@ -195,7 +195,7 @@ fun JumpPopGame(onFinish: (Int) -> Unit) {
 
 /** Catch falling stars with your hands; avoid the rain clouds. */
 @Composable
-fun StarCatchGame(onFinish: (Int) -> Unit) {
+fun StarCatchGame(level: Int, onFinish: (Int, Boolean) -> Unit) {
     val space = LocalKidSpace.current
     val tracker = remember { PoseTracker() }
     val items = remember { mutableStateListOf<Floater>() }
@@ -231,8 +231,8 @@ fun StarCatchGame(onFinish: (Int) -> Unit) {
             spawn += dt
             if (spawn > 750) {
                 spawn = 0
-                val bad = Random.nextFloat() < 0.22f
-                items += Floater(nextId++, Random.nextFloat() * 0.8f + 0.1f, -0.1f, Random.nextFloat() * 0.00008f + 0.0001f, KodomoColors.Star, bad)
+                val bad = Random.nextFloat() < (0.15f + level * 0.03f).coerceAtMost(0.45f)
+                items += Floater(nextId++, Random.nextFloat() * 0.8f + 0.1f, -0.1f, (Random.nextFloat() * 0.00008f + 0.0001f) * (1f + level * 0.1f), KodomoColors.Star, bad)
             }
             for (i in items.indices.reversed()) {
                 val s = items[i]
@@ -240,7 +240,7 @@ fun StarCatchGame(onFinish: (Int) -> Unit) {
                 if (ny > 1.1f) items.removeAt(i) else items[i] = s.copy(y = ny)
             }
         }
-        finish((stars * 2 - clouds).coerceAtLeast(0))
+        finish((stars * 2 - clouds).coerceAtLeast(0), stars - clouds >= 8 + level * 2)
     }
     LaunchedEffect(Unit) { while (seconds > 0) { delay(1_000); seconds-- } }
 
@@ -254,10 +254,10 @@ fun StarCatchGame(onFinish: (Int) -> Unit) {
 
 /** The robot shows a pose; hold the same pose for 1.5 seconds. */
 @Composable
-fun PoseMatchGame(onFinish: (Int) -> Unit) {
+fun PoseMatchGame(level: Int, onFinish: (Int, Boolean) -> Unit) {
     val space = LocalKidSpace.current
     val tracker = remember { PoseTracker() }
-    val sequence = remember { (TargetPose.entries + TargetPose.entries.shuffled()).take(8) }
+    val sequence = remember { (TargetPose.entries + TargetPose.entries.shuffled() + TargetPose.entries.shuffled()).take(5 + level) }
     var index by remember { mutableIntStateOf(0) }
     var hold by remember { mutableFloatStateOf(0f) }
     var score by remember { mutableIntStateOf(0) }
@@ -268,7 +268,7 @@ fun PoseMatchGame(onFinish: (Int) -> Unit) {
     LaunchedEffect(index) {
         val t = sequence.getOrNull(index)
         if (t == null) {
-            finish(score * 5)
+            finish(score * 5, score >= (sequence.size * 0.7f).toInt())
             return@LaunchedEffect
         }
         space.voice.speak(t.prompt)
@@ -281,7 +281,7 @@ fun PoseMatchGame(onFinish: (Int) -> Unit) {
             val now = System.currentTimeMillis()
             val pose = tracker.pose
             if (pose != null && t.matches(pose)) {
-                hold += (now - lastTick) / 1500f
+                hold += (now - lastTick) / (1_100f + level * 120f)
                 if (!spokeHold) {
                     spokeHold = true
                     space.voice.speak(VoicePhrases.POSE_HOLD)
@@ -355,7 +355,7 @@ private fun DrawScope.drawTargetFigure(pose: TargetPose) {
 
 /** Dance while the music plays; freeze like a statue when it stops. Three lives. */
 @Composable
-fun FreezeDanceGame(onFinish: (Int) -> Unit) {
+fun FreezeDanceGame(level: Int, onFinish: (Int, Boolean) -> Unit) {
     val space = LocalKidSpace.current
     val context = LocalContext.current
     val tracker = remember { PoseTracker() }
@@ -384,7 +384,7 @@ fun FreezeDanceGame(onFinish: (Int) -> Unit) {
     }
     LaunchedEffect(Unit) {
         delay(1_500)
-        while (lives > 0 && rounds < 8) {
+        while (lives > 0 && rounds < 5 + level) {
             phase = "dance"
             space.voice.speak(VoicePhrases.FREEZE_DANCE)
             player.play()
@@ -396,7 +396,7 @@ fun FreezeDanceGame(onFinish: (Int) -> Unit) {
             var moved = false
             val end = System.currentTimeMillis() + 3_000
             while (System.currentTimeMillis() < end) {
-                if (wobble > 0.05f) moved = true
+                if (wobble > (0.06f - level * 0.003f).coerceAtLeast(0.03f)) moved = true
                 delay(60)
             }
             rounds++
@@ -410,7 +410,7 @@ fun FreezeDanceGame(onFinish: (Int) -> Unit) {
             }
             delay(1_600)
         }
-        finish((rounds - (3 - lives)).coerceAtLeast(0) * 5)
+        finish((rounds - (3 - lives)).coerceAtLeast(0) * 5, lives > 0)
     }
 
     Box(Modifier.fillMaxSize()) {
@@ -438,7 +438,7 @@ fun FreezeDanceGame(onFinish: (Int) -> Unit) {
 
 /** Count jumping jacks («پروانه»); every rep releases a butterfly. */
 @Composable
-fun JumpingJacksGame(onFinish: (Int) -> Unit) {
+fun JumpingJacksGame(level: Int, onFinish: (Int, Boolean) -> Unit) {
     val space = LocalKidSpace.current
     val tracker = remember { PoseTracker() }
     val counter = remember { JumpingJackCounter() }
@@ -446,7 +446,7 @@ fun JumpingJacksGame(onFinish: (Int) -> Unit) {
     var seconds by remember { mutableIntStateOf(60) }
     val butterflies = remember { mutableStateListOf<Floater>() }
     val measurer = rememberTextMeasurer()
-    val goal = 15
+    val goal = 8 + level * 2
     val finish by rememberUpdatedState(onFinish)
 
     LaunchedEffect(Unit) { space.voice.speak(VoicePhrases.JACKS_START) }
@@ -472,7 +472,7 @@ fun JumpingJacksGame(onFinish: (Int) -> Unit) {
                 if (ny < -0.1f) butterflies.removeAt(i) else butterflies[i] = b.copy(y = ny, x = (b.x + (Random.nextFloat() - 0.5f) * 0.004f).coerceIn(0.05f, 0.95f))
             }
         }
-        finish(count * 2 + if (count >= goal) seconds / 3 else 0)
+        finish(count * 2 + if (count >= goal) seconds / 3 else 0, count >= goal)
     }
     LaunchedEffect(Unit) { while (seconds > 0 && count < goal) { delay(1_000); seconds-- } }
 

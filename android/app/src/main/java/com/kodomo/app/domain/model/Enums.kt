@@ -74,7 +74,7 @@ enum class MemorySource(val label: String) { PROJECT("پروژه"), LAUGH("لح�
 
 enum class MascotMood { HAPPY, EXCITED, SLEEPY, THINKING }
 
-enum class GameKind(val label: String) { SPORT("بازی‌های ورزشی"), BODY("بازی‌های حرکتی با دوربین"), SENSOR("بازی با حسگر گوشی"), ART("نقاشی و رنگ‌آمیزی") }
+enum class GameKind(val label: String) { SPORT("بازی‌های ورزشی"), BODY("بازی‌های حرکتی با دوربین"), SENSOR("بازی با حسگر گوشی"), BRAIN("بازی‌های فکری و سرعتی"), ART("نقاشی و رنگ‌آمیزی") }
 
 enum class MotionGame(val title: String, val emoji: String, val description: String, val needsCamera: Boolean, val kind: GameKind) {
     PING_PONG("پینگ‌پنگ با ربات", "🏓", "راکت را با انگشت جابه‌جا کن و توپ را به ربات برگردان. هر کس زودتر ۵ امتیاز بگیرد برنده است!", false, GameKind.SPORT),
@@ -90,6 +90,13 @@ enum class MotionGame(val title: String, val emoji: String, val description: Str
     TILT_RESCUE("نجات با کج کردن", "🐣", "گوشی را کج کن تا توپ نجات به جوجه‌ها برسد و از چاله‌ها دور بماند.", false, GameKind.SENSOR),
     SHAKE_CLEAN("تکان بده و تمیز کن", "🫧", "گوشی را تکان بده تا گل‌ولای از روی توله‌سگ پاک شود.", false, GameKind.SENSOR),
     SIMON_SAYS("سایمون می‌گه", "🕺", "فقط وقتی «سایمون می‌گه» حرکت کن، وگرنه بی‌حرکت بمان!", false, GameKind.SENSOR),
+    MEMORY_CARDS("کارت‌های حافظه", "🃏", "کارت‌ها را برگردان و جفت‌های یکسان را پیدا کن. هر مرحله کارت بیشتری دارد!", false, GameKind.BRAIN),
+    WHACK_A_MOLE("موش‌های بازیگوش", "🐹", "موش‌ها از سوراخ بیرون می‌آیند؛ سریع رویشان بزن ولی به گربه دست نزن!", false, GameKind.BRAIN),
+    FRUIT_CATCH("سبد میوه", "🍎", "سبد را با انگشت جابه‌جا کن و میوه‌ها را بگیر؛ مراقب بمب‌ها باش!", false, GameKind.BRAIN),
+    FLAPPY_ROBOT("ربات پرنده", "🤖", "روی صفحه بزن تا ربات بالا بپرد و از بین ستون‌ها رد شود.", false, GameKind.BRAIN),
+    SLIDE_PUZZLE("پازل کشویی", "🧩", "خانه‌ها را جابه‌جا کن تا عددها به ترتیب بچینند.", false, GameKind.BRAIN),
+    COLOR_SEQUENCE("دنباله‌ی رنگ‌ها", "🔴", "به ترتیب روشن شدن رنگ‌ها دقت کن و همان را تکرار کن.", false, GameKind.BRAIN),
+    MATH_BALLOONS("بادکنک‌های ریاضی", "➕", "جواب درست را روی بادکنک‌ها پیدا کن و بترکانش!", false, GameKind.BRAIN),
     FREE_DRAW("نقاشی آزاد", "🖌️", "با رنگ‌ها و قلم‌موهای مختلف هر چه دوست داری بکش.", false, GameKind.ART),
     COLORING("رنگ‌آمیزی", "🎨", "یک رنگ انتخاب کن و روی هر قسمت تصویر بزن تا رنگی شود.", false, GameKind.ART),
 }

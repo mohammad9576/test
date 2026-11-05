@@ -39,7 +39,7 @@ import kotlin.random.Random
  * child moved. Moving is correct only when the command started with «سایمون می‌گه».
  */
 @Composable
-fun SimonSaysGame(onFinish: (Int) -> Unit) {
+fun SimonSaysGame(level: Int, onFinish: (Int, Boolean) -> Unit) {
     val space = LocalKidSpace.current
     val commands = VoicePhrases.simonCommands
     var round by remember { mutableIntStateOf(0) }
@@ -48,7 +48,7 @@ fun SimonSaysGame(onFinish: (Int) -> Unit) {
     var feedback by remember { mutableStateOf("") }
     var windowProgress by remember { mutableFloatStateOf(0f) }
     var energy by remember { mutableFloatStateOf(0f) }
-    val rounds = 10
+    val rounds = 7 + level
 
     AccelerometerEffect { x, y, z -> energy += abs(sqrt(x * x + y * y + z * z) - 9.81f) }
 
@@ -63,7 +63,7 @@ fun SimonSaysGame(onFinish: (Int) -> Unit) {
             space.voice.speak(prompt)
             delay(1_200)
             energy = 0f
-            val windowMs = 4_000L
+            val windowMs = (4_300L - level * 220L).coerceAtLeast(2_000L)
             val start = System.currentTimeMillis()
             while (System.currentTimeMillis() - start < windowMs) {
                 windowProgress = (System.currentTimeMillis() - start) / windowMs.toFloat()
@@ -83,7 +83,7 @@ fun SimonSaysGame(onFinish: (Int) -> Unit) {
             round++
             delay(1_800)
         }
-        onFinish(correct * 5)
+        onFinish(correct * 5, correct >= (rounds * 0.7f).toInt())
     }
 
     Column(

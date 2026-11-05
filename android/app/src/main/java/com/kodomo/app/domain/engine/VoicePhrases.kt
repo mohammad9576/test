@@ -10,6 +10,8 @@ import com.kodomo.app.domain.model.MotionGame
 object VoicePhrases {
     const val PROJECT_DONE = "آفرین! پروژه‌ات عالی شد!"
     const val GAME_DONE = "آفرین! ستاره گرفتی!"
+    const val LEVEL_UP = "آفرین! مرحله‌ی بعد باز شد!"
+    const val TRY_AGAIN = "نزدیک بود! یک بار دیگر تلاش کن."
     const val NOT_ENOUGH_STARS = "ستاره‌هایت هنوز کافی نیست؛ ادامه بده! 💪"
     const val FEEDBACK_MEDAL = "آفرین! مدال «منتقد کوچک» و ۵ ستاره گرفتی! 🏅"
     const val FEEDBACK_THANKS = "ممنون که نظرت را گفتی! 💚"
@@ -67,7 +69,7 @@ object VoicePhrases {
     fun rewardRequested(title: String) = "درخواست «$title» برای مامان و بابا فرستاده شد! 🎉"
 
     val homeModules = listOf(
-        "فیلم و انیمیشن", "بازی و نقاشی", "کتاب", "موسیقی", "آموزش", "تفکر و یادگیری", "مدرسه من", "کشف محتوا",
+        "فیلم و انیمیشن", "شبکه پویا", "بازی و نقاشی", "کتاب", "موسیقی", "آموزش", "تفکر و یادگیری", "مدرسه من", "کشف محتوا",
         "مرورگر امن من", "پروژه‌های من", "برنامه‌های من", "پاداش‌ها", "علایق من",
     )
 
@@ -75,7 +77,7 @@ object VoicePhrases {
     fun all(): List<String> = buildList {
         addAll(
             listOf(
-                PROJECT_DONE, GAME_DONE, NOT_ENOUGH_STARS, FEEDBACK_MEDAL, FEEDBACK_THANKS, LIKED, DISLIKED,
+                PROJECT_DONE, GAME_DONE, LEVEL_UP, TRY_AGAIN, NOT_ENOUGH_STARS, FEEDBACK_MEDAL, FEEDBACK_THANKS, LIKED, DISLIKED,
                 SIMON_READY, SIMON_GOOD, SIMON_NOT_FOOLED, SIMON_SHOULD_MOVE, SIMON_FOOLED, BODY_STEP_BACK, BODY_READY,
                 BALLOON_JUMP, STAR_CLOUD, FREEZE_DANCE, FREEZE_NOW, FREEZE_MOVED, FREEZE_GREAT, POSE_HOLD, POSE_DONE,
                 JACKS_START, PAINT_SAVED, COLORING_DONE, GOAL, SAVED_BY_KEEPER, GREAT_SAVE, PONG_POINT, PONG_ROBOT_POINT, YOU_WIN, NICE_TRY,

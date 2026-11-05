@@ -11,12 +11,18 @@ sealed interface VideoSource {
     /** Locked web embed (iframe player) for platforms that do not expose raw streams. */
     data class Embed(val platform: Platform, val embedUrl: String) : VideoSource
 
+    /**
+     * A web page that only plays inside the publisher's own site (Telewebion). It is shown in a WebView pinned to this
+     * exact page: links, ads and route changes to anywhere else are blocked.
+     */
+    data class LockedPage(val platform: Platform, val pageUrl: String) : VideoSource
+
     enum class Platform(val label: String) { APARAT("آپارات"), YOUTUBE("یوتیوب"), TELEWEBION("تلوبیون") }
 
     companion object {
         private val aparat = Regex("""aparat\.com/(?:v/|embed/|video/video/embed/videohash/)([A-Za-z0-9]+)""")
         private val youtube = Regex("""(?:youtube(?:-nocookie)?\.com/(?:watch\?(?:.*&)?v=|embed/|shorts/|live/)|youtu\.be/)([A-Za-z0-9_-]{11})""")
-        private val telewebion = Regex("""telewebion\.com/(?:episode|embed)/(?:0x)?([A-Za-z0-9]+)""")
+        private val telewebion = Regex("""^https?://(?:[a-z0-9-]+\.)*telewebion\.(?:ir|com)/""", RegexOption.IGNORE_CASE)
 
         fun parse(url: String): VideoSource {
             aparat.find(url)?.let {
@@ -28,9 +34,7 @@ sealed interface VideoSource {
                     "https://www.youtube-nocookie.com/embed/${it.groupValues[1]}?autoplay=1&rel=0&modestbranding=1&playsinline=1&fs=1&iv_load_policy=3",
                 )
             }
-            telewebion.find(url)?.let {
-                return Embed(Platform.TELEWEBION, "https://telewebion.com/embed/${it.groupValues[1]}")
-            }
+            if (telewebion.containsMatchIn(url.trim())) return LockedPage(Platform.TELEWEBION, url.trim())
             return Direct(url)
         }
 
