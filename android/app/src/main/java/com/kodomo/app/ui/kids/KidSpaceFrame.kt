@@ -56,6 +56,7 @@ class KidSpaceViewModel @Inject constructor(
     private val familyRepository: FamilyRepository,
     private val screenTime: ScreenTimeManager,
     val voice: MascotVoice,
+    val buddies: com.kodomo.app.data.prefs.BuddyStore,
 ) : ViewModel() {
     val dialogue = MascotDialogueEngine()
     val screenState: StateFlow<ScreenTimeManager.State> = screenTime.state
@@ -81,6 +82,8 @@ class KidSpaceScope(
     val setActivity: (ActivityCategory, String, String?) -> Unit,
     /** Confetti + success jingle over the whole kids space. */
     val celebrate: () -> Unit = {},
+    /** Saves the companion character the child picked. */
+    val chooseBuddy: (com.kodomo.app.domain.model.Buddy) -> Unit = {},
 ) {
     /** Speaks [text] when the age tier wants voice guidance for every event (toddlers). */
     fun guide(text: String) {
@@ -144,11 +147,13 @@ fun KidSpaceFrame(childId: Long, onParentExit: () -> Unit, content: @Composable 
                 party++
                 partyScope.launch { com.kodomo.app.ui.fx.Sfx.success() }
             },
+            chooseBuddy = { b -> partyScope.launch { vm.buddies.set(current.id, b) } },
         )
     }
 
+    val buddy by remember(current.id) { vm.buddies.observe(current.id) }.collectAsStateWithLifecycle(com.kodomo.app.domain.model.Buddy.ROBOT)
     KidsTheme(spec = spec, darkMode = current.darkMode) {
-        CompositionLocalProvider(LocalKidSpace provides scope) {
+        CompositionLocalProvider(LocalKidSpace provides scope, com.kodomo.app.ui.mascot.LocalBuddy provides buddy) {
             Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
                 com.kodomo.app.ui.fx.KidsBackground(spec.group, current.darkMode)
                 content()

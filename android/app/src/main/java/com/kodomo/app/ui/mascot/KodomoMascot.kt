@@ -48,13 +48,22 @@ import com.kodomo.app.domain.model.MascotMood
 import com.kodomo.app.ui.theme.KodomoColors
 import kotlin.math.PI
 import kotlin.math.sin
+import kotlin.math.cos
 
 /**
  * The Kodomo robot, fully vector-drawn and animated: floating idle motion, blinking, glowing antenna,
  * mood-specific faces (happy, excited, sleepy, thinking) and a waving arm when excited.
  */
+/** The companion chosen by the current child (provided by the kids space; the robot elsewhere). */
+val LocalBuddy = androidx.compose.runtime.compositionLocalOf { com.kodomo.app.domain.model.Buddy.ROBOT }
+
 @Composable
 fun KodomoMascot(mood: MascotMood, modifier: Modifier = Modifier, size: Dp = 160.dp) {
+    val buddy = LocalBuddy.current
+    if (buddy != com.kodomo.app.domain.model.Buddy.ROBOT) {
+        BuddyMascot(buddy, mood, modifier, size)
+        return
+    }
     val transition = rememberInfiniteTransition(label = "mascot")
     val floatPhase by transition.animateFloat(
         initialValue = 0f, targetValue = 1f,
@@ -242,6 +251,57 @@ fun MascotSpeech(text: String, mood: MascotMood, modifier: Modifier = Modifier, 
                 .padding(horizontal = 14.dp, vertical = 12.dp),
         ) {
             Text(text, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
+        }
+    }
+}
+
+/** Animated animal companion: bouncing, squashing, blinking body on a coloured halo, with mood effects. */
+@Composable
+fun BuddyMascot(buddy: com.kodomo.app.domain.model.Buddy, mood: MascotMood, modifier: Modifier = Modifier, size: Dp = 160.dp) {
+    val t = rememberInfiniteTransition(label = "buddy")
+    val phase by t.animateFloat(0f, 1f, infiniteRepeatable(tween(if (mood == MascotMood.SLEEPY) 4200 else if (mood == MascotMood.EXCITED) 900 else 2200, easing = LinearEasing)), label = "phase")
+    val blink by t.animateFloat(
+        1f, 1f,
+        infiniteRepeatable(keyframes { durationMillis = 3600; 1f at 0; 1f at 3300; 0.82f at 3420; 1f at 3560 }),
+        label = "blink",
+    )
+    val halo by t.animateFloat(0.85f, 1.05f, infiniteRepeatable(tween(1300, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "halo")
+    val wave = sin(phase * 2 * PI).toFloat()
+    androidx.compose.foundation.layout.Box(modifier.size(size), contentAlignment = Alignment.Center) {
+        Canvas(Modifier.matchParentSize()) {
+            val s = this.size.minDimension
+            drawOval(Color.Black.copy(alpha = 0.08f), topLeft = Offset(s * 0.27f, s * 0.9f), size = Size(s * 0.46f, s * 0.06f))
+            drawCircle(
+                androidx.compose.ui.graphics.Brush.radialGradient(listOf(Color(buddy.colors.first), Color(buddy.colors.second).copy(alpha = 0.55f))),
+                radius = s * 0.4f * halo,
+                center = Offset(s / 2, s * 0.48f),
+            )
+            if (mood == MascotMood.EXCITED) {
+                repeat(6) { i ->
+                    val a = (i / 6f + phase) * 2 * PI
+                    drawCircle(Color(0xFFFFC83D), s * 0.022f, Offset(s / 2 + cos(a).toFloat() * s * 0.44f, s * 0.48f + sin(a).toFloat() * s * 0.44f))
+                }
+            }
+        }
+        Text(
+            buddy.emoji,
+            fontSize = (size.value * 0.5f).sp,
+            modifier = Modifier.graphicsLayer {
+                val bounce = if (mood == MascotMood.SLEEPY) 0.02f else if (mood == MascotMood.EXCITED) 0.09f else 0.04f
+                translationY = -kotlin.math.abs(wave) * size.toPx() * bounce
+                scaleY = blink * (1f - kotlin.math.abs(wave) * 0.03f)
+                scaleX = 1f + kotlin.math.abs(wave) * 0.03f
+                rotationZ = if (mood == MascotMood.THINKING) 8f else wave * 4f
+            },
+        )
+        val extra = when (mood) {
+            MascotMood.SLEEPY -> "💤"
+            MascotMood.THINKING -> "💭"
+            MascotMood.EXCITED -> "✨"
+            MascotMood.HAPPY -> null
+        }
+        extra?.let {
+            Text(it, fontSize = (size.value * 0.16f).sp, modifier = Modifier.align(Alignment.TopEnd).graphicsLayer { translationY = wave * 6f })
         }
     }
 }

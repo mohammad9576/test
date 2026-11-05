@@ -76,7 +76,7 @@ fun GamesScreen(onBack: () -> Unit, onPlay: (MotionGame) -> Unit, viewModel: Gam
                         Column(Modifier.weight(1f)) {
                             Text(game.title, style = MaterialTheme.typography.titleMedium)
                             if (space.spec.showCardLabels) Text(game.description, style = MaterialTheme.typography.bodySmall)
-                            if (game.kind != GameKind.ART) {
+                            if (game.kind.leveled) {
                                 val lvl = levels[game.name] ?: 1
                                 Text(
                                     "🏅 مرحله ${lvl.fa()} از ${com.kodomo.app.data.prefs.GameProgressStore.MAX_LEVEL.fa()}  " + "★".repeat(((lvl - 1) * 5 / com.kodomo.app.data.prefs.GameProgressStore.MAX_LEVEL).coerceAtLeast(0)),

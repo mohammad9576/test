@@ -74,7 +74,19 @@ enum class MemorySource(val label: String) { PROJECT("پروژه"), LAUGH("لح�
 
 enum class MascotMood { HAPPY, EXCITED, SLEEPY, THINKING }
 
-enum class GameKind(val label: String) { SPORT("بازی‌های ورزشی"), BODY("بازی‌های حرکتی با دوربین"), SENSOR("بازی با حسگر گوشی"), BRAIN("بازی‌های فکری و سرعتی"), ART("نقاشی و رنگ‌آمیزی") }
+enum class GameKind(val label: String) {
+    PARTY("بازی‌های ۲، ۳ و ۴ نفره (روی یک گوشی)"),
+    BODY("بازی‌های حرکتی با دوربین"),
+    SPORT("بازی‌های ورزشی"),
+    ADVENTURE("ماجراجویی: ماشین، فضا، آشپزی و مد"),
+    BRAIN("بازی‌های فکری و سرعتی"),
+    SENSOR("بازی با حسگر گوشی"),
+    ART("نقاشی و رنگ‌آمیزی"),
+    ;
+
+    /** Party and art games have no levels; all others get harder level by level. */
+    val leveled: Boolean get() = this != PARTY && this != ART
+}
 
 enum class MotionGame(val title: String, val emoji: String, val description: String, val needsCamera: Boolean, val kind: GameKind) {
     PING_PONG("پینگ‌پنگ با ربات", "🏓", "راکت را با انگشت جابه‌جا کن و توپ را به ربات برگردان. هر کس زودتر ۵ امتیاز بگیرد برنده است!", false, GameKind.SPORT),
@@ -90,6 +102,17 @@ enum class MotionGame(val title: String, val emoji: String, val description: Str
     TILT_RESCUE("نجات با کج کردن", "🐣", "گوشی را کج کن تا توپ نجات به جوجه‌ها برسد و از چاله‌ها دور بماند.", false, GameKind.SENSOR),
     SHAKE_CLEAN("تکان بده و تمیز کن", "🫧", "گوشی را تکان بده تا گل‌ولای از روی توله‌سگ پاک شود.", false, GameKind.SENSOR),
     SIMON_SAYS("سایمون می‌گه", "🕺", "فقط وقتی «سایمون می‌گه» حرکت کن، وگرنه بی‌حرکت بمان!", false, GameKind.SENSOR),
+    HAND_SLICE("میوه‌بُر جادویی", "🍉", "میوه‌ها به هوا پرت می‌شوند؛ دستت را مثل شمشیر از وسطشان رد کن! مراقب بمب‌ها باش و ترکیب بساز.", true, GameKind.BODY),
+    SHAPE_WALL("دیوار شکل‌ها", "🧱", "دیوار با یک سوراخ به سمتت می‌آید؛ به چپ و راست برو، بنشین یا دست‌ها را بالا ببر تا از آن رد شوی!", true, GameKind.BODY),
+    TAP_RACE("مسابقه‌ی ضربه", "🏁", "۲ تا ۴ نفر: هر کس سریع‌تر روی رنگ خودش بزند، ماشینش زودتر می‌رسد.", false, GameKind.PARTY),
+    REFLEX_DUEL("کی سریع‌تره؟", "⚡", "۲ تا ۴ نفر: وقتی دایره سبز شد زودتر از همه بزن؛ زود زدن امتیاز کم می‌کند!", false, GameKind.PARTY),
+    AIR_HOCKEY("هاکی هوایی", "🏒", "۲ نفر روبه‌روی هم: با انگشت توپ را به دروازه‌ی حریف بزن.", false, GameKind.PARTY),
+    TUG_OF_WAR("طناب‌کشی", "🪢", "۲ تا ۴ نفر در دو تیم: با ضربه‌های سریع طناب را به سمت تیمت بکش.", false, GameKind.PARTY),
+    SNAP_MATCH("جفت‌یاب سریع", "👀", "۲ تا ۴ نفر: وقتی دو تصویر یکی شدند، زودتر از همه بزن!", false, GameKind.PARTY),
+    CAR_RACE("مسابقه‌ی ماشین‌ها", "🏎️", "خط عوض کن، از ماشین‌ها جاخالی بده و سکه جمع کن.", false, GameKind.ADVENTURE),
+    SPACE_GUARD("نگهبان فضا", "🚀", "سفینه را جابه‌جا کن و شهاب‌سنگ‌ها را پیش از رسیدن به سیاره بزن.", false, GameKind.ADVENTURE),
+    BAKERY("قنادی کوچولو", "🎂", "کیک را دقیقاً همان‌طور که مشتری سفارش داده بساز و تحویل بده.", false, GameKind.ADVENTURE),
+    STYLIST("استایل‌ساز", "👗", "برای برف، ساحل، جشن و ورزش لباس مناسب انتخاب کن.", false, GameKind.ADVENTURE),
     MEMORY_CARDS("کارت‌های حافظه", "🃏", "کارت‌ها را برگردان و جفت‌های یکسان را پیدا کن. هر مرحله کارت بیشتری دارد!", false, GameKind.BRAIN),
     WHACK_A_MOLE("موش‌های بازیگوش", "🐹", "موش‌ها از سوراخ بیرون می‌آیند؛ سریع رویشان بزن ولی به گربه دست نزن!", false, GameKind.BRAIN),
     FRUIT_CATCH("سبد میوه", "🍎", "سبد را با انگشت جابه‌جا کن و میوه‌ها را بگیر؛ مراقب بمب‌ها باش!", false, GameKind.BRAIN),

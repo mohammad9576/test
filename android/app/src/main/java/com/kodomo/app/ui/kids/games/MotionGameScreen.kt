@@ -105,7 +105,7 @@ fun MotionGameScreen(game: MotionGame, onBack: () -> Unit, viewModel: MotionGame
     var result by remember { mutableStateOf<MotionGameViewModel.Result?>(null) }
     var round by remember { mutableStateOf(0) }
     var level by remember { mutableStateOf<Int?>(null) }
-    val leveled = game.kind != com.kodomo.app.domain.model.GameKind.ART
+    val leveled = game.kind.leveled
     TrackActivity(if (game.kind == com.kodomo.app.domain.model.GameKind.ART) ActivityCategory.ART else ActivityCategory.GAME, game.title, game.name)
     LaunchedEffect(unlocked) { if (level == null && unlocked != null) level = unlocked }
 
@@ -212,6 +212,17 @@ fun MotionGameScreen(game: MotionGame, onBack: () -> Unit, viewModel: MotionGame
                             MotionGame.SLIDE_PUZZLE -> SlidePuzzleGame(lvl, onFinish)
                             MotionGame.COLOR_SEQUENCE -> ColorSequenceGame(lvl, onFinish)
                             MotionGame.MATH_BALLOONS -> MathBalloonsGame(lvl, onFinish)
+                            MotionGame.HAND_SLICE -> com.kodomo.app.ui.kids.games.pose.HandSliceGame(lvl, onFinish)
+                            MotionGame.SHAPE_WALL -> com.kodomo.app.ui.kids.games.pose.ShapeWallGame(lvl, onFinish)
+                            MotionGame.TAP_RACE -> com.kodomo.app.ui.kids.games.party.TapRaceGame(onFinish)
+                            MotionGame.REFLEX_DUEL -> com.kodomo.app.ui.kids.games.party.ReflexDuelGame(onFinish)
+                            MotionGame.AIR_HOCKEY -> com.kodomo.app.ui.kids.games.party.AirHockeyGame(onFinish)
+                            MotionGame.TUG_OF_WAR -> com.kodomo.app.ui.kids.games.party.TugOfWarGame(onFinish)
+                            MotionGame.SNAP_MATCH -> com.kodomo.app.ui.kids.games.party.SnapMatchGame(onFinish)
+                            MotionGame.CAR_RACE -> com.kodomo.app.ui.kids.games.theme.CarRaceGame(lvl, onFinish)
+                            MotionGame.SPACE_GUARD -> com.kodomo.app.ui.kids.games.theme.SpaceGuardGame(lvl, onFinish)
+                            MotionGame.BAKERY -> com.kodomo.app.ui.kids.games.theme.BakeryGame(lvl, onFinish)
+                            MotionGame.STYLIST -> com.kodomo.app.ui.kids.games.theme.StylistGame(lvl, onFinish)
                         }
                     }
                 }

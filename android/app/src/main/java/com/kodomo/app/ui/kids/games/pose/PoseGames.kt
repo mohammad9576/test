@@ -37,6 +37,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
@@ -486,3 +487,225 @@ fun JumpingJacksGame(level: Int, onFinish: (Int, Boolean) -> Unit) {
 
 /** Royalty-free upbeat track used by Freeze Dance (streams; the game still works silently when offline). */
 private const val DANCE_TRACK = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Magic fruit slicer: fruits fly up in arcs; swipe your hands through them. Glowing hand trails, juice splashes,
+// combo bonuses and bombs to avoid. Higher levels throw more fruit, faster, with more bombs.
+// ---------------------------------------------------------------------------------------------------------------------
+
+private data class Flying(val id: Int, val x: Float, val y: Float, val vx: Float, val vy: Float, val emoji: String, val bomb: Boolean, val spin: Float)
+private data class Splash(val x: Float, val y: Float, val vx: Float, val vy: Float, val color: Color, val life: Float)
+private data class Popup(val text: String, val x: Float, val y: Float, val life: Float)
+
+private val sliceFruits = listOf("🍉" to Color(0xFFE53935), "🍊" to Color(0xFFFB8C00), "🍋" to Color(0xFFFDD835), "🍏" to Color(0xFF7CB342), "🍇" to Color(0xFF8E24AA), "🍑" to Color(0xFFFF8A65), "🥝" to Color(0xFF9CCC65))
+
+@Composable
+fun HandSliceGame(level: Int, onFinish: (Int, Boolean) -> Unit) {
+    val tracker = remember { PoseTracker() }
+    val flying = remember { mutableStateListOf<Flying>() }
+    val splashes = remember { mutableStateListOf<Splash>() }
+    val popups = remember { mutableStateListOf<Popup>() }
+    val trails = remember { mutableStateListOf<List<Offset>>() }
+    var stage by remember { mutableStateOf(IntSize.Zero) }
+    var sliced by remember { mutableIntStateOf(0) }
+    var bombs by remember { mutableIntStateOf(0) }
+    var combo by remember { mutableIntStateOf(0) }
+    var bestCombo by remember { mutableIntStateOf(0) }
+    var seconds by remember { mutableIntStateOf(60) }
+    var nextId by remember { mutableIntStateOf(0) }
+    val measurer = rememberTextMeasurer()
+    val finish by rememberUpdatedState(onFinish)
+    val target = 15 + level * 4
+    val history = remember { ArrayDeque<List<Offset>>() }
+
+    LaunchedEffect(Unit) {
+        snapshotFlow { tracker.frames }.collect {
+            if (stage == IntSize.Zero) return@collect
+            val hands = handsOnStage(tracker.pose, stage).map { Offset(it.x / stage.width, it.y / stage.height) }
+            history.addLast(hands)
+            while (history.size > 6) history.removeFirst()
+            trails.clear()
+            trails.addAll(history.toList())
+            val previous = history.elementAtOrNull(history.size - 3) ?: return@collect
+            // A slice needs a moving hand: compare with the position two frames ago.
+            hands.forEachIndexed { i, h ->
+                val p = previous.getOrNull(i) ?: return@forEachIndexed
+                val speed = hypot(h.x - p.x, h.y - p.y)
+                if (speed < 0.035f) return@forEachIndexed
+                val hit = flying.filter { f -> hypot(f.x - h.x, (f.y - h.y) * stage.height / stage.width) < 0.08f }
+                hit.forEach { f ->
+                    flying.remove(f)
+                    if (f.bomb) {
+                        bombs++
+                        combo = 0
+                        popups += Popup("💥 بمب!", f.x, f.y, 1f)
+                        repeat(14) { splashes += Splash(f.x, f.y, Random.nextFloat() - 0.5f, Random.nextFloat() - 0.5f, Color(0xFF424242), 1f) }
+                    } else {
+                        sliced++
+                        combo++
+                        bestCombo = maxOf(bestCombo, combo)
+                        val color = sliceFruits.firstOrNull { it.first == f.emoji }?.second ?: KodomoColors.Rose
+                        repeat(10) { splashes += Splash(f.x, f.y, (Random.nextFloat() - 0.5f) * 0.8f, (Random.nextFloat() - 0.7f) * 0.8f, color, 1f) }
+                        if (combo >= 3) popups += Popup("ترکیب ×${combo.fa()}!", f.x, f.y, 1f)
+                    }
+                }
+            }
+        }
+    }
+    LaunchedEffect(Unit) {
+        var last = withInfiniteAnimationFrameMillis { it }
+        var spawn = 0L
+        val gravity = 0.9f + level * 0.05f
+        while (seconds > 0) {
+            val now = withInfiniteAnimationFrameMillis { it }
+            val dt = (now - last).coerceAtMost(50) / 1000f
+            last = now
+            spawn += (dt * 1000).toLong()
+            if (spawn > (1_300 - level * 80).coerceAtLeast(500)) {
+                spawn = 0
+                val count = 1 + Random.nextInt(1 + level / 3)
+                repeat(count) {
+                    val bomb = Random.nextFloat() < (0.08f + level * 0.025f).coerceAtMost(0.3f)
+                    val x = Random.nextFloat() * 0.7f + 0.15f
+                    flying += Flying(nextId++, x, 1.05f, (0.5f - x) * 0.4f, -(1.15f + Random.nextFloat() * 0.25f), if (bomb) "💣" else sliceFruits.random().first, bomb, Random.nextFloat() * 360f)
+                }
+            }
+            for (i in flying.indices.reversed()) {
+                val f = flying[i]
+                val n = f.copy(x = f.x + f.vx * dt, y = f.y + f.vy * dt, vy = f.vy + gravity * dt, spin = f.spin + 160f * dt)
+                if (n.y > 1.15f && n.vy > 0) {
+                    flying.removeAt(i)
+                    if (!f.bomb) combo = 0
+                } else flying[i] = n
+            }
+            for (i in splashes.indices.reversed()) {
+                val s = splashes[i]
+                val n = s.copy(x = s.x + s.vx * dt, y = s.y + s.vy * dt, vy = s.vy + 1.2f * dt, life = s.life - dt * 1.4f)
+                if (n.life <= 0) splashes.removeAt(i) else splashes[i] = n
+            }
+            for (i in popups.indices.reversed()) {
+                val p = popups[i]
+                val n = p.copy(y = p.y - dt * 0.15f, life = p.life - dt)
+                if (n.life <= 0) popups.removeAt(i) else popups[i] = n
+            }
+        }
+        finish((sliced * 2 + bestCombo * 2 - bombs * 3).coerceAtLeast(0), sliced >= target && bombs < 3)
+    }
+    LaunchedEffect(Unit) { while (seconds > 0) { delay(1_000); seconds-- } }
+
+    PoseStage(tracker, "🍉 ${sliced.fa()} از ${target.fa()}   💣 ${bombs.fa()}   🔥 بهترین ترکیب ${bestCombo.fa()}   ⏱ ${seconds.fa()}", onSize = { stage = it }) {
+        // glowing hand trails
+        trails.forEachIndexed { age, frame ->
+            frame.forEach { h ->
+                val a = (age + 1f) / trails.size
+                drawCircle(Color(0xFF69F0AE).copy(alpha = 0.18f * a), size.minDimension * 0.05f * a, Offset(h.x * size.width, h.y * size.height))
+                drawCircle(Color.White.copy(alpha = 0.5f * a), size.minDimension * 0.016f * a, Offset(h.x * size.width, h.y * size.height))
+            }
+        }
+        flying.forEach { f ->
+            val layout = measurer.measure(f.emoji, TextStyle(fontSize = 52.sp))
+            val c = Offset(size.width * f.x, size.height * f.y)
+            drawCircle(Color.White.copy(alpha = 0.18f), layout.size.width * 0.6f, c)
+            rotate(f.spin, c) { drawText(layout, topLeft = c - Offset(layout.size.width / 2f, layout.size.height / 2f)) }
+        }
+        splashes.forEach { s -> drawCircle(s.color.copy(alpha = s.life.coerceIn(0f, 1f)), size.minDimension * 0.014f, Offset(size.width * s.x, size.height * s.y)) }
+        popups.forEach { p ->
+            val layout = measurer.measure(p.text, TextStyle(fontSize = 26.sp, color = Color.White.copy(alpha = p.life.coerceIn(0f, 1f)), fontWeight = androidx.compose.ui.text.font.FontWeight.Black))
+            drawText(layout, topLeft = Offset(size.width * p.x - layout.size.width / 2f, size.height * p.y))
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Shape wall: a wall with a hole flies towards you. Move left / right, duck, or raise both arms to fit through it.
+// ---------------------------------------------------------------------------------------------------------------------
+
+private enum class WallKind(val label: String, val emoji: String) {
+    LEFT("برو سمت چپ", "⬅️"), RIGHT("برو سمت راست", "➡️"), CENTER("وسط بایست", "⏺️"),
+    DUCK("بنشین!", "⬇️"), ARMS_UP("دست‌ها بالا!", "🙌"),
+}
+
+@Composable
+fun ShapeWallGame(level: Int, onFinish: (Int, Boolean) -> Unit) {
+    val tracker = remember { PoseTracker() }
+    val walls = 8 + level
+    val travelMillis = (4_200L - level * 220L).coerceAtLeast(1_900L)
+    var wall by remember { mutableIntStateOf(0) }
+    var kind by remember { mutableStateOf(WallKind.CENTER) }
+    var approach by remember { mutableFloatStateOf(0f) }
+    var passed by remember { mutableIntStateOf(0) }
+    var flash by remember { mutableStateOf<Boolean?>(null) }
+    var standingNoseY by remember { mutableFloatStateOf(0f) }
+    val finish by rememberUpdatedState(onFinish)
+
+    fun fits(pose: BodyPose?): Boolean {
+        pose ?: return false
+        val nose = pose.visible(com.google.mlkit.vision.pose.PoseLandmark.NOSE, 0.4f) ?: return false
+        val lw = pose.visible(com.google.mlkit.vision.pose.PoseLandmark.LEFT_WRIST, 0.4f)
+        val rw = pose.visible(com.google.mlkit.vision.pose.PoseLandmark.RIGHT_WRIST, 0.4f)
+        return when (kind) {
+            WallKind.LEFT -> nose.x < 0.4f
+            WallKind.RIGHT -> nose.x > 0.6f
+            WallKind.CENTER -> nose.x in 0.33f..0.67f
+            WallKind.DUCK -> standingNoseY > 0f && nose.y > standingNoseY + 0.12f
+            WallKind.ARMS_UP -> lw != null && rw != null && lw.y < nose.y && rw.y < nose.y
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        val kinds = WallKind.entries.filter { level >= 3 || it != WallKind.ARMS_UP }.filter { level >= 2 || it != WallKind.DUCK }
+        delay(1_500)
+        while (wall < walls) {
+            kind = kinds.random()
+            // remember where the nose is while the child stands, so «duck» is relative to their own height
+            tracker.pose?.visible(com.google.mlkit.vision.pose.PoseLandmark.NOSE, 0.4f)?.let { standingNoseY = it.y }
+            val start = withInfiniteAnimationFrameMillis { it }
+            var now = start
+            while (now - start < travelMillis) {
+                now = withInfiniteAnimationFrameMillis { it }
+                approach = ((now - start) / travelMillis.toFloat()).coerceIn(0f, 1f)
+            }
+            val ok = fits(tracker.pose)
+            if (ok) passed++
+            flash = ok
+            delay(700)
+            flash = null
+            approach = 0f
+            wall++
+        }
+        finish(passed * 3, passed >= walls * 2 / 3)
+    }
+
+    val measurer = rememberTextMeasurer()
+    PoseStage(tracker, "🧱 دیوار ${(wall + 1).coerceAtMost(walls).fa()} از ${walls.fa()}   ✅ ${passed.fa()}   ${kind.emoji} ${kind.label}") {
+        val w = size.width
+        val h = size.height
+        val scale = 0.25f + approach * 0.85f
+        val cx = w / 2
+        val cy = h / 2
+        val ww = w * scale
+        val wh = h * scale
+        val left = cx - ww / 2
+        val top = cy - wh / 2
+        val color = when (flash) { true -> Color(0xFF43A047); false -> Color(0xFFE53935); null -> Color(0xFF8D6E63) }
+        val wallPath = Path().apply {
+            addRect(androidx.compose.ui.geometry.Rect(left, top, left + ww, top + wh))
+            val hole = when (kind) {
+                WallKind.LEFT -> androidx.compose.ui.geometry.Rect(left + ww * 0.05f, top + wh * 0.15f, left + ww * 0.4f, top + wh)
+                WallKind.RIGHT -> androidx.compose.ui.geometry.Rect(left + ww * 0.6f, top + wh * 0.15f, left + ww * 0.95f, top + wh)
+                WallKind.CENTER -> androidx.compose.ui.geometry.Rect(left + ww * 0.32f, top + wh * 0.15f, left + ww * 0.68f, top + wh)
+                WallKind.DUCK -> androidx.compose.ui.geometry.Rect(left + ww * 0.2f, top + wh * 0.5f, left + ww * 0.8f, top + wh)
+                WallKind.ARMS_UP -> androidx.compose.ui.geometry.Rect(left + ww * 0.35f, top + wh * 0.02f, left + ww * 0.65f, top + wh)
+            }
+            addRoundRect(androidx.compose.ui.geometry.RoundRect(hole, androidx.compose.ui.geometry.CornerRadius(ww * 0.04f)))
+            fillType = androidx.compose.ui.graphics.PathFillType.EvenOdd
+        }
+        drawPath(wallPath, color.copy(alpha = 0.35f + approach * 0.45f))
+        // brick lines for depth
+        for (r in 1..5) drawLine(Color.Black.copy(alpha = 0.12f), Offset(left, top + wh * r / 6f), Offset(left + ww, top + wh * r / 6f), strokeWidth = 3f)
+        flash?.let {
+            val layout = measurer.measure(if (it) "عالی! 🎉" else "اوه! 💥", TextStyle(fontSize = 40.sp, color = Color.White, fontWeight = androidx.compose.ui.text.font.FontWeight.Black))
+            drawText(layout, topLeft = Offset(cx - layout.size.width / 2f, cy - layout.size.height / 2f))
+        }
+    }
+}

@@ -40,6 +40,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.font.FontWeight
+import com.kodomo.app.ui.components.bouncyClick
+import com.kodomo.app.domain.model.MascotMood
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
@@ -183,6 +191,9 @@ fun KidHomeScreen(onOpen: (String) -> Unit, childId: Long, viewModel: KidHomeVie
             }
         }
         item(span = { GridItemSpan(maxLineSpan) }) {
+            BuddyChooserRow()
+        }
+        item(span = { GridItemSpan(maxLineSpan) }) {
             MascotSpeech(
                 text = greeting.text,
                 mood = greeting.mood,
@@ -220,5 +231,58 @@ internal object GreetingMemory {
         if (previous != null && now - previous < quietMillis) return false
         last[childId] = now
         return true
+    }
+}
+
+/** «دوست من»: shows the chosen companion and lets the child swap it for another character. */
+@Composable
+private fun BuddyChooserRow() {
+    val space = LocalKidSpace.current
+    val buddy = com.kodomo.app.ui.mascot.LocalBuddy.current
+    var picking by remember { mutableStateOf(false) }
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .background(Color(buddy.colors.first).copy(alpha = 0.6f), RoundedCornerShape(50))
+            .bouncyClick { picking = true }
+            .padding(horizontal = 14.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(buddy.emoji, fontSize = 22.sp)
+        Spacer(Modifier.width(8.dp))
+        Text("دوست من: ${buddy.title}", style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f))
+        Text("عوض کن 🔄", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+    }
+    if (picking) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { picking = false },
+            title = { Text("دوستت را انتخاب کن!") },
+            text = {
+                LazyVerticalGrid(columns = GridCells.Fixed(2), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(com.kodomo.app.domain.model.Buddy.entries.size) { i ->
+                        val b = com.kodomo.app.domain.model.Buddy.entries[i]
+                        Column(
+                            Modifier
+                                .background(
+                                    androidx.compose.ui.graphics.Brush.verticalGradient(listOf(Color(b.colors.first), Color(b.colors.second))),
+                                    RoundedCornerShape(18.dp),
+                                )
+                                .bouncyClick {
+                                    space.chooseBuddy(b)
+                                    space.celebrate()
+                                    picking = false
+                                }
+                                .padding(10.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                        ) {
+                            com.kodomo.app.ui.mascot.BuddyMascot(b, MascotMood.HAPPY, size = 64.dp)
+                            Text(b.title, style = MaterialTheme.typography.labelMedium, color = Color.White, textAlign = TextAlign.Center, fontWeight = FontWeight.Bold)
+                            Text(b.tagline, style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.9f), textAlign = TextAlign.Center)
+                        }
+                    }
+                }
+            },
+            confirmButton = { androidx.compose.material3.TextButton(onClick = { picking = false }) { Text("بستن") } },
+        )
     }
 }
