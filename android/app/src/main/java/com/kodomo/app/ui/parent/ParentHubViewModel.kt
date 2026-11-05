@@ -49,7 +49,11 @@ class ParentHubViewModel @Inject constructor(
     private val kodoumo: com.kodomo.app.data.kodoumo.KodoumoImporter,
     private val chores: com.kodomo.app.data.prefs.ChoreStore,
     val learning: com.kodomo.app.data.prefs.LearningStore,
+    wellbeingStore: com.kodomo.app.data.prefs.WellbeingStore,
 ) : ViewModel() {
+    private val contentRepo = contentRepository
+    val wellbeing = wellbeingStore.state.stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5_000), com.kodomo.app.data.prefs.Wellbeing())
+    fun allowedVideos(childId: Long) = contentRepo.observeAllowedForChild(childId, com.kodomo.app.domain.model.ContentType.VIDEO)
     val studyReward = learning.reward.stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5_000), com.kodomo.app.data.prefs.StudyReward())
     val studyLog = learning.log.stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5_000), emptyList())
     fun setStudyReward(r: com.kodomo.app.data.prefs.StudyReward) = viewModelScope.launch { learning.setReward(r) }

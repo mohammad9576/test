@@ -129,14 +129,15 @@ class LearningStore @Inject constructor(@ApplicationContext private val context:
 
     suspend fun currentReward(): StudyReward = reward.first()
 
-    private fun notifyParent(text: String) = runCatching {
+    /** Posts a notification on this phone for the parent. */
+    fun notifyParent(text: String, title: String = "کدومو • درس و تمرین 📚") = runCatching {
         val nm = context.getSystemService(NotificationManager::class.java)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) nm.createNotificationChannel(NotificationChannel(CHANNEL, "پیشرفت درسی کودک", NotificationManager.IMPORTANCE_DEFAULT))
         nm.notify(
             (System.currentTimeMillis() % 100_000).toInt(),
             NotificationCompat.Builder(context, CHANNEL)
                 .setSmallIcon(R.drawable.ic_launcher_foreground)
-                .setContentTitle("کدومو • درس و تمرین 📚")
+                .setContentTitle(title)
                 .setContentText(text)
                 .setStyle(NotificationCompat.BigTextStyle().bigText(text))
                 .setAutoCancel(true)

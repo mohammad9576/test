@@ -30,8 +30,15 @@ class VideoListViewModel @Inject constructor(
     savedState: SavedStateHandle,
     contentRepository: ContentRepository,
     downloadRepository: DownloadRepository,
+    private val learning: com.kodomo.app.data.prefs.LearningStore,
 ) : ViewModel() {
     private val childId = savedState.childId
+    val asked = MutableStateFlow(false)
+
+    fun askForCartoons(name: String) {
+        learning.notifyParent("$name دوست دارد کارتون ببیند. از پنل والدین ← ارزیابی ← «کارتون‌های تلوبیون» چند کارتون تأیید کنید.", "کدومو • درخواست کارتون 🎬")
+        asked.value = true
+    }
     val query = MutableStateFlow("")
     val category = MutableStateFlow<String?>(null)
 

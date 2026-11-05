@@ -84,7 +84,7 @@ fun KodomoNavHost(navController: NavHostController, startDestination: String) {
         }
         kid(Routes.KID_INTERESTS, toProfiles) { _, _ -> InterestsScreen(onBack = back, onOpen = { route -> navController.navigate(route) }) }
         kid(Routes.KID_VIDEOS, toProfiles) { childId, _ ->
-            VideoListScreen(onBack = back, onPlay = { id -> navController.navigate(Routes.kidVideo(childId, id)) })
+            VideoListScreen(onBack = back, onPlay = { id -> navController.navigate(Routes.kidVideo(childId, id)) }, onLiveTv = { navController.navigate(Routes.kidLiveTv(childId)) })
         }
         kid(Routes.KID_VIDEO_PLAYER, toProfiles, listOf(stringArg(Routes.ARG_ID))) { childId, entry ->
             val id = entry.stringArg(Routes.ARG_ID)

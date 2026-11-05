@@ -140,6 +140,12 @@ object GameSfx {
         Synth.add(b, 0f, 0.85f, 400f, Synth.Wave.NOISE, 0.25f, attack = 0.1f, decay = 2f)
     })
 
+    /** A single xylophone note (instrument screens). */
+    fun note(midi: Int) = fire(render("note$midi", 0.9f, 0.8f) { b ->
+        Synth.add(b, 0f, 0.85f, Synth.note(midi), Synth.Wave.TRIANGLE, 0.7f, decay = 5f)
+        Synth.add(b, 0f, 0.4f, Synth.note(midi + 12), Synth.Wave.SINE, 0.25f, decay = 7f)
+    })
+
     fun beep(high: Boolean = false) = fire(render(if (high) "beepHi" else "beep", 0.2f, 0.6f) { b ->
         Synth.add(b, 0f, 0.18f, if (high) Synth.note(84) else Synth.note(72), Synth.Wave.SINE, 0.7f, decay = 2f)
     })

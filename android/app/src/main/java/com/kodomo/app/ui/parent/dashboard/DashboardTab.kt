@@ -57,6 +57,7 @@ fun DashboardTab(viewModel: ParentHubViewModel, modifier: Modifier = Modifier) {
 
     LazyColumn(modifier, contentPadding = PaddingValues(bottom = 24.dp)) {
         item { ChildSwitcher(children, child, viewModel::selectChild) }
+        item { child?.let { SetupChecklistCard(viewModel, it) } }
         item { PendingChoresCard(viewModel, children) }
         item { child?.let { StudyCard(viewModel, it) } }
         val s = settings
@@ -355,5 +356,55 @@ private fun StudyCard(viewModel: ParentHubViewModel, child: com.kodomo.app.domai
             },
             dismissButton = { androidx.compose.material3.TextButton(onClick = { editing = false }) { Text("انصراف") } },
         )
+    }
+}
+
+
+/** First-week checklist: what a family still has to turn on for the phone to be really safe. Hidden when done. */
+@Composable
+private fun SetupChecklistCard(viewModel: ParentHubViewModel, child: com.kodomo.app.domain.model.Child) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val kiosk = LocalKioskController.current
+    val wellbeing by viewModel.wellbeing.collectAsStateWithLifecycle()
+    val videos by remember(child.id) { viewModel.allowedVideos(child.id) }.collectAsStateWithLifecycle(emptyList())
+    var tick by remember { mutableStateOf(0) }
+    val lifecycle = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    androidx.compose.runtime.DisposableEffect(lifecycle) {
+        val obs = androidx.lifecycle.LifecycleEventObserver { _, e -> if (e == androidx.lifecycle.Lifecycle.Event.ON_RESUME) tick++ }
+        lifecycle.lifecycle.addObserver(obs)
+        onDispose { lifecycle.lifecycle.removeObserver(obs) }
+    }
+    val guard = remember(tick) { com.kodomo.app.kiosk.KioskPermissions.hasUsageAccess(context) && com.kodomo.app.kiosk.KioskPermissions.canDrawOverlays(context) }
+    val home = remember(tick) {
+        val i = android.content.Intent(android.content.Intent.ACTION_MAIN).addCategory(android.content.Intent.CATEGORY_HOME)
+        context.packageManager.resolveActivity(i, android.content.pm.PackageManager.MATCH_DEFAULT_ONLY)?.activityInfo?.packageName == context.packageName
+    }
+    data class Step(val done: Boolean, val title: String, val how: String, val action: (() -> Unit)?)
+    val steps = listOf(
+        Step(home, "کدومو صفحه‌ی اصلی گوشی باشد", "تا کودک با دکمه‌ی Home از محیط امن خارج نشود.") { kiosk.openDefaultHomeSettings() },
+        Step(guard, "نگهبان برنامه‌ها روشن باشد", "دسترسی «استفاده از برنامه» و «نمایش روی برنامه‌ها» لازم است.") {
+            val intent = if (!com.kodomo.app.kiosk.KioskPermissions.hasUsageAccess(context)) com.kodomo.app.kiosk.KioskPermissions.usageAccessIntent(context) else com.kodomo.app.kiosk.KioskPermissions.overlayIntent(context)
+            runCatching { context.startActivity(intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)) }
+        },
+        Step(videos.isNotEmpty(), "چند کارتون برای ${child.name} تأیید کنید", "تب «ارزیابی» ← کارتون‌های تلوبیون یا محتوای کودومو.", null),
+        Step(wellbeing.momPhone.isNotBlank() || wellbeing.dadPhone.isNotBlank(), "شماره‌ی تماس اضطراری", "تب «خانواده» ← سلامت و ایمنی کودک.", null),
+    )
+    val left = steps.count { !it.done }
+    if (left == 0) return
+    KodomoCard(Modifier.fillMaxWidth().padding16()) {
+        Text("🛡️ راه‌اندازی امن (${(steps.size - left).fa()} از ${steps.size.fa()})", style = MaterialTheme.typography.titleMedium)
+        Spacer(Modifier.height(6.dp))
+        LinearProgressIndicator(progress = { (steps.size - left).toFloat() / steps.size }, modifier = Modifier.fillMaxWidth())
+        steps.forEach { st ->
+            Spacer(Modifier.height(8.dp))
+            androidx.compose.foundation.layout.Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                Text(if (st.done) "✅" else "⬜", style = MaterialTheme.typography.titleMedium)
+                androidx.compose.foundation.layout.Column(Modifier.weight(1f).padding(horizontal = 8.dp)) {
+                    Text(st.title, style = MaterialTheme.typography.titleSmall)
+                    if (!st.done) Text(st.how, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                if (!st.done && st.action != null) androidx.compose.material3.TextButton(onClick = st.action) { Text("انجام") }
+            }
+        }
     }
 }

@@ -127,6 +127,7 @@ class MusicViewModel @Inject constructor(
 
     fun play(track: ContentItem) {
         val url = track.mediaUrl ?: return
+        MusicBox.stop()
         current.value = track
         player.setMediaItem(MediaItem.fromUri(url))
         player.prepare()
@@ -136,6 +137,8 @@ class MusicViewModel @Inject constructor(
             if (listened >= 5) rewardRepository.award(childId, AchievementCatalog.MUSIC_LOVER)
         }
     }
+
+    fun pause() { if (player.isPlaying) player.pause() }
 
     fun toggle() {
         if (player.isPlaying) player.pause() else if (current.value != null) player.play()
@@ -184,7 +187,16 @@ fun MusicScreen(onBack: () -> Unit, viewModel: MusicViewModel = hiltViewModel())
                         items(categories) { c -> FilterChip(selected = category == c, onClick = { viewModel.category.value = c }, label = { Text(c) }) }
                     }
                 }
-                if (tracks.isEmpty()) item { EmptyState("آهنگی برای این دسته پیدا نشد.") }
+                item { MusicBoxCard(onStart = viewModel::pause) }
+                item { XylophoneCard(onStart = viewModel::pause) }
+                if (tracks.isEmpty()) item {
+                    Text(
+                        "آهنگ‌های فارسی بیشتر را مامان و بابا از پنل والدین (ارزیابی‌ها) اضافه می‌کنند.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(8.dp),
+                    )
+                }
                 items(tracks, key = { it.id }) { track ->
                     KodomoCard(onClick = {
                         space.guide(track.title)

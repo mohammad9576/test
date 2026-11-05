@@ -39,7 +39,7 @@ import com.kodomo.app.ui.kids.LocalKidSpace
 import com.kodomo.app.ui.kids.TrackActivity
 
 @Composable
-fun VideoListScreen(onBack: () -> Unit, onPlay: (String) -> Unit, viewModel: VideoListViewModel = hiltViewModel()) {
+fun VideoListScreen(onBack: () -> Unit, onPlay: (String) -> Unit, onLiveTv: () -> Unit = {}, viewModel: VideoListViewModel = hiltViewModel()) {
     val space = LocalKidSpace.current
     val videos by viewModel.videos.collectAsStateWithLifecycle()
     val categories by viewModel.categories.collectAsStateWithLifecycle()
@@ -71,7 +71,16 @@ fun VideoListScreen(onBack: () -> Unit, onPlay: (String) -> Unit, viewModel: Vid
                 }
             }
             if (videos.isEmpty()) {
-                item { EmptyState("فعلاً فیلمی مناسب سن و تنظیمات تو پیدا نکردم. از والدینت بخواه فهرست را به‌روز کنند.") }
+                item {
+                    val asked by viewModel.asked.collectAsStateWithLifecycle()
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        EmptyState(if (query.isNotBlank() || category != null) "فیلمی با این جستجو پیدا نکردم." else "هنوز مامان و بابا کارتونی برایت انتخاب نکرده‌اند.")
+                        androidx.compose.material3.Button(onClick = onLiveTv, modifier = Modifier.fillMaxWidth()) { Text("📺 تماشای شبکه‌ی پویا (پخش زنده)") }
+                        androidx.compose.material3.OutlinedButton(onClick = { viewModel.askForCartoons(space.child.name) }, enabled = !asked, modifier = Modifier.fillMaxWidth()) {
+                            Text(if (asked) "✅ به مامان و بابا خبر دادم" else "🙋 از مامان و بابا بخواه کارتون اضافه کنند")
+                        }
+                    }
+                }
             }
             items(videos, key = { it.id }) { video ->
                 VideoCard(video, downloaded = video.id in downloads, onClick = {
