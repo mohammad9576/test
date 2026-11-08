@@ -21,6 +21,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.viewinterop.AndroidView
 import java.io.ByteArrayInputStream
@@ -107,6 +110,41 @@ object WebLockRules {
         })();
     """.trimIndent()
 
+    /**
+     * The child's player looks the same on every site: once a video is on the page, its player box is pinned to fill
+     * the whole view on black and everything around it (menus, banners, footers) is hidden. Pages without a video
+     * (sign-in, subscription) are left untouched.
+     */
+    const val PLAYER_FOCUS_JS = """
+(function(){
+  if (window.__kdFocusTimer) return;
+  var css = '.kd-focus-on, .kd-focus-on body{background:#000!important;overflow:hidden!important}' +
+    '.kd-focus-on body *{visibility:hidden!important}' +
+    '.kd-player, .kd-player *{visibility:visible!important}' +
+    '.kd-player{position:fixed!important;left:0!important;top:0!important;right:0!important;bottom:0!important;width:100vw!important;height:100vh!important;max-width:none!important;max-height:none!important;margin:0!important;z-index:2147483646!important;background:#000!important;transform:none!important}' +
+    '.kd-player video, video.kd-player{object-fit:contain!important;width:100%!important;height:100%!important}';
+  var st = document.createElement('style'); st.textContent = css; (document.head || document.documentElement).appendChild(st);
+  function area(e){ var r = e.getBoundingClientRect(); return r.width * r.height; }
+  function pick(){
+    var best = null, bestA = 0;
+    document.querySelectorAll('video, iframe').forEach(function(v){
+      var a = area(v); if (v.tagName === 'VIDEO' || /player|embed|video|live/i.test(v.src || '')) { if (a > bestA) { best = v; bestA = a; } }
+    });
+    if (!best || bestA < 20000) return;
+    var box = best;
+    while (box.parentElement && box.parentElement !== document.body && area(box.parentElement) < bestA * 1.6) box = box.parentElement;
+    if (!box.classList.contains('kd-player')) {
+      document.querySelectorAll('.kd-player').forEach(function(x){ x.classList.remove('kd-player'); });
+      box.classList.add('kd-player');
+      document.documentElement.classList.add('kd-focus-on');
+    }
+  }
+  var n = 0;
+  window.__kdFocusTimer = setInterval(function(){ pick(); if (++n > 40) clearInterval(window.__kdFocusTimer); }, 1500);
+  pick();
+})();
+"""
+
     private val emptyBody = ByteArray(0)
     fun empty() = WebResourceResponse("text/plain", "utf-8", ByteArrayInputStream(emptyBody))
 }
@@ -123,8 +161,11 @@ fun LockedWebPlayer(
     onPageChanged: (url: String, title: String) -> Unit = { _, _ -> },
     onWebView: (WebView) -> Unit = {},
     visible: Boolean = true,
+    /** Child mode: show only the video player, the same way on every site. */
+    focusPlayer: Boolean = true,
 ) {
     var fullscreenView by remember { mutableStateOf<View?>(null) }
+    var fullscreenCallback by remember { mutableStateOf<android.webkit.WebChromeClient.CustomViewCallback?>(null) }
     val pinned = lock is WebLock.Pinned
     val home = when (lock) {
         is WebLock.Pinned -> lock.url
@@ -154,6 +195,12 @@ fun LockedWebPlayer(
                     settings.allowFileAccess = false
                     settings.allowContentAccess = false
                     settings.setGeolocationEnabled(false)
+                    settings.mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
+                    settings.loadWithOverviewMode = true
+                    settings.useWideViewPort = true
+                    // Sign-in of Filimo / Namava / Filmnet uses cookies across their own domains.
+                    val webSelf = this
+                    android.webkit.CookieManager.getInstance().let { it.setAcceptCookie(true); it.setAcceptThirdPartyCookies(webSelf, true) }
                     // Some sites refuse WebViews; present a normal mobile Chrome user agent.
                     settings.userAgentString = settings.userAgentString.replace("; wv", "").replace("Version/4.0 ", "")
                     isLongClickable = false
@@ -200,6 +247,7 @@ fun LockedWebPlayer(
                         override fun onPageFinished(view: WebView, url: String) {
                             if (!url.startsWith("http")) return
                             view.evaluateJavascript(script, null)
+                            if (pinned && focusPlayer) view.evaluateJavascript(WebLockRules.PLAYER_FOCUS_JS, null)
                             onPageChanged(url, view.title.orEmpty())
                         }
 
@@ -217,10 +265,12 @@ fun LockedWebPlayer(
                     webChromeClient = object : WebChromeClient() {
                         override fun onShowCustomView(view: View, callback: CustomViewCallback) {
                             fullscreenView = view
+                            fullscreenCallback = callback
                         }
 
                         override fun onHideCustomView() {
                             fullscreenView = null
+                            fullscreenCallback = null
                         }
 
                         override fun onReceivedTitle(view: WebView, title: String?) {
@@ -242,18 +292,53 @@ fun LockedWebPlayer(
                 }
             },
         )
-        fullscreenView?.let { view ->
-            AndroidView(
-                modifier = Modifier.fillMaxSize(),
-                factory = { context ->
-                    FrameLayout(context).apply {
-                        setBackgroundColor(android.graphics.Color.BLACK)
-                        (view.parent as? ViewGroup)?.removeView(view)
-                        addView(view, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
-                    }
-                },
-            )
+    }
+    // The site's own «fullscreen» button: whole screen, turned sideways, with Kodomo's back button.
+    fullscreenView?.let { view ->
+        val exit = { runCatching { fullscreenCallback?.onCustomViewHidden() }; fullscreenView = null; fullscreenCallback = null }
+        androidx.compose.ui.window.Dialog(onDismissRequest = exit, properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
+            Landscape()
+            Box(Modifier.fillMaxSize().background(Color.Black)) {
+                AndroidView(
+                    modifier = Modifier.fillMaxSize(),
+                    factory = { context ->
+                        FrameLayout(context).apply {
+                            setBackgroundColor(android.graphics.Color.BLACK)
+                            (view.parent as? ViewGroup)?.removeView(view)
+                            addView(view, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
+                        }
+                    },
+                )
+                FullscreenBackButton(exit, Modifier.align(Alignment.TopStart))
+            }
         }
     }
     DisposableEffect(Unit) { onDispose { fullscreenView = null } }
+}
+
+/** Turns the screen sideways while composed (fullscreen video), back to normal afterwards. */
+@Composable
+fun Landscape() {
+    val activity = androidx.compose.ui.platform.LocalContext.current.findActivity()
+    DisposableEffect(activity) {
+        val before = activity?.requestedOrientation
+        activity?.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+        onDispose { activity?.requestedOrientation = before ?: android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED }
+    }
+}
+
+@Composable
+fun FullscreenBackButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    androidx.compose.material3.IconButton(
+        onClick = onClick,
+        modifier = modifier.padding(16.dp).background(Color.Black.copy(alpha = 0.55f), androidx.compose.foundation.shape.CircleShape),
+    ) {
+        androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "خروج از تمام صفحه", tint = Color.White)
+    }
+}
+
+private fun android.content.Context.findActivity(): android.app.Activity? {
+    var c: android.content.Context? = this
+    while (c is android.content.ContextWrapper) { if (c is android.app.Activity) return c; c = c.baseContext }
+    return null
 }

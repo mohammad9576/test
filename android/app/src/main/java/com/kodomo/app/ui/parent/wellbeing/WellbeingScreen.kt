@@ -198,6 +198,15 @@ fun WellbeingScreen(onBack: () -> Unit) {
                 }
             }
             item {
+                val context = androidx.compose.ui.platform.LocalContext.current
+                var mode by androidx.compose.runtime.remember { androidx.compose.runtime.mutableIntStateOf(com.kodomo.app.ui.theme.NightMode.mode(context)) }
+                Section("🌙 حالت شب", "رنگ‌های تیره و آرام برای چشم در شب، برای والدین و کودک. «خودکار» یعنی وقتی حالت تاریک گوشی روشن است یا از ساعت ۸ شب تا ۶ صبح.") {
+                    Choices(listOf(com.kodomo.app.ui.theme.NightMode.AUTO to "خودکار", com.kodomo.app.ui.theme.NightMode.LIGHT to "همیشه روشن", com.kodomo.app.ui.theme.NightMode.DARK to "همیشه شب"), mode) {
+                        mode = it; com.kodomo.app.ui.theme.NightMode.setMode(context, it)
+                    }
+                }
+            }
+            item {
                 Section("🛡️ همیشه فعال", "") {
                     listOf(
                         "قفل محیط کودک (Kiosk) و دکمه‌ی برگشت روی برنامه‌های مجاز",

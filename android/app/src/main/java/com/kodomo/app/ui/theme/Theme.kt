@@ -1,6 +1,8 @@
 package com.kodomo.app.ui.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
@@ -165,9 +167,54 @@ fun KidsTheme(spec: AgeUiSpec, darkMode: Boolean, content: @Composable () -> Uni
     val scheme = when (spec.group) {
         AgeGroup.TODDLER -> ToddlerScheme
         AgeGroup.PRIMARY_KID -> KidScheme
-        AgeGroup.PRE_TEEN -> if (darkMode && spec.darkThemeAllowed) ParentDark else ParentLight
-    }
+        AgeGroup.PRE_TEEN -> if (darkMode) ParentDark else ParentLight
+    }.let { if (darkMode && spec.group != AgeGroup.PRE_TEEN) KidNightScheme else it }
     CompositionLocalProvider(LocalAgeUiSpec provides spec) {
         RtlMaterial(scheme, kodomoTypography(spec.titleScale), shapesFor(spec.cornerRadiusDp), content)
+    }
+}
+
+/** Soft night colours for the younger kids: deep blue, low glare, warm accents. */
+private val KidNightScheme = androidx.compose.material3.darkColorScheme(
+    primary = Color(0xFF8FD3B6), onPrimary = Color(0xFF0B2A22),
+    primaryContainer = Color(0xFF1E3B4F), onPrimaryContainer = Color(0xFFDDEFF7),
+    secondary = Color(0xFFFFC98A), onSecondary = Color(0xFF2B1A05),
+    secondaryContainer = Color(0xFF3A2E22), onSecondaryContainer = Color(0xFFFFE3C2),
+    tertiary = Color(0xFFFFD36E),
+    background = Color(0xFF101826), onBackground = Color(0xFFE8EEF5),
+    surface = Color(0xFF172234), onSurface = Color(0xFFE8EEF5),
+    surfaceVariant = Color(0xFF23324A), onSurfaceVariant = Color(0xFFB8C4D6),
+    outline = Color(0xFF52637E), outlineVariant = Color(0xFF2E3C55),
+)
+
+/** App-wide night mode: automatic (phone dark mode or 20:00–06:00), always light, or always dark. */
+object NightMode {
+    const val AUTO = 0
+    const val LIGHT = 1
+    const val DARK = 2
+    private const val PREFS = "kodomo_ui"
+    val version = androidx.compose.runtime.mutableIntStateOf(0)
+
+    fun mode(context: android.content.Context) = context.getSharedPreferences(PREFS, android.content.Context.MODE_PRIVATE).getInt("night", AUTO)
+
+    fun setMode(context: android.content.Context, m: Int) {
+        context.getSharedPreferences(PREFS, android.content.Context.MODE_PRIVATE).edit().putInt("night", m).apply()
+        version.intValue++
+    }
+
+    fun isNightHour(now: java.time.LocalTime = java.time.LocalTime.now()) = now.hour >= 20 || now.hour < 6
+
+    @Composable
+    fun isNight(): Boolean {
+        val context = androidx.compose.ui.platform.LocalContext.current
+        val system = isSystemInDarkTheme()
+        val v = version.intValue
+        var hourNight by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(isNightHour()) }
+        androidx.compose.runtime.LaunchedEffect(Unit) { while (true) { kotlinx.coroutines.delay(60_000); hourNight = isNightHour() } }
+        return when (androidx.compose.runtime.remember(v) { mode(context) }) {
+            LIGHT -> false
+            DARK -> true
+            else -> system || hourNight
+        }
     }
 }

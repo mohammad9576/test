@@ -94,7 +94,7 @@ fun BookReaderScreen(
     val store = book?.mediaUrl?.takeIf { it.startsWith("http") && book.id.startsWith(com.kodomo.app.domain.engine.ContentPolicy.PARENT_APPROVED_PREFIX) }
     if (book != null && store != null) {
         KidScreenScaffold(title = book.title, onBack = onBack) { pad ->
-            com.kodomo.app.ui.kids.video.LockedWebPlayer(com.kodomo.app.ui.kids.video.WebLock.Pinned(store), Modifier.fillMaxSize().padding(pad))
+            com.kodomo.app.ui.kids.video.LockedWebPlayer(com.kodomo.app.ui.kids.video.WebLock.Pinned(store), Modifier.fillMaxSize().padding(pad), focusPlayer = false)
         }
         return
     }

@@ -24,7 +24,12 @@ object AvatarPhotos {
 
     /** Copies [uri] (from the photo picker) as a centred square of 320 px. */
     fun save(context: Context, id: Long, uri: Uri): Boolean = runCatching {
-        val src = context.contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it) } ?: return false
+        // Phone photos are large: read them scaled down (about 1000 px) to stay fast and avoid running out of memory.
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        context.contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, bounds) }
+        var sample = 1
+        while (bounds.outWidth / (sample * 2) >= 640 && bounds.outHeight / (sample * 2) >= 640) sample *= 2
+        val src = context.contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, BitmapFactory.Options().apply { inSampleSize = sample }) } ?: return false
         val side = minOf(src.width, src.height)
         val square = Bitmap.createBitmap(src, (src.width - side) / 2, (src.height - side) / 2, side, side)
         val scaled = Bitmap.createScaledBitmap(square, 320, 320, true)

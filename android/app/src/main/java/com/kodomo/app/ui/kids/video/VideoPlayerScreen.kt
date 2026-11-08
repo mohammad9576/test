@@ -237,6 +237,17 @@ internal fun EmbeddedVideoScreen(
     onFinished: (() -> Unit)?,
     player: @Composable (Modifier) -> Unit,
 ) {
+    var full by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf(false) }
+    if (full) {
+        // Kodomo's own fullscreen: sideways, nothing but the player and a back button.
+        androidx.activity.compose.BackHandler { full = false }
+        Landscape()
+        Box(Modifier.fillMaxSize().background(Color.Black)) {
+            player(Modifier.fillMaxSize())
+            FullscreenBackButton({ full = false }, Modifier.align(Alignment.TopStart))
+        }
+        return
+    }
     Column(Modifier.fillMaxSize().background(Color.Black)) {
         Row(
             Modifier.fillMaxWidth().statusBarsPadding().padding(12.dp),
@@ -250,7 +261,9 @@ internal fun EmbeddedVideoScreen(
                 Text(title, color = Color.White, style = MaterialTheme.typography.titleMedium)
                 Text("پخش امن از $platformLabel • قفل‌شده روی همین صفحه", color = Color.White.copy(alpha = 0.7f), style = MaterialTheme.typography.labelSmall)
             }
-            Box(Modifier.size(48.dp))
+            IconButton(onClick = { full = true }, modifier = Modifier.background(Color.White.copy(alpha = 0.15f), CircleShape)) {
+                Text("⛶", color = Color.White, style = MaterialTheme.typography.titleLarge)
+            }
         }
         player(Modifier.fillMaxWidth().weight(1f))
         if (onFinished != null) {

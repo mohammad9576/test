@@ -101,6 +101,9 @@ abstract class ContentDao {
     @Query("SELECT * FROM content WHERE id = :id")
     abstract suspend fun get(id: String): ContentEntity?
 
+    @Query("SELECT * FROM content WHERE id LIKE 'kodoumo_%'")
+    abstract suspend fun kodoumoAll(): List<ContentEntity>
+
     @Query(
         "SELECT * FROM content WHERE (:type IS NULL OR type = :type) AND " +
             "(title LIKE '%' || :term || '%' OR description LIKE '%' || :term || '%' OR category LIKE '%' || :term || '%') ORDER BY title",

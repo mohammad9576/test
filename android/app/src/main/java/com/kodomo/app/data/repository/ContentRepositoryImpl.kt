@@ -22,6 +22,7 @@ import javax.inject.Singleton
 class ContentRepositoryImpl @Inject constructor(
     db: KodomoDatabase,
     private val cloudSync: CloudSyncRepository,
+    private val wellbeing: com.kodomo.app.data.prefs.WellbeingStore,
 ) : ContentRepository {
     private val contentDao = db.contentDao()
     private val feedbackDao = db.feedbackDao()
@@ -35,7 +36,10 @@ class ContentRepositoryImpl @Inject constructor(
         contentDao.observeByType(type),
         childDao.observe(childId).filterNotNull(),
         settingsDao.observe(childId),
-    ) { items, childEntity, settingsEntity ->
+        wellbeing.state,
+    ) { all, childEntity, settingsEntity, w ->
+        // Unless the parent chose «show everything kodoumo approved», kodoumo's catalogue is for the parent only.
+        val items = if (w.kodoumoAutoShow) all else all.filterNot { it.id.startsWith("kodoumo_") }
         val child = childEntity.toDomain()
         val age = child.ageYears()
         val settings = settingsEntity?.toDomain()

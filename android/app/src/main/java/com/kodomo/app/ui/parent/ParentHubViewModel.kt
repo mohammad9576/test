@@ -49,8 +49,11 @@ class ParentHubViewModel @Inject constructor(
     private val kodoumo: com.kodomo.app.data.kodoumo.KodoumoImporter,
     private val chores: com.kodomo.app.data.prefs.ChoreStore,
     val learning: com.kodomo.app.data.prefs.LearningStore,
-    wellbeingStore: com.kodomo.app.data.prefs.WellbeingStore,
+    private val wellbeingStore: com.kodomo.app.data.prefs.WellbeingStore,
 ) : ViewModel() {
+    fun setKodoumoAutoShow(on: Boolean) = viewModelScope.launch {
+        wellbeingStore.save(wellbeingStore.current().copy(kodoumoAutoShow = on, kodoumoChoiceAsked = true))
+    }
     private val contentRepo = contentRepository
     val wellbeing = wellbeingStore.state.stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5_000), com.kodomo.app.data.prefs.Wellbeing())
     fun allowedVideos(childId: Long) = contentRepo.observeAllowedForChild(childId, com.kodomo.app.domain.model.ContentType.VIDEO)
@@ -125,6 +128,8 @@ class ParentHubViewModel @Inject constructor(
     val kodoumoCount: StateFlow<Int> = stateOf(kodoumo.importedCount, 0)
 
     fun syncKodoumo() = viewModelScope.launch { kodoumo.sync() }
+    /** Opening the ratings tab keeps the catalogue fresh by itself (at most every 30 minutes). */
+    fun autoSyncKodoumo() = viewModelScope.launch { kodoumo.syncIfStale(30 * 60_000L) }
 
     val articles: StateFlow<List<ContentItem>> = stateOf(contentRepository.observeByType(ContentType.ARTICLE), emptyList())
     val weekendIdeas: StateFlow<List<ContentItem>> = stateOf(contentRepository.observeByType(ContentType.WEEKEND_IDEA), emptyList())

@@ -126,17 +126,29 @@ class TelewebionPickerViewModel @Inject constructor(
     private val _state = MutableStateFlow(State())
     val state = _state.asStateFlow()
 
+    /**
+     * Titles on Telewebion / Filimo… rarely match kodoumo's exactly, so several shorter forms of the name are searched
+     * on kodoumo.ir and in the full kodoumo catalogue stored on the phone, and the closest titles come first.
+     */
     fun search(query: String) = viewModelScope.launch {
         if (query.isBlank()) return@launch
         _state.update { it.copy(searching = true, error = null, results = emptyList(), selected = null, review = null, saved = null) }
-        runCatching { client.search(query) }
-            .onSuccess { list ->
-                // Only works whose evaluation is finished and carry an age rating may be offered.
-                _state.update { it.copy(searching = false, searched = true, results = list) }
-            }
-            .onFailure {
-                _state.update { it.copy(searching = false, searched = true, error = "اتصال به kodoumo.ir برقرار نشد. این سایت فقط از اینترنت داخل ایران و بدون فیلترشکن باز می‌شود.") }
-            }
+        val found = linkedMapOf<String, KodoumoListItem>()
+        var reached = false
+        for (v in TitleMatch.variants(query)) {
+            runCatching { client.search(v) }.onSuccess { list -> reached = true; list.forEach { found.putIfAbsent(it.slug, it) } }
+            if (found.size >= 12) break
+        }
+        runCatching { db.contentDao().kodoumoAll() }.getOrDefault(emptyList()).forEach { e ->
+            if (TitleMatch.score(query, e.title) >= 0.34) TitleMatch.toListItem(e)?.let { found.putIfAbsent(it.slug, it) }
+        }
+        val ranked = found.values.sortedByDescending { TitleMatch.score(query, it.title) }
+        _state.update {
+            it.copy(
+                searching = false, searched = true, results = ranked,
+                error = if (!reached && ranked.isEmpty()) "اتصال به kodoumo.ir برقرار نشد. این سایت فقط از اینترنت داخل ایران و بدون فیلترشکن باز می‌شود." else null,
+            )
+        }
     }
 
     fun select(item: KodoumoListItem) = viewModelScope.launch {
@@ -199,6 +211,7 @@ fun TelewebionPickerScreen(
     var query by remember { mutableStateOf("") }
     var webView by remember { mutableStateOf<WebView?>(null) }
     var episodes by remember { mutableStateOf<List<Episode>>(emptyList()) }
+    var pagePoster by remember { mutableStateOf<String?>(null) }
     // The parent may sign in with their own account, so the sign-in pages of the service are reachable here.
     val lock = remember(provider) { WebLock.SameSite(provider.startUrl, provider.hosts, anyHost = provider.needsAccount) }
 
@@ -244,6 +257,9 @@ fun TelewebionPickerScreen(
                                 val found = if (provider.book) emptyList() else parseEpisodeLinks(raw, provider)
                                 episodes = if (found.none { WebLockRules.samePage(it.url, current) }) listOf(Episode(current, pageTitle)) + found else found
                             } ?: run { episodes = listOf(Episode(current, pageTitle)) }
+                            webView?.evaluateJavascript("(function(){var m=document.querySelector('meta[property=\"og:image\"],meta[name=\"twitter:image\"]');return m?m.content:'';})()") { raw ->
+                                pagePoster = raw?.trim('"')?.takeIf { it.startsWith("http") }
+                            }
                             checking = true
                             viewModel.search(query)
                         },
@@ -268,6 +284,8 @@ fun TelewebionPickerScreen(
                         checking = false
                     },
                     modifier = Modifier.fillMaxWidth().weight(1f).background(MaterialTheme.colorScheme.background),
+                    pagePoster = pagePoster,
+                    book = provider.book,
                 )
             }
         }
@@ -288,9 +306,16 @@ private fun CheckPanel(
     onApprove: () -> Unit,
     onApproveWithoutRating: (minAge: Int, note: String) -> Unit,
     modifier: Modifier = Modifier,
+    pagePoster: String? = null,
+    book: Boolean = false,
 ) {
     LazyColumn(modifier, contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         item {
+            if (pagePoster != null) Row(verticalAlignment = Alignment.CenterVertically) {
+                AsyncImage(pagePoster, contentDescription = null, modifier = Modifier.size(56.dp, 76.dp))
+                Spacer(Modifier.width(10.dp))
+                Text("پوستر همین صفحه؛ با پوستر نتیجه‌های کدومو مقایسه کنید تا مطمئن شوید همان اثر است.", style = MaterialTheme.typography.bodySmall)
+            }
             Text("صفحه‌ی انتخاب‌شده: ${pageTitle.ifBlank { pageUrl }}", style = MaterialTheme.typography.labelMedium)
             Text(pageUrl, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
             if (episodes.size > 1) Text("📺 ${episodes.size.fa()} قسمت در این صفحه پیدا شد؛ کودک می‌تواند بین قسمت‌ها انتخاب کند.", style = MaterialTheme.typography.labelMedium, color = KodomoColors.Green)
@@ -316,7 +341,7 @@ private fun CheckPanel(
                 }
             }
             if (state.searched && !state.searching && (state.results.isEmpty() || state.error != null)) {
-                item { ParentOnlyApprovalCard(onApproveWithoutRating) }
+                item { ParentOnlyApprovalCard(onApproveWithoutRating, book) }
             }
             items(state.results, key = { it.slug }) { item ->
                 KodomoCard(Modifier.fillMaxWidth(), onClick = { onSelect(item) }) {
@@ -325,6 +350,9 @@ private fun CheckPanel(
                         Spacer(Modifier.width(10.dp))
                         Column(Modifier.weight(1f)) {
                             Text(item.title, style = MaterialTheme.typography.titleMedium)
+                            if (item == state.results.firstOrNull() && TitleMatch.score(query, item.title) >= 0.6) {
+                                Text("✨ احتمالاً همین است — پوستر را با صفحه مقایسه کنید", style = MaterialTheme.typography.labelMedium, color = KodomoColors.Green)
+                            }
                             Text(
                                 when {
                                     item.underEvaluation -> "⏳ در حال ارزیابی کدومو"
@@ -396,14 +424,15 @@ private fun CheckPanel(
  * playable and an evaluation request is sent to the Kodomo admin team.
  */
 @Composable
-private fun ParentOnlyApprovalCard(onApprove: (minAge: Int, note: String) -> Unit) {
+private fun ParentOnlyApprovalCard(onApprove: (minAge: Int, note: String) -> Unit, book: Boolean = false) {
     var minAge by remember { mutableStateOf(3) }
     var note by remember { mutableStateOf("") }
     var confirmed by remember { mutableStateOf(false) }
     KodomoCard(Modifier.fillMaxWidth()) {
-        Text("پخش با تأیید شما (بدون ارزیابی کارشناسی)", style = MaterialTheme.typography.titleMedium)
+        Text(if (book) "نمایش با تأیید شما (بدون ارزیابی کارشناسی)" else "پخش با تأیید شما (بدون ارزیابی کارشناسی)", style = MaterialTheme.typography.titleMedium)
         Text(
-            "اگر خودتان این کارتون را دیده‌اید و مناسب می‌دانید، می‌توانید آن را تأیید کنید. کارتون با برچسب «تأیید والدین» پخش می‌شود و درخواست ارزیابی برای تیم کدومو ارسال می‌شود.",
+            if (book) "اگر خودتان این کتاب را خوانده‌اید و مناسب می‌دانید، می‌توانید آن را تأیید کنید. کتاب با برچسب «تأیید والدین» نمایش داده می‌شود و درخواست ارزیابی برای تیم کدومو ارسال می‌شود."
+            else "اگر خودتان این کارتون را دیده‌اید و مناسب می‌دانید، می‌توانید آن را تأیید کنید. کارتون با برچسب «تأیید والدین» پخش می‌شود و درخواست ارزیابی برای تیم کدومو ارسال می‌شود.",
             style = MaterialTheme.typography.bodySmall,
         )
         Text("مناسب از سن: ${minAge.fa()} سال", style = MaterialTheme.typography.labelLarge)
@@ -411,7 +440,7 @@ private fun ParentOnlyApprovalCard(onApprove: (minAge: Int, note: String) -> Uni
         OutlinedTextField(value = note, onValueChange = { note = it.take(500) }, label = { Text("یادداشت برای کارشناسان (اختیاری)") }, modifier = Modifier.fillMaxWidth())
         Row(verticalAlignment = Alignment.CenterVertically) {
             Checkbox(checked = confirmed, onCheckedChange = { confirmed = it })
-            Text("این کارتون را دیده‌ام و مسئولیت تأیید آن با من است.", style = MaterialTheme.typography.bodySmall)
+            Text(if (book) "این کتاب را خوانده‌ام و مسئولیت تأیید آن با من است." else "این کارتون را دیده‌ام و مسئولیت تأیید آن با من است.", style = MaterialTheme.typography.bodySmall)
         }
         Button(onClick = { onApprove(minAge, note) }, enabled = confirmed, modifier = Modifier.fillMaxWidth()) { Text("تأیید من و ارسال درخواست ارزیابی") }
     }
@@ -454,5 +483,45 @@ private fun NoteCard(title: String, text: String) {
     KodomoCard(Modifier.fillMaxWidth()) {
         Text(title, style = MaterialTheme.typography.titleSmall)
         Text(text, style = MaterialTheme.typography.bodySmall)
+    }
+}
+
+/** Fuzzy comparison of Persian titles (spelling variants, half-spaces, extra words such as «فصل ۲»). */
+internal object TitleMatch {
+    fun normalize(s: String) = s.replace('ي', 'ی').replace('ك', 'ک').replace('\u200c', ' ').replace(Regex("[«»:\\-–—،,.!؟?()\\[\\]]"), " ")
+        .replace(Regex("\\s+"), " ").trim().lowercase()
+
+    private val noise = setOf("انیمیشن", "کارتون", "سریال", "فیلم", "فصل", "قسمت", "کودک", "دوبله", "فارسی", "کامل", "the", "a")
+
+    fun tokens(s: String) = normalize(s).split(' ').filter { it.length > 1 && it !in noise && it.none(Char::isDigit) }.toSet()
+
+    /** 0..1: shared words, with a bonus when one title contains the other. */
+    fun score(a: String, b: String): Double {
+        val ta = tokens(a); val tb = tokens(b)
+        if (ta.isEmpty() || tb.isEmpty()) return 0.0
+        val jac = ta.intersect(tb).size.toDouble() / ta.union(tb).size
+        val na = normalize(a); val nb = normalize(b)
+        val contains = if (na.contains(nb) || nb.contains(na)) 0.35 else 0.0
+        return (jac + contains).coerceAtMost(1.0)
+    }
+
+    /** The name itself, then shorter forms: first words, and the longest word. */
+    fun variants(q: String): List<String> {
+        val words = normalize(q).split(' ').filter { it.isNotBlank() && it !in noise }
+        return buildList {
+            add(q.trim())
+            if (words.size > 3) add(words.take(3).joinToString(" "))
+            if (words.size > 2) add(words.take(2).joinToString(" "))
+            words.maxByOrNull { it.length }?.takeIf { it.length >= 3 }?.let { add(it) }
+        }.distinct()
+    }
+
+    fun toListItem(e: com.kodomo.app.data.local.entity.ContentEntity): KodoumoListItem? {
+        val slug = e.sourceUrl?.let { android.net.Uri.parse(it).pathSegments.lastOrNull { s -> s.isNotBlank() } } ?: return null
+        return KodoumoListItem(
+            id = e.id.removePrefix("kodoumo_").toLongOrNull() ?: 0, slug = slug, title = e.title, image = e.imageUrl,
+            shortDescription = e.description, age = e.minAge.takeIf { it <= 18 }, rate = null, underEvaluation = e.minAge > 18,
+            permalink = e.sourceUrl.orEmpty(), typeSlug = e.category,
+        )
     }
 }

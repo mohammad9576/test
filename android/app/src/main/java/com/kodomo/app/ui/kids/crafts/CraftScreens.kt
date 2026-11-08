@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -155,7 +156,13 @@ fun CraftGuideScreen(id: String, onBack: () -> Unit, onMyProjects: () -> Unit) {
                         else -> {
                             val s = g.steps[p - 1]
                             Text("مرحله‌ی ${p.fa()} از ${g.steps.size.fa()}", fontSize = 16.sp, color = to, fontWeight = FontWeight.Bold)
-                            Emoji(s.emoji, 150.dp)
+                            // A big step number with the finished craft beside it (no generic pictures that may not match the step).
+                            Box(contentAlignment = Alignment.Center) {
+                                Box(Modifier.size(150.dp).clip(androidx.compose.foundation.shape.CircleShape).background(Brush.linearGradient(listOf(from, to))), contentAlignment = Alignment.Center) {
+                                    Text(p.fa(), fontSize = 80.sp, fontWeight = FontWeight.Black, color = Color.White)
+                                }
+                                Box(Modifier.align(Alignment.BottomEnd).clip(androidx.compose.foundation.shape.CircleShape).background(Color.White).padding(6.dp)) { Emoji(g.emoji, 48.dp) }
+                            }
                             Text(s.text, fontSize = 22.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, lineHeight = 34.sp, color = Color(0xFF263238))
                         }
                     }

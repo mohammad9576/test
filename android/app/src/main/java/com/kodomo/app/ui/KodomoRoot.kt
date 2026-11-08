@@ -22,7 +22,7 @@ import com.kodomo.app.ui.theme.KodomoTheme
 @Composable
 fun KodomoRoot(appViewModel: AppViewModel) {
     val session by appViewModel.session.collectAsStateWithLifecycle()
-    KodomoTheme(darkTheme = false) {
+    KodomoTheme(darkTheme = com.kodomo.app.ui.theme.NightMode.isNight()) {
         val demoRoute = com.kodomo.app.core.demo.DemoMode.route
         if (demoRoute != null) {
             // Automated smoke test: prepare sample data and open the requested screen directly.

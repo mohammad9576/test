@@ -41,6 +41,10 @@ data class Wellbeing(
     val brightnessPercent: Int = 0,
     /** Daily internet allowance in megabytes for the kids space; 0 = unlimited. */
     val dailyDataMb: Int = 0,
+    /** false (default): the child sees only what the parent picked; true: everything kodoumo rated for the age. */
+    val kodoumoAutoShow: Boolean = false,
+    /** The parent has answered the question above once. */
+    val kodoumoChoiceAsked: Boolean = false,
 ) {
     fun inWindow(now: java.time.LocalTime): Boolean {
         if (windows.isEmpty()) return true
@@ -92,12 +96,14 @@ class WellbeingStore @Inject constructor(@ApplicationContext private val context
     private val netKey = booleanPreferencesKey("block_net")
     private val brightKey = intPreferencesKey("brightness")
     private val dataKey = intPreferencesKey("daily_data_mb")
+    private val autoKey = booleanPreferencesKey("kodoumo_auto")
+    private val askedKey = booleanPreferencesKey("kodoumo_asked")
 
     val state: Flow<Wellbeing> = context.wellbeingStore.data.map { p ->
         Wellbeing(
             p[eyeKey] ?: 20, p[volKey] ?: 100, p[studyKey] ?: 0, p[momKey].orEmpty(), p[dadKey].orEmpty(),
             p[weekendKey] ?: 0, p[schoolKey] ?: false, p[schoolStartKey] ?: (7 * 60 + 30), p[schoolEndKey] ?: (13 * 60),
-            Wellbeing.decode(p[windowsKey]), p[netKey] ?: false, p[brightKey] ?: 0, p[dataKey] ?: 0,
+            Wellbeing.decode(p[windowsKey]), p[netKey] ?: false, p[brightKey] ?: 0, p[dataKey] ?: 0, p[autoKey] ?: false, p[askedKey] ?: false,
         )
     }
 
@@ -117,5 +123,7 @@ class WellbeingStore @Inject constructor(@ApplicationContext private val context
         p[netKey] = w.blockOtherInternet
         p[brightKey] = w.brightnessPercent.coerceIn(0, 100)
         p[dataKey] = w.dailyDataMb.coerceIn(0, 20_000)
+        p[autoKey] = w.kodoumoAutoShow
+        p[askedKey] = w.kodoumoChoiceAsked
     }
 }

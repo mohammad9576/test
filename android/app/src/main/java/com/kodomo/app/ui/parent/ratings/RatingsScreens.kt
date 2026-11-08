@@ -23,6 +23,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -66,6 +67,7 @@ fun RatingsTab(viewModel: ParentHubViewModel, onOpen: (String) -> Unit, onOpenTe
         ContentType.VIDEO, ContentType.BOOK_REVIEW, ContentType.GAME_REVIEW, ContentType.TOY_REVIEW,
         ContentType.BOOK, ContentType.MUSIC, ContentType.LEARNING,
     )
+    LaunchedEffect(Unit) { viewModel.autoSyncKodoumo() }
     LazyColumn(modifier, contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         item {
             Text("سامانه ارزیابی تربیتی کدومو", style = MaterialTheme.typography.headlineSmall)
@@ -83,16 +85,27 @@ fun RatingsTab(viewModel: ParentHubViewModel, onOpen: (String) -> Unit, onOpenTe
                         is com.kodomo.app.data.kodoumo.KodoumoImporter.Status.Running -> "⏳ در حال دریافت ${s.category}… (${s.done.fa()} اثر)"
                         is com.kodomo.app.data.kodoumo.KodoumoImporter.Status.Finished -> "✅ به‌روزرسانی انجام شد (${s.imported.fa()} اثر)"
                         is com.kodomo.app.data.kodoumo.KodoumoImporter.Status.Failed -> "⚠️ ${s.message}"
-                        com.kodomo.app.data.kodoumo.KodoumoImporter.Status.Idle -> "به‌روزرسانی خودکار: روزی دو بار"
+                        com.kodomo.app.data.kodoumo.KodoumoImporter.Status.Idle -> "✅ به‌روز؛ با هر بار باز کردن این صفحه خودکار به‌روز می‌شود"
                     },
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary,
                 )
-                androidx.compose.material3.FilledTonalButton(
-                    onClick = { viewModel.syncKodoumo() },
-                    enabled = status !is com.kodomo.app.data.kodoumo.KodoumoImporter.Status.Running,
-                    modifier = Modifier.fillMaxWidth(),
-                ) { Text("دریافت تازه‌ترین ارزیابی‌ها از کدومو") }
+            }
+        }
+        item {
+            val w by viewModel.wellbeing.collectAsStateWithLifecycle()
+            KodomoCard(Modifier.fillMaxWidth()) {
+                Text("👨‍👩‍👧 چه چیزی به کودک نشان داده شود؟", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    if (!w.kodoumoChoiceAsked) "لطفاً یکی را انتخاب کنید:"
+                    else if (w.kodoumoAutoShow) "الان: همه‌ی آثاری که کدومو برای سن کودک مناسب دانسته، خودکار نمایش داده می‌شوند."
+                    else "الان: فقط آثاری که خودتان انتخاب و تأیید کرده‌اید به کودک نشان داده می‌شوند.",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                androidx.compose.foundation.layout.Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    androidx.compose.material3.FilterChip(selected = w.kodoumoChoiceAsked && !w.kodoumoAutoShow, onClick = { viewModel.setKodoumoAutoShow(false) }, label = { Text("فقط انتخاب‌های من") })
+                    androidx.compose.material3.FilterChip(selected = w.kodoumoChoiceAsked && w.kodoumoAutoShow, onClick = { viewModel.setKodoumoAutoShow(true) }, label = { Text("همه‌ی تأییدشده‌های کدومو") })
+                }
             }
         }
         item {

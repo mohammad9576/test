@@ -193,10 +193,11 @@ fun KidSpaceFrame(childId: Long, onParentExit: () -> Unit, online: Boolean = fal
 
     val buddy by remember(current.id) { vm.buddies.observe(current.id) }.collectAsStateWithLifecycle(com.kodomo.app.domain.model.Buddy.ROBOT)
     LaunchedEffect(buddy) { vm.voice.style = com.kodomo.app.ui.mascot.MascotVoice.Style(buddy.voicePitch, buddy.voiceSpeed, buddy.male) }
-    KidsTheme(spec = spec, darkMode = current.darkMode) {
+    val night = current.darkMode || com.kodomo.app.ui.theme.NightMode.isNight()
+    KidsTheme(spec = spec, darkMode = night) {
         CompositionLocalProvider(LocalKidSpace provides scope, com.kodomo.app.ui.mascot.LocalBuddy provides buddy, LocalWellbeing provides wellbeing) {
             Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-                com.kodomo.app.ui.fx.KidsBackground(spec.group, current.darkMode)
+                com.kodomo.app.ui.fx.KidsBackground(spec.group, night)
                 // Online sections are replaced (so players stop) when today's internet allowance is used up.
                 if (online && quota.exhausted) com.kodomo.app.ui.kids.wellbeing.DataUsedUpOverlay(onBack = { backDispatcher?.onBackPressed() })
                 else content()

@@ -241,7 +241,7 @@ fun ChildEditorScreen(childId: Long?, onBack: () -> Unit, viewModel: ChildEditor
         Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             if (childId != null) {
                 PhotoAvatarPicker(draft.avatar, childId, 96.dp)
-                Text("برای گذاشتن عکس واقعی روی تصویر بزنید", style = MaterialTheme.typography.labelSmall)
+                PhotoPickButton(childId)
             } else KodomoAvatar(draft.avatar, size = 96.dp)
             ChildProfileForm(draft = draft, onChange = { draft = it }, modifier = Modifier.padding(vertical = 12.dp))
             KodomoPrimaryButton("ذخیره", onClick = { viewModel.save(draft, onBack) }, enabled = draft.isValid)
@@ -422,16 +422,32 @@ private fun ExitAppCard() {
 @Composable
 fun PhotoAvatarPicker(kind: AvatarKind, photoId: Long, size: androidx.compose.ui.unit.Dp) {
     val context = androidx.compose.ui.platform.LocalContext.current
-    val picker = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia()) { uri ->
+    val picker = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.GetContent()) { uri ->
         if (uri != null) com.kodomo.app.ui.components.AvatarPhotos.save(context, photoId, uri)
     }
     androidx.compose.foundation.layout.Box(
         Modifier.combinedClickable(
-            onClick = { picker.launch(androidx.activity.result.PickVisualMediaRequest(androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia.ImageOnly)) },
+            onClick = { runCatching { picker.launch("image/*") } },
             onLongClick = { com.kodomo.app.ui.components.AvatarPhotos.delete(context, photoId) },
         ),
     ) {
         KodomoAvatar(kind, size = size, photoId = photoId)
         Text("📷", modifier = Modifier.align(Alignment.BottomEnd), style = MaterialTheme.typography.labelLarge)
+    }
+}
+
+
+/** A clear «choose from gallery» button for a profile photo (plus «remove»). */
+@Composable
+fun PhotoPickButton(photoId: Long) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val v = com.kodomo.app.ui.components.AvatarPhotos.version.intValue
+    val has = remember(v) { com.kodomo.app.ui.components.AvatarPhotos.has(context, photoId) }
+    val picker = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.GetContent()) { uri ->
+        if (uri != null) com.kodomo.app.ui.components.AvatarPhotos.save(context, photoId, uri)
+    }
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        androidx.compose.material3.OutlinedButton(onClick = { runCatching { picker.launch("image/*") } }) { Text("🖼️ انتخاب عکس از گالری") }
+        if (has) TextButton(onClick = { com.kodomo.app.ui.components.AvatarPhotos.delete(context, photoId) }) { Text("حذف عکس") }
     }
 }

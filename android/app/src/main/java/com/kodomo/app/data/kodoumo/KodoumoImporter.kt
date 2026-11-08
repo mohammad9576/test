@@ -106,9 +106,13 @@ class KodoumoImporter @Inject constructor(
         val category = videoCategoryOf(item.typeSlug + " " + review.typeLabel)
         // Own id per approved page: several cartoons never overwrite each other (search results may lack a review id).
         val base = toEntity(if (book) "books" else category, item, review)
+        // One entry per work: episodes approved later for the same series are added under it, not as new cartoons.
+        val id = groupId("k_" + item.slug, mediaUrl)
+        val existing = db.contentDao().get(id)
         val entity = base.copy(
-            id = approvedId(mediaUrl), type = if (book) ContentType.BOOK else ContentType.VIDEO, mediaUrl = mediaUrl.trim(),
-            episodes = encodeEpisodes(episodes), category = sourceLabel ?: base.category,
+            id = id, type = if (book) ContentType.BOOK else ContentType.VIDEO, mediaUrl = existing?.mediaUrl ?: mediaUrl.trim(),
+            episodes = mergeEpisodes(existing?.episodes, existing?.mediaUrl, episodes.ifEmpty { listOf(com.kodomo.app.domain.model.Episode(mediaUrl, "")) }),
+            category = sourceLabel ?: base.category,
         )
         db.contentDao().upsertAll(listOf(entity))
         return entity
@@ -122,7 +126,8 @@ class KodoumoImporter @Inject constructor(
         title: String, pageUrl: String, minAge: Int, note: String, episodes: List<com.kodomo.app.domain.model.Episode>,
         book: Boolean = false, sourceLabel: String? = null,
     ): ContentEntity {
-        val id = approvedId(pageUrl)
+        val id = groupId("t_" + com.kodomo.app.ui.parent.ratings.cleanTelewebionTitle(title).ifBlank { title }.trim(), pageUrl)
+        val existing = db.contentDao().get(id)
         val entity = ContentEntity(
             id = id, type = if (book) ContentType.BOOK else ContentType.VIDEO, title = title.trim().ifBlank { if (book) "کتاب تأییدشده" else "کارتون تأییدشده" },
             description = if (book) "این کتاب را پدر یا مادرت برایت انتخاب کرده‌اند." else "این کارتون را پدر یا مادرت برایت انتخاب کرده‌اند.",
@@ -132,10 +137,25 @@ class KodoumoImporter @Inject constructor(
             positives = emptyList(), negatives = emptyList(),
             expertReview = "این اثر هنوز توسط کارشناسان ارزیابی نشده و فقط با تأیید والدین قابل پخش است. درخواست ارزیابی برای تیم کدومو ارسال شد.",
             expertName = "تأیید والدین", peerLikes = 0, peerDislikes = 0, interests = setOf(Interest.MOVIES), author = "",
-            sourceUrl = null, episodes = encodeEpisodes(episodes), parentOnly = true,
-        )
+            sourceUrl = null, parentOnly = true,
+            episodes = mergeEpisodes(existing?.episodes, existing?.mediaUrl, episodes.ifEmpty { listOf(com.kodomo.app.domain.model.Episode(pageUrl, title)) }),
+        ).let { if (existing != null) it.copy(mediaUrl = existing.mediaUrl) else it }
         db.contentDao().upsertAll(listOf(entity))
         return entity
+    }
+
+    /** Same work on the same service → same id (so episodes are grouped). */
+    private fun groupId(key: String, pageUrl: String): String {
+        val host = android.net.Uri.parse(pageUrl.trim()).host.orEmpty().removePrefix("www.")
+        return com.kodomo.app.domain.engine.ContentPolicy.PARENT_APPROVED_PREFIX + Integer.toHexString((host + "|" + key.lowercase()).hashCode())
+    }
+
+    /** Existing episodes (or the first approved page) plus the new ones, without duplicates, in approval order. */
+    private fun mergeEpisodes(existing: String?, existingUrl: String?, added: List<com.kodomo.app.domain.model.Episode>): String? {
+        val old = existing?.lines()?.mapNotNull { l -> l.split('\t', limit = 2).let { p -> if (p[0].isBlank()) null else com.kodomo.app.domain.model.Episode(p[0], p.getOrElse(1) { "" }) } }
+            ?: existingUrl?.let { listOf(com.kodomo.app.domain.model.Episode(it, "")) } ?: emptyList()
+        val all = (old + added).distinctBy { it.url.trimEnd('/') }
+        return if (all.size <= 1) null else encodeEpisodes(all)
     }
 
     private fun approvedId(pageUrl: String): String {
