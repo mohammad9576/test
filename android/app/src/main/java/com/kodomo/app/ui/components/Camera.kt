@@ -95,8 +95,10 @@ fun CameraView(
     DisposableEffect(lensFacing, lifecycleOwner) {
         val providerFuture = ProcessCameraProvider.getInstance(context)
         var provider: ProcessCameraProvider? = null
+        var disposed = false
         providerFuture.addListener({
-            val p = providerFuture.get()
+            if (disposed) return@addListener
+            val p = runCatching { providerFuture.get() }.getOrNull() ?: return@addListener
             provider = p
             val preview = Preview.Builder().build().also { it.setSurfaceProvider(previewView.surfaceProvider) }
             val useCases = mutableListOf<androidx.camera.core.UseCase>(preview)
@@ -108,9 +110,9 @@ fun CameraView(
                     .also { analysis ->
                         analysis.setAnalyzer(executor) { image ->
                             try {
-                                currentAnalyzer?.invoke(image)
+                                runCatching { currentAnalyzer?.invoke(image) }
                             } finally {
-                                image.close()
+                                runCatching { image.close() }
                             }
                         }
                     }
@@ -127,7 +129,8 @@ fun CameraView(
             }
         }, ContextCompat.getMainExecutor(context))
         onDispose {
-            provider?.unbindAll()
+            disposed = true
+            runCatching { provider?.unbindAll() }
             captureHandle?.imageCapture = null
         }
     }

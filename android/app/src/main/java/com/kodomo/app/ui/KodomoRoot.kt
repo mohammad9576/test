@@ -48,8 +48,14 @@ fun KodomoRoot(appViewModel: AppViewModel) {
                 KodomoMascot(MascotMood.HAPPY, size = 180.dp)
             }
         } else {
+            // After a restart (crash, reboot, killed app) a child who was in the kids space goes straight back to it.
             val start = remember { if (current.onboardingCompleted) Routes.PROFILES else Routes.ONBOARDING }
-            KodomoNavHost(navController = rememberNavController(), startDestination = start)
+            val resume = remember { current.kidSpaceChildId?.takeIf { current.onboardingCompleted } }
+            val nav = rememberNavController()
+            KodomoNavHost(navController = nav, startDestination = start)
+            androidx.compose.runtime.LaunchedEffect(resume) {
+                if (resume != null && nav.currentDestination?.route == Routes.PROFILES) runCatching { nav.navigate(Routes.kidHome(resume)) }
+            }
         }
     }
 }

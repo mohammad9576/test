@@ -22,7 +22,7 @@ data class Wellbeing(
     /** Every [eyeBreakMinutes] of use the child rests the eyes for 20 seconds (20-20-20 rule). 0 = off. */
     val eyeBreakMinutes: Int = 20,
     /** Media volume is kept at or below this percentage (hearing protection). 100 = no limit. */
-    val maxVolumePercent: Int = 60,
+    val maxVolumePercent: Int = 100,
     /** Games unlock only after this many correct practice answers today. 0 = off. */
     val studyFirstAnswers: Int = 0,
     val momPhone: String = "",
@@ -57,7 +57,7 @@ class WellbeingStore @Inject constructor(@ApplicationContext private val context
 
     val state: Flow<Wellbeing> = context.wellbeingStore.data.map { p ->
         Wellbeing(
-            p[eyeKey] ?: 20, p[volKey] ?: 60, p[studyKey] ?: 0, p[momKey].orEmpty(), p[dadKey].orEmpty(),
+            p[eyeKey] ?: 20, p[volKey] ?: 100, p[studyKey] ?: 0, p[momKey].orEmpty(), p[dadKey].orEmpty(),
             p[weekendKey] ?: 0, p[schoolKey] ?: false, p[schoolStartKey] ?: (7 * 60 + 30), p[schoolEndKey] ?: (13 * 60),
         )
     }

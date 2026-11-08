@@ -424,7 +424,7 @@ fun FreezeDanceGame(level: Int, onFinish: (Int, Boolean) -> Unit) {
             KodomoMascot(if (phase == "dance") MascotMood.EXCITED else if (phase == "moved") MascotMood.THINKING else MascotMood.HAPPY, size = 96.dp)
             Text(
                 when (phase) {
-                    "dance" -> "💃 " + VoicePhrases.FREEZE_DANCE
+                    "dance" -> "🏃 " + VoicePhrases.FREEZE_DANCE
                     "freeze" -> "🧊 " + VoicePhrases.FREEZE_NOW
                     "moved" -> VoicePhrases.FREEZE_MOVED
                     "great" -> VoicePhrases.FREEZE_GREAT

@@ -40,6 +40,7 @@ class KidsLauncherActivity : ComponentActivity(), KioskController {
         if (com.kodomo.app.BuildConfig.DEBUG) {
             com.kodomo.app.core.demo.DemoMode.route = intent?.getStringExtra("demo_route")
             com.kodomo.app.core.demo.DemoMode.age = intent?.getIntExtra("demo_age", 7) ?: 7
+            com.kodomo.app.core.demo.DemoMode.autoFinish = intent?.getBooleanExtra("demo_finish", false) ?: false
         }
         super.onCreate(savedInstanceState)
         // Screenshots are blocked for the children's privacy – except in the debug demo mode used by the smoke test.
@@ -130,14 +131,15 @@ class KidsLauncherActivity : ComponentActivity(), KioskController {
 
     /** The Home role dialog only works when started for a result; if it is declined/unavailable, open Home settings. */
     private val homeRoleLauncher = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()) {
-        if (!deviceOwnerManager.isDefaultHome) openHomeSettings()
+        // Samsung and some other skins close the role dialog without asking: fall back to Android's own chooser.
+        if (!deviceOwnerManager.isDefaultHome && !FakeHomeActivity.showHomeChooser(this)) openHomeSettings()
     }
 
     override fun requestDefaultHome() {
         if (deviceOwnerManager.isDefaultHome) return
         val intent = deviceOwnerManager.defaultHomeIntent()
         if (intent.action == android.provider.Settings.ACTION_HOME_SETTINGS) {
-            openHomeSettings()
+            if (!FakeHomeActivity.showHomeChooser(this)) openHomeSettings()
         } else {
             runCatching { homeRoleLauncher.launch(intent) }.onFailure { openHomeSettings() }
         }

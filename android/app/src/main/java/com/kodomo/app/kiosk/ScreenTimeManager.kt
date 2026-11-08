@@ -46,6 +46,10 @@ class ScreenTimeManager @Inject constructor(
 
     @Volatile private var wellbeing = com.kodomo.app.data.prefs.Wellbeing()
 
+    /** Until this time a parent lifted the bedtime / school / time-window lock (after passing the PIN gate). */
+    @Volatile private var lockOverrideUntil = 0L
+    private val overridden: Boolean get() = System.currentTimeMillis() < lockOverrideUntil
+
     init {
         scope.launch { wellbeingStore.state.collect { wellbeing = it } }
     }
@@ -193,6 +197,7 @@ class ScreenTimeManager @Inject constructor(
             mutex.withLock {
                 bonusSeconds += minutes * 60L
                 bonusDate = LocalDate.now()
+                lockOverrideUntil = maxOf(lockOverrideUntil, System.currentTimeMillis()) + minutes * 60_000L
                 warningIssued = false
                 _state.update { it.copy(limitSeconds = limitSeconds()) }
                 evaluateLocked()
@@ -258,8 +263,8 @@ class ScreenTimeManager @Inject constructor(
         val child = current.child ?: return
         val s = settings
         val newLock = when {
-            s != null && s.bedtimeEnabled && isBedtime(LocalTime.now(), s.bedtimeStartMinutes, s.bedtimeEndMinutes) -> LockReason.BEDTIME
-            wellbeing.inSchoolHours(java.time.LocalDateTime.now()) && bonusSeconds == 0L -> LockReason.SCHOOL
+            !overridden && s != null && s.bedtimeEnabled && isBedtime(LocalTime.now(), s.bedtimeStartMinutes, s.bedtimeEndMinutes) -> LockReason.BEDTIME
+            !overridden && wellbeing.inSchoolHours(java.time.LocalDateTime.now()) -> LockReason.SCHOOL
             current.usedSeconds >= current.limitSeconds -> LockReason.DAILY_LIMIT
             else -> LockReason.NONE
         }

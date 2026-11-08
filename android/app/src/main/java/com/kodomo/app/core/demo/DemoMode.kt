@@ -22,6 +22,8 @@ import javax.inject.Singleton
 object DemoMode {
     @Volatile var route: String? = null
     @Volatile var age: Int = 7
+    /** Games end their level by themselves after a few seconds (tests the end-of-level path). */
+    @Volatile var autoFinish: Boolean = false
 }
 
 @Singleton

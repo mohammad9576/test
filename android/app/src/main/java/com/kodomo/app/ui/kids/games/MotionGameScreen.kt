@@ -129,6 +129,10 @@ fun MotionGameScreen(game: MotionGame, onBack: () -> Unit, viewModel: MotionGame
         }
     }
 
+    if (com.kodomo.app.core.demo.DemoMode.autoFinish) {
+        LaunchedEffect(round, level) { if (level != null && result == null) { kotlinx.coroutines.delay(5000); onFinish(12, true) } }
+    }
+
     KidScreenScaffold(
         title = game.title,
         onBack = onBack,

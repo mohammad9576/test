@@ -100,7 +100,10 @@ fun PoseCamera(tracker: PoseTracker, modifier: Modifier = Modifier, showSkeleton
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val previewView = remember { PreviewView(context).apply { scaleType = PreviewView.ScaleType.FILL_CENTER } }
-    val executor = remember { Executors.newSingleThreadExecutor() }
+    val pool = remember { Executors.newSingleThreadExecutor() }
+    // Frames still being analysed when the game ends must not crash the app: drop work once the camera is closed.
+    val closed = remember { java.util.concurrent.atomic.AtomicBoolean(false) }
+    val executor = remember { java.util.concurrent.Executor { r -> if (!closed.get()) runCatching { pool.execute(r) } } }
     val detector = remember {
         PoseDetection.getClient(PoseDetectorOptions.Builder().setDetectorMode(PoseDetectorOptions.STREAM_MODE).build())
     }
@@ -110,31 +113,32 @@ fun PoseCamera(tracker: PoseTracker, modifier: Modifier = Modifier, showSkeleton
         val main = ContextCompat.getMainExecutor(context)
         var provider: ProcessCameraProvider? = null
         future.addListener({
-            val p = future.get()
+            if (closed.get()) return@addListener
+            val p = runCatching { future.get() }.getOrNull() ?: return@addListener
             provider = p
             val preview = Preview.Builder().build().also { it.setSurfaceProvider(previewView.surfaceProvider) }
             val analysis = ImageAnalysis.Builder().setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST).build()
             analysis.setAnalyzer(executor) { proxy ->
                 val media = proxy.image
-                if (media == null) {
+                if (media == null || closed.get()) {
                     proxy.close()
                     return@setAnalyzer
                 }
                 val rotation = proxy.imageInfo.rotationDegrees
                 val w = if (rotation % 180 == 0) proxy.width else proxy.height
                 val h = if (rotation % 180 == 0) proxy.height else proxy.width
-                detector.process(InputImage.fromMediaImage(media, rotation))
+                runCatching { detector.process(InputImage.fromMediaImage(media, rotation)) }.getOrElse { proxy.close(); return@setAnalyzer }
                     .addOnSuccessListener(executor) { pose ->
                         val points = pose.allPoseLandmarks.associate { lm ->
                             lm.landmarkType to PosePoint(1f - lm.position.x / w, lm.position.y / h, lm.inFrameLikelihood)
                         }
                         val body = if (points.isEmpty()) null else BodyPose(points, w, h, System.currentTimeMillis())
-                        main.execute {
+                        if (!closed.get()) main.execute {
                             tracker.pose = body
                             tracker.frames++
                         }
                     }
-                    .addOnCompleteListener(executor) { proxy.close() }
+                    .addOnCompleteListener(main) { runCatching { proxy.close() } }
             }
             runCatching {
                 p.unbindAll()
@@ -142,13 +146,14 @@ fun PoseCamera(tracker: PoseTracker, modifier: Modifier = Modifier, showSkeleton
             }
         }, main)
         onDispose {
-            provider?.unbindAll()
+            runCatching { provider?.unbindAll() }
         }
     }
     DisposableEffect(Unit) {
         onDispose {
-            detector.close()
-            executor.shutdown()
+            closed.set(true)
+            runCatching { detector.close() }
+            pool.shutdown()
         }
     }
 

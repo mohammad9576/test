@@ -51,15 +51,20 @@ parent_hub|7|parent|6
 parent_sites|7|parent/sites|4
 parent_wellbeing|7|parent/wellbeing|4
 profiles|7|profiles|4
+end_jacks|7|kid/{child}/game/JUMPING_JACKS|13|true
+end_body_quiz|7|kid/{child}/game/BODY_QUIZ|13|true
+end_forest|7|kid/{child}/game/FOREST_QUEST|13|true
+end_boxing|7|kid/{child}/game/BOXING|13|true
+end_memory|7|kid/{child}/game/MEMORY_CARDS|13|true
 "
 : > "$OUT/report.txt"
 i=0
-while IFS='|' read -r name age route wait <&3; do
+while IFS='|' read -r name age route wait finish <&3; do
   [ -z "$name" ] && continue
   i=$((i+1))
   adb logcat -c
   adb shell am force-stop $PKG
-  adb shell am start -n $ACT --es demo_route "$route" --ei demo_age "$age" >/dev/null
+  adb shell am start -n $ACT --es demo_route "$route" --ei demo_age "$age" --ez demo_finish "${finish:-false}" >/dev/null
   sleep "$wait"
   f=$(printf "%02d_%s.png" "$i" "$name")
   adb exec-out screencap -p > "$OUT/$f"

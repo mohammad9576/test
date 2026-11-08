@@ -64,7 +64,7 @@ fun WellbeingScreen(onBack: () -> Unit) {
                 }
             }
             item {
-                Section("🔊 محافظت از شنوایی", "صدای رسانه در محیط کودک از این حد بالاتر نمی‌رود (برای هدفون مهم است). حداکثر: ${w.maxVolumePercent.fa()}٪") {
+                Section("🔊 محافظت از شنوایی", "صدای رسانه در محیط کودک از این حد بالاتر نمی‌رود (برای هدفون مهم است). ${if (w.maxVolumePercent >= 100) "خاموش (بدون محدودیت)" else "حداکثر: " + w.maxVolumePercent.fa() + "٪"}") {
                     Slider(
                         value = w.maxVolumePercent.toFloat(),
                         onValueChange = { vm.save(w.copy(maxVolumePercent = (it / 10).toInt() * 10)) },

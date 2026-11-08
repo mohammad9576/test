@@ -50,6 +50,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import javax.inject.Inject
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.map
 
 @HiltViewModel
 class KidSpaceViewModel @Inject constructor(
@@ -58,7 +59,9 @@ class KidSpaceViewModel @Inject constructor(
     val voice: MascotVoice,
     val buddies: com.kodomo.app.data.prefs.BuddyStore,
     wellbeingStore: com.kodomo.app.data.prefs.WellbeingStore,
+    private val session: com.kodomo.app.data.prefs.SessionPreferences,
 ) : ViewModel() {
+    fun markKidSpace(childId: Long?) = kotlinx.coroutines.runBlocking { session.setKidSpaceChild(childId) }
     val wellbeing = wellbeingStore.state
 
     val dialogue = MascotDialogueEngine()
@@ -114,7 +117,12 @@ fun TrackActivity(category: ActivityCategory, title: String, contentId: String? 
 @Composable
 fun KidSpaceFrame(childId: Long, onParentExit: () -> Unit, content: @Composable () -> Unit) {
     val vm: KidSpaceViewModel = hiltViewModel()
-    val child by remember(childId) { vm.child(childId) }.collectAsStateWithLifecycle(null)
+    val loaded by remember(childId) { vm.child(childId).map { c -> Pair<Child?, Boolean>(c, true) } }.collectAsStateWithLifecycle(Pair<Child?, Boolean>(null, false))
+    val child = loaded.first
+    if (loaded.second && child == null) {
+        // The child was removed (or never existed): never leave a blank, stuck screen.
+        LaunchedEffect(Unit) { vm.markKidSpace(null); onParentExit() }
+    }
     val state by vm.screenState.collectAsStateWithLifecycle()
     val kiosk = LocalKioskController.current
     var showGate by remember { mutableStateOf<GatePurpose?>(null) }
@@ -125,6 +133,7 @@ fun KidSpaceFrame(childId: Long, onParentExit: () -> Unit, content: @Composable 
     LaunchedEffect(childId) {
         kiosk.enterKidSpace()
         vm.start(childId)
+        if (com.kodomo.app.core.demo.DemoMode.route == null) vm.markKidSpace(childId)
     }
     LaunchedEffect(state.lock) { kiosk.setBedtimeDim(state.lock == ScreenTimeManager.LockReason.BEDTIME) }
     LaunchedEffect(Unit) {
@@ -191,6 +200,7 @@ fun KidSpaceFrame(childId: Long, onParentExit: () -> Unit, content: @Composable 
                         reason = state.lock,
                         line = if (state.lock == ScreenTimeManager.LockReason.BEDTIME) vm.dialogue.bedtime(current) else vm.dialogue.timeIsUp(current),
                         onParent = { showGate = GatePurpose.EXTEND },
+                        onExit = { showGate = GatePurpose.EXIT },
                         call = { com.kodomo.app.ui.kids.wellbeing.CallParentsRow(wellbeing, scope.callParent) },
                     )
                 }
@@ -218,6 +228,7 @@ fun KidSpaceFrame(childId: Long, onParentExit: () -> Unit, content: @Composable 
                 showGate = null
                 when (purpose) {
                     GatePurpose.EXIT -> {
+                        vm.markKidSpace(null)
                         kiosk.exitKidSpace()
                         onParentExit()
                     }
@@ -231,7 +242,7 @@ fun KidSpaceFrame(childId: Long, onParentExit: () -> Unit, content: @Composable 
 private enum class GatePurpose { EXIT, EXTEND }
 
 @Composable
-private fun LockOverlay(child: Child, reason: ScreenTimeManager.LockReason, line: MascotLine, onParent: () -> Unit, call: @Composable () -> Unit = {}) {
+private fun LockOverlay(child: Child, reason: ScreenTimeManager.LockReason, line: MascotLine, onParent: () -> Unit, onExit: () -> Unit = {}, call: @Composable () -> Unit = {}) {
     BackHandler(enabled = true) { }
     val bedtime = reason == ScreenTimeManager.LockReason.BEDTIME
     val school = reason == ScreenTimeManager.LockReason.SCHOOL
@@ -268,6 +279,9 @@ private fun LockOverlay(child: Child, reason: ScreenTimeManager.LockReason, line
             call()
             OutlinedButton(onClick = onParent, modifier = Modifier.fillMaxWidth()) {
                 Text("ورود والدین برای ۱۵ دقیقه‌ی بیشتر", color = if (bedtime) Color.White else MaterialTheme.colorScheme.primary)
+            }
+            TextButton(onClick = onExit, modifier = Modifier.fillMaxWidth()) {
+                Text("🔒 خروج والدین از محیط کودک", color = if (bedtime) Color.White.copy(alpha = 0.85f) else MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }

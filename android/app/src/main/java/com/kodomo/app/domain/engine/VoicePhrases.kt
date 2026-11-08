@@ -28,7 +28,7 @@ object VoicePhrases {
     const val BODY_READY = "عالی! حالا دیده می‌شوی. شروع کنیم!"
     const val BALLOON_JUMP = "پرش عالی! همه‌ی بادکنک‌ها ترکیدند!"
     const val STAR_CLOUD = "مواظب ابر بارانی باش!"
-    const val FREEZE_DANCE = "برقص! برقص!"
+    const val FREEZE_DANCE = "حرکت کن! ورزش کن!"
     const val FREEZE_NOW = "مجسمه شو!"
     const val FREEZE_MOVED = "اوه! تکان خوردی!"
     const val FREEZE_GREAT = "آفرین! مثل یک مجسمه‌ی واقعی!"

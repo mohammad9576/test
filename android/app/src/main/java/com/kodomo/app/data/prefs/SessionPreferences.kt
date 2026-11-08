@@ -27,6 +27,8 @@ data class SessionState(
     val lastSyncMillis: Long,
     val allowedApps: Set<String>,
     val lastKodoumoSyncMillis: Long,
+    /** The child whose kids space is open; kept until a parent leaves it, so a restart reopens the kids space. */
+    val kidSpaceChildId: Long? = null,
 )
 
 @Singleton
@@ -41,6 +43,7 @@ class SessionPreferences @Inject constructor(@ApplicationContext private val con
         val LAST_SYNC = longPreferencesKey("last_sync")
         val ALLOWED_APPS = stringSetPreferencesKey("allowed_apps")
         val KODOUMO_SYNC = longPreferencesKey("kodoumo_sync")
+        val KID_SPACE = longPreferencesKey("kid_space_child")
     }
 
     val state: Flow<SessionState> = context.sessionStore.data.map { p ->
@@ -53,6 +56,7 @@ class SessionPreferences @Inject constructor(@ApplicationContext private val con
             lastSyncMillis = p[Keys.LAST_SYNC] ?: 0L,
             allowedApps = p[Keys.ALLOWED_APPS] ?: emptySet(),
             lastKodoumoSyncMillis = p[Keys.KODOUMO_SYNC] ?: 0L,
+            kidSpaceChildId = p[Keys.KID_SPACE]?.takeIf { it > 0 },
         )
     }
 
@@ -64,6 +68,10 @@ class SessionPreferences @Inject constructor(@ApplicationContext private val con
 
     suspend fun setActiveChild(childId: Long?) = context.sessionStore.edit {
         if (childId == null) it.remove(Keys.ACTIVE_CHILD) else it[Keys.ACTIVE_CHILD] = childId
+    }
+
+    suspend fun setKidSpaceChild(childId: Long?) = context.sessionStore.edit {
+        if (childId == null) it.remove(Keys.KID_SPACE) else it[Keys.KID_SPACE] = childId
     }
 
     suspend fun setAuthToken(token: String?) = context.sessionStore.edit {

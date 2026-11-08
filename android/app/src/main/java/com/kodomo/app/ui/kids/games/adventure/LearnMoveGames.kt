@@ -130,7 +130,8 @@ fun BodyQuizGame(level: Int, onFinish: (Int, Boolean) -> Unit) {
     var feedback by remember { mutableStateOf<Boolean?>(null) }
     var stageSize by remember { mutableStateOf(IntSize.Zero) }
     val finish by rememberUpdatedState(onFinish)
-    val thinkSeconds = (9f - level * 0.4f).coerceAtLeast(5f)
+    // Seen from 2 metres away the child needs time to read and walk: generous, slowly shrinking with the level.
+    val thinkSeconds = (15f - level * 0.5f).coerceAtLeast(9f)
 
     DisposableEffect(Unit) { GameMusic.play(GameMusic.Theme.CALM); onDispose { GameMusic.release() } }
     LaunchedEffect(index) { space.voice.speak(question.prompt.replace(Regex("[⭐🔴🟥🔺]"), "")) }
@@ -148,7 +149,7 @@ fun BodyQuizGame(level: Int, onFinish: (Int, Boolean) -> Unit) {
         answerTime = 0f
         lockIn = 0f
         var lastZone = zone
-        delay(1_500) // read the question first
+        delay(3_500) // hear and read the question first
         while (true) {
             val now = withInfiniteAnimationFrameMillis { it }
             val dt = (now - last).coerceAtMost(50) / 1000f
@@ -157,7 +158,7 @@ fun BodyQuizGame(level: Int, onFinish: (Int, Boolean) -> Unit) {
             if (zone != lastZone) { lastZone = zone; lockIn = 0f; GameSfx.whoosh() }
             lockIn += dt / 1.6f
             // the answer locks after standing 1.6 s in a zone (but only once the child had a moment to think)
-            if ((lockIn >= 1f && answerTime > 2.5f) || answerTime > thinkSeconds + 1.6f) {
+            if ((lockIn >= 1f && answerTime > 4f) || answerTime > thinkSeconds + 1.6f) {
                 val ok = zone == question.correct
                 if (ok) { correct++; GameSfx.sparkle() } else GameSfx.oops()
                 feedback = ok
@@ -175,9 +176,14 @@ fun BodyQuizGame(level: Int, onFinish: (Int, Boolean) -> Unit) {
     PoseStage(tracker, "🧠 سؤال ${(index + 1).fa()} از ${total.fa()}   ✅ ${correct.fa()}   به سمت جواب درست برو و بایست!", onSize = { stageSize = it }) {
         val w = size.width
         val h = size.height
-        val q = measurer.measure(question.prompt, TextStyle(fontSize = 24.sp, fontWeight = FontWeight.Black, color = Color.White, textAlign = TextAlign.Center), constraints = androidx.compose.ui.unit.Constraints(maxWidth = (w * 0.92f).toInt()))
-        drawRoundRect(Color(0xFF283593).copy(alpha = 0.85f), Offset(w * 0.03f, 10f), Size(w * 0.94f, q.size.height + 24f), CornerRadius(22f))
-        drawText(q, topLeft = Offset(w / 2 - q.size.width / 2f, 22f))
+        val shadow = androidx.compose.ui.graphics.Shadow(Color.Black, Offset(2f, 3f), 6f)
+        val q = measurer.measure(question.prompt, TextStyle(fontSize = 36.sp, fontWeight = FontWeight.Black, color = Color.White, textAlign = TextAlign.Center, shadow = shadow), constraints = androidx.compose.ui.unit.Constraints(maxWidth = (w * 0.9f).toInt()))
+        drawRoundRect(Color(0xFF1A237E), Offset(w * 0.03f, 10f), Size(w * 0.94f, q.size.height + 34f), CornerRadius(26f))
+        drawText(q, topLeft = Offset(w / 2 - q.size.width / 2f, 27f))
+        // time left to answer
+        val left = (1f - answerTime / (thinkSeconds + 1.6f)).coerceIn(0f, 1f)
+        drawRoundRect(Color.White.copy(alpha = 0.35f), Offset(w * 0.06f, q.size.height + 52f), Size(w * 0.88f, 14f), CornerRadius(7f))
+        drawRoundRect(if (left > 0.3f) Color(0xFFFFD54F) else Color(0xFFFF7043), Offset(w * 0.06f, q.size.height + 52f), Size(w * 0.88f * left, 14f), CornerRadius(7f))
         val colors = listOf(Color(0xFFE53935), Color(0xFF43A047), Color(0xFF1E88E5))
         for (i in 0 until 3) {
             val x0 = w * i / 3f
@@ -187,9 +193,10 @@ fun BodyQuizGame(level: Int, onFinish: (Int, Boolean) -> Unit) {
                 feedback == false && selected -> Color(0xFFE53935)
                 else -> colors[i]
             }
-            drawRoundRect(fill.copy(alpha = if (selected) 0.55f else 0.25f), Offset(x0 + 6f, h * 0.62f), Size(w / 3f - 12f, h * 0.34f), CornerRadius(24f))
+            drawRoundRect(fill.copy(alpha = if (selected) 0.95f else 0.78f), Offset(x0 + 6f, h * 0.62f), Size(w / 3f - 12f, h * 0.34f), CornerRadius(24f))
+            if (selected) drawRoundRect(Color.White, Offset(x0 + 6f, h * 0.62f), Size(w / 3f - 12f, h * 0.34f), CornerRadius(24f), style = androidx.compose.ui.graphics.drawscope.Stroke(8f))
             if (selected && feedback == null) drawRoundRect(Color.White, Offset(x0 + 6f, h * 0.62f), Size((w / 3f - 12f) * lockIn.coerceIn(0f, 1f), 10f), CornerRadius(5f))
-            val a = measurer.measure(question.answers[i], TextStyle(fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color.White, textAlign = TextAlign.Center), constraints = androidx.compose.ui.unit.Constraints(maxWidth = (w / 3f - 20f).toInt()))
+            val a = measurer.measure(question.answers[i], TextStyle(fontSize = 34.sp, fontWeight = FontWeight.Black, color = Color.White, textAlign = TextAlign.Center, shadow = shadow), constraints = androidx.compose.ui.unit.Constraints(maxWidth = (w / 3f - 20f).toInt()))
             drawText(a, topLeft = Offset(x0 + w / 6f - a.size.width / 2f, h * 0.79f - a.size.height / 2f))
         }
         feedback?.let {
