@@ -44,7 +44,8 @@ class KodoumoImporter @Inject constructor(
         sync()
     }
 
-    suspend fun sync(pagesPerCategory: Int = 4) {
+    /** Reads every page of every category (kodoumo has a few hundred reviews), so parents see the full catalogue. */
+    suspend fun sync(pagesPerCategory: Int = 60) {
         if (!mutex.tryLock()) return
         try {
             var imported = 0
@@ -61,11 +62,18 @@ class KodoumoImporter @Inject constructor(
                     }
                     val (items, pages) = result.getOrThrow()
                     for (item in items) {
-                        // Only finished evaluations with a real age rating may reach a child.
-                        if (item.underEvaluation || item.age == null) continue
+                        // Works still under evaluation are listed for parents (marked, never shown to a child).
+                        if (item.underEvaluation || item.age == null) {
+                            if (db.contentDao().get("kodoumo_${item.id}") == null) db.contentDao().upsertAll(listOf(pendingEntity(category, item)))
+                            imported++
+                            continue
+                        }
+                        val known = db.contentDao().get("kodoumo_${item.id}")
+                        if (known != null && known.minAge <= 18 && known.expertReview.isNotBlank() && page > 1) { imported++; continue }
                         val review = runCatching { client.review(item.slug) }.getOrNull() ?: continue
                         if (review.underEvaluation) continue
                         val entity = toEntity(category, item, review)
+                        if (entity.id != "kodoumo_${item.id}") db.contentDao().delete("kodoumo_${item.id}")
                         val existingMedia = db.contentDao().mediaUrl(entity.id)
                         db.contentDao().upsertAll(listOf(entity.copy(mediaUrl = existingMedia, episodes = db.contentDao().episodes(entity.id))))
                         imported++
@@ -173,6 +181,18 @@ class KodoumoImporter @Inject constructor(
     }
 
     /** Maps the site's 0..5 indicator bars to the Kodomo rating (1..5; 0 = «none» becomes the minimum 1). */
+    /** A work kodoumo is still evaluating: visible in the parent's ratings list with its status; minAge 99 keeps it from every child. */
+    private fun pendingEntity(category: String, item: KodoumoListItem) = ContentEntity(
+        id = "kodoumo_${item.id}", type = typeOf(category), title = item.title,
+        description = item.shortDescription.ifBlank { "این اثر در کدومو در حال ارزیابی است." },
+        body = "⏳ کارشناسان کدومو هنوز ارزیابی این اثر را تمام نکرده‌اند. تا پایان ارزیابی، این اثر به کودک نشان داده نمی‌شود.",
+        category = labelOf(category) + " • در حال ارزیابی", emoji = emojiOf(category), colorStart = 0xFFECEFF1L, colorEnd = 0xFF90A4AEL,
+        mediaUrl = null, durationMinutes = 0, minAge = 99, maxAge = 99,
+        violence = 0, fear = 0, educational = 0, abnormality = 0, creativity = 0, familyValues = 0,
+        positives = emptyList(), negatives = emptyList(), expertReview = "", expertName = "کدومو (در حال ارزیابی)",
+        peerLikes = 0, peerDislikes = 0, interests = emptySet(), author = "", imageUrl = item.image, sourceUrl = item.permalink.ifBlank { null },
+    )
+
     private fun toEntity(category: String, item: KodoumoListItem, r: KodoumoReview): ContentEntity {
         fun level(vararg names: String): Int? = r.indicators.firstOrNull { it.name in names }?.rate
         // kodoumo.ir uses 0..5 bars; 0 means «not present» and is kept as 0 so charts match the site exactly.

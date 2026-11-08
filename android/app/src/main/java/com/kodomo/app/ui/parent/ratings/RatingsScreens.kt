@@ -124,7 +124,7 @@ fun RatingsTab(viewModel: ParentHubViewModel, onOpen: (String) -> Unit, onOpenTe
                     Spacer(Modifier.width(12.dp))
                     Column(Modifier.weight(1f)) {
                         Text(item.title, style = MaterialTheme.typography.titleMedium)
-                        Text("${item.type.label} • سن پیشنهادی: ${item.rating.minAge.fa()} تا ${item.rating.maxAge.fa()} سال", style = MaterialTheme.typography.labelMedium)
+                        Text(if (item.rating.minAge > 18) "${item.type.label} • ⏳ در حال ارزیابی کدومو" else "${item.type.label} • سن پیشنهادی: ${item.rating.minAge.fa()} تا ${item.rating.maxAge.fa()} سال", style = MaterialTheme.typography.labelMedium)
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             RatingPill("خشونت", item.rating.violence)
                             RatingPill("ترس", item.rating.fear)
@@ -185,7 +185,7 @@ fun ContentPassportScreen(contentId: String, onBack: () -> Unit, viewModel: Cont
                 Column(Modifier.weight(1f)) {
                     Text(i.title, style = MaterialTheme.typography.headlineSmall)
                     Text("${i.type.label} • ${i.category}", style = MaterialTheme.typography.labelLarge, color = KodomoColors.Green)
-                    Text("سن پیشنهادی: ${r.minAge.fa()} تا ${r.maxAge.fa()} سال", style = MaterialTheme.typography.titleSmall)
+                    Text(if (r.minAge > 18) "⏳ در حال ارزیابی کدومو؛ هنوز به کودک نشان داده نمی‌شود" else "سن پیشنهادی: ${r.minAge.fa()} تا ${r.maxAge.fa()} سال", style = MaterialTheme.typography.titleSmall)
                     if (i.author.isNotBlank()) Text(i.author, style = MaterialTheme.typography.labelSmall)
                 }
             }

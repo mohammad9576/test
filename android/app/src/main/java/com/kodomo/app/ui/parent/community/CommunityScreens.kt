@@ -1,5 +1,11 @@
 package com.kodomo.app.ui.parent.community
 
+import androidx.compose.foundation.layout.height
+
+import androidx.compose.ui.draw.shadow
+
+import androidx.compose.foundation.clickable
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -74,6 +80,19 @@ import java.time.ZoneId
 import javax.inject.Inject
 
 @Composable
+private val parentingTips = listOf(
+    "به جای «نکن»، بگویید چه کاری بکند: «آرام راه برو» به جای «ندو».",
+    "روزی ۱۰ دقیقه بازی بدون گوشی با فرزندتان، بیش از ساعت‌ها هدیه ارزش دارد.",
+    "قبل از خواب، صفحه‌نمایش را یک ساعت کنار بگذارید؛ خواب بچه‌ها عمیق‌تر می‌شود.",
+    "تلاش را تشویق کنید نه فقط نتیجه را: «دیدم چقدر تمرین کردی!»",
+    "قانون‌های گوشی را با خود کودک بنویسید؛ وقتی در ساختنش سهیم باشد، بهتر رعایت می‌کند.",
+    "احساس کودک را نام ببرید: «می‌بینم ناراحتی چون بازی تمام شد.» این کار آرامش می‌کند.",
+    "خودتان الگو باشید؛ کودک بیشتر از حرف ما، رفتار ما را تقلید می‌کند.",
+    "به جای تهدید، انتخاب بدهید: «اول مسواک یا اول لباس خواب؟»",
+    "هفته‌ای یک شب «شب خانواده» بگذارید: بازی، کتاب یا آشپزی با هم.",
+    "پیش از تمام شدن وقت گوشی، ۵ دقیقه زودتر خبر بدهید تا کودک آماده شود.",
+)
+
 fun CommunityTab(viewModel: ParentHubViewModel, onOpenArticle: (String) -> Unit, onOpenTopic: (Long) -> Unit, modifier: Modifier = Modifier) {
     val sections = listOf("مقالات و نشریه‌ها", "تالار گفتگو", "دورهمی آخر هفته")
     var section by rememberSaveable { mutableIntStateOf(0) }
@@ -82,15 +101,56 @@ fun CommunityTab(viewModel: ParentHubViewModel, onOpenArticle: (String) -> Unit,
     val ideas by viewModel.weekendIdeas.collectAsStateWithLifecycle()
     var newTopic by remember { mutableStateOf(false) }
 
+    val tiles = listOf(
+        Triple("📰", "مقاله‌ها", 0xFF42A5F5 to 0xFF1565C0),
+        Triple("💬", "گفتگوی والدین", 0xFFAB47BC to 0xFF6A1B9A),
+        Triple("🧺", "دورهمی خانواده", 0xFF66BB6A to 0xFF2E7D32),
+    )
+    val tip = remember { parentingTips[(java.time.LocalDate.now().dayOfYear) % parentingTips.size] }
     Column(modifier) {
-        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().padding(16.dp)) {
-            sections.forEachIndexed { i, label ->
-                SegmentedButton(selected = section == i, onClick = { section = i }, shape = SegmentedButtonDefaults.itemShape(i, sections.size)) {
-                    Text(label, maxLines = 1, fontSize = 12.sp)
+        LazyColumn(contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            item {
+                Column(
+                    Modifier.fillMaxWidth()
+                        .background(androidx.compose.ui.graphics.Brush.linearGradient(listOf(androidx.compose.ui.graphics.Color(0xFFFFF3E0), androidx.compose.ui.graphics.Color(0xFFFCE4EC))), androidx.compose.foundation.shape.RoundedCornerShape(26.dp))
+                        .padding(16.dp),
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        com.kodomo.app.ui.fx.Emoji("👨‍👩‍👧‍👦", 56.dp)
+                        Spacer(Modifier.width(12.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text("جامعه‌ی والدین کدومو", style = MaterialTheme.typography.titleLarge)
+                            Text("${articles.size.fa()} مقاله • ${topics.size.fa()} گفتگو • ${ideas.size.fa()} ایده‌ی دورهمی", style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                    Spacer(Modifier.height(10.dp))
+                    Text("💡 نکته‌ی امروز: $tip", style = MaterialTheme.typography.bodyMedium)
                 }
             }
-        }
-        LazyColumn(contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            item {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    tiles.forEachIndexed { i, (emoji, label, colors) ->
+                        val on = section == i
+                        Column(
+                            Modifier.weight(1f)
+                                .shadow(if (on) 8.dp else 2.dp, androidx.compose.foundation.shape.RoundedCornerShape(22.dp))
+                                .background(
+                                    if (on) androidx.compose.ui.graphics.Brush.verticalGradient(listOf(androidx.compose.ui.graphics.Color(colors.first), androidx.compose.ui.graphics.Color(colors.second)))
+                                    else androidx.compose.ui.graphics.Brush.verticalGradient(listOf(androidx.compose.ui.graphics.Color.White, androidx.compose.ui.graphics.Color(0xFFF5F5F5))),
+                                    androidx.compose.foundation.shape.RoundedCornerShape(22.dp),
+                                )
+                                .clickable { section = i }
+                                .padding(vertical = 12.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                        ) {
+                            com.kodomo.app.ui.fx.Emoji(emoji, 40.dp)
+                            Text(label, style = MaterialTheme.typography.labelLarge, color = if (on) androidx.compose.ui.graphics.Color.White else androidx.compose.ui.graphics.Color(colors.second), maxLines = 1)
+                        }
+                    }
+                }
+            }
+            if (section == 0 && articles.isEmpty()) item { Text("مقاله‌ای هنوز بارگذاری نشده است.", style = MaterialTheme.typography.bodyMedium) }
+            if (section == 1 && topics.isEmpty()) item { Text("اولین پرسش را شما مطرح کنید؛ کارشناسان تأییدشده پاسخ می‌دهند.", style = MaterialTheme.typography.bodyMedium) }
             when (section) {
                 0 -> items(articles, key = { it.id }) { a -> ArticleRow(a) { onOpenArticle(a.id) } }
                 1 -> {
