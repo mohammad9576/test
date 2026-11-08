@@ -25,6 +25,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -171,4 +172,24 @@ fun StudyFirst(childId: Long, onStudy: () -> Unit, onBack: () -> Unit, content: 
     val today by remember(childId) { vm.today(childId) }.collectAsState(null)
     val t = today ?: return
     if (t.correct >= need) content() else StudyFirstGate(t.correct, need, onStudy, onBack)
+}
+
+/** Applies the parent's screen brightness to the kids space and keeps other apps offline if asked. */
+@Composable
+fun BrightnessAndInternet(brightnessPercent: Int, blockInternet: Boolean) {
+    val context = LocalContext.current
+    DisposableEffect(brightnessPercent) {
+        val window = (context as? android.app.Activity)?.window
+        val before = window?.attributes?.screenBrightness
+        window?.let { w ->
+            w.attributes = w.attributes.apply {
+                screenBrightness = if (brightnessPercent <= 0) android.view.WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE else brightnessPercent / 100f
+            }
+        }
+        onDispose { window?.let { w -> w.attributes = w.attributes.apply { screenBrightness = before ?: android.view.WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE } } }
+    }
+    DisposableEffect(blockInternet) {
+        if (blockInternet) com.kodomo.app.kiosk.InternetBlockVpn.start(context)
+        onDispose { if (blockInternet) com.kodomo.app.kiosk.InternetBlockVpn.stop(context) }
+    }
 }

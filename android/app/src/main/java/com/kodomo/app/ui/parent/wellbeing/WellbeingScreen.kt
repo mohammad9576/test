@@ -77,6 +77,26 @@ fun WellbeingScreen(onBack: () -> Unit) {
                 }
             }
             item {
+                val context = androidx.compose.ui.platform.LocalContext.current
+                val consent = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()) { r ->
+                    if (r.resultCode == android.app.Activity.RESULT_OK) vm.save(w.copy(blockOtherInternet = true))
+                }
+                Section("🌐 اینترنت و نور صفحه", "اینترنت خاموش: وقتی کودک در محیط کدومو است، برنامه‌ها و بازی‌های دیگر به اینترنت دسترسی ندارند (خود کدومو برای کارتون‌ها و کتاب‌های تأییدشده آنلاین می‌ماند). اندروید یک بار اجازه‌ی «VPN» می‌خواهد.") {
+                    Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                        androidx.compose.material3.Switch(checked = w.blockOtherInternet, onCheckedChange = { on ->
+                            if (!on) vm.save(w.copy(blockOtherInternet = false))
+                            else {
+                                val i = com.kodomo.app.kiosk.InternetBlockVpn.consentIntent(context)
+                                if (i == null) vm.save(w.copy(blockOtherInternet = true)) else consent.launch(i)
+                            }
+                        })
+                        Text("  اینترنت برنامه‌های دیگر خاموش", style = MaterialTheme.typography.bodyLarge)
+                    }
+                    Text("نور صفحه در محیط کودک: ${if (w.brightnessPercent == 0) "تنظیم خود گوشی" else w.brightnessPercent.fa() + "٪"}", style = MaterialTheme.typography.labelLarge)
+                    Choices(listOf(0 to "خودکار", 30 to "کم", 60 to "متوسط", 90 to "زیاد"), w.brightnessPercent) { vm.save(w.copy(brightnessPercent = it)) }
+                }
+            }
+            item {
                 Section("📚 اول درس، بعد بازی", "بازی‌ها فقط بعد از این تعداد پاسخ درست در «درس و تمرین» همان روز باز می‌شوند.") {
                     Choices(listOf(0 to "خاموش", 3 to "۳ تمرین", 5 to "۵ تمرین", 10 to "۱۰ تمرین"), w.studyFirstAnswers) { vm.save(w.copy(studyFirstAnswers = it)) }
                 }

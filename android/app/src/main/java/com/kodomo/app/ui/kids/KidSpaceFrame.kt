@@ -163,6 +163,7 @@ fun KidSpaceFrame(childId: Long, onParentExit: () -> Unit, content: @Composable 
         }
     }
     com.kodomo.app.ui.kids.wellbeing.VolumeGuard(wellbeing.maxVolumePercent)
+    com.kodomo.app.ui.kids.wellbeing.BrightnessAndInternet(wellbeing.brightnessPercent, wellbeing.blockOtherInternet)
 
     val current = child ?: return
     val spec = AgeUiSpec.forGroup(current.ageGroup())

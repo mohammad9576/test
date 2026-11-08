@@ -35,6 +35,10 @@ data class Wellbeing(
     val schoolEndMinutes: Int = 13 * 60,
     /** Allowed time windows in minutes of the day (empty = any time); e.g. 13:00-13:15 and 14:30-15:00. */
     val windows: List<IntRange> = emptyList(),
+    /** Internet of other apps blocked while the kids space is open (Kodomo itself stays online). */
+    val blockOtherInternet: Boolean = false,
+    /** Screen brightness in the kids space in percent; 0 = the phone's own setting. */
+    val brightnessPercent: Int = 0,
 ) {
     fun inWindow(now: java.time.LocalTime): Boolean {
         if (windows.isEmpty()) return true
@@ -83,12 +87,14 @@ class WellbeingStore @Inject constructor(@ApplicationContext private val context
     private val schoolStartKey = intPreferencesKey("school_start")
     private val schoolEndKey = intPreferencesKey("school_end")
     private val windowsKey = stringPreferencesKey("windows")
+    private val netKey = booleanPreferencesKey("block_net")
+    private val brightKey = intPreferencesKey("brightness")
 
     val state: Flow<Wellbeing> = context.wellbeingStore.data.map { p ->
         Wellbeing(
             p[eyeKey] ?: 20, p[volKey] ?: 100, p[studyKey] ?: 0, p[momKey].orEmpty(), p[dadKey].orEmpty(),
             p[weekendKey] ?: 0, p[schoolKey] ?: false, p[schoolStartKey] ?: (7 * 60 + 30), p[schoolEndKey] ?: (13 * 60),
-            Wellbeing.decode(p[windowsKey]),
+            Wellbeing.decode(p[windowsKey]), p[netKey] ?: false, p[brightKey] ?: 0,
         )
     }
 
@@ -105,5 +111,7 @@ class WellbeingStore @Inject constructor(@ApplicationContext private val context
         p[schoolStartKey] = w.schoolStartMinutes.coerceIn(0, 24 * 60 - 1)
         p[schoolEndKey] = w.schoolEndMinutes.coerceIn(0, 24 * 60)
         p[windowsKey] = Wellbeing.encode(w.windows)
+        p[netKey] = w.blockOtherInternet
+        p[brightKey] = w.brightnessPercent.coerceIn(0, 100)
     }
 }
