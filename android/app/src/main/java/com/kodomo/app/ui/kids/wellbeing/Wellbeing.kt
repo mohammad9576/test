@@ -174,9 +174,12 @@ fun StudyFirst(childId: Long, onStudy: () -> Unit, onBack: () -> Unit, content: 
     if (t.correct >= need) content() else StudyFirstGate(t.correct, need, onStudy, onBack)
 }
 
-/** Applies the parent's screen brightness to the kids space and keeps other apps offline if asked. */
+/**
+ * Applies the parent's screen brightness, keeps other apps offline if asked (approved apps such as Telewebion or
+ * Filimo always stay online) and meters the daily internet allowance; when it is used up every app goes offline.
+ */
 @Composable
-fun BrightnessAndInternet(brightnessPercent: Int, blockInternet: Boolean) {
+fun BrightnessAndInternet(brightnessPercent: Int, blockInternet: Boolean, dailyDataMb: Int = 0, allowedApps: Set<String> = emptySet()) {
     val context = LocalContext.current
     DisposableEffect(brightnessPercent) {
         val window = (context as? android.app.Activity)?.window
@@ -188,8 +191,35 @@ fun BrightnessAndInternet(brightnessPercent: Int, blockInternet: Boolean) {
         }
         onDispose { window?.let { w -> w.attributes = w.attributes.apply { screenBrightness = before ?: android.view.WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE } } }
     }
-    DisposableEffect(blockInternet) {
-        if (blockInternet) com.kodomo.app.kiosk.InternetBlockVpn.start(context)
-        onDispose { if (blockInternet) com.kodomo.app.kiosk.InternetBlockVpn.stop(context) }
+    LaunchedEffect(dailyDataMb, allowedApps) {
+        while (true) {
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { com.kodomo.app.kiosk.DataQuota.refresh(context, dailyDataMb, allowedApps) }
+            delay(10_000)
+        }
+    }
+    val quota by com.kodomo.app.kiosk.DataQuota.state.collectAsState()
+    val exhausted = quota.exhausted
+    val block = blockInternet || exhausted
+    val keep = if (exhausted) emptySet() else allowedApps
+    DisposableEffect(block, keep) {
+        if (block) com.kodomo.app.kiosk.InternetBlockVpn.start(context, keep)
+        onDispose { if (block) com.kodomo.app.kiosk.InternetBlockVpn.stop(context) }
+    }
+}
+
+/** Shown over online sections (videos, live TV, websites) when today's internet allowance is used up. */
+@Composable
+fun DataUsedUpOverlay(onBack: () -> Unit) {
+    Box(
+        Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color(0xFFE3F2FD), Color(0xFFBBDEFB)))).padding(24.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Emoji("📶", 120.dp)
+            Text("اینترنت امروز تمام شد!", fontSize = 26.sp, fontWeight = FontWeight.Black, color = Color(0xFF0D47A1))
+            Text("فیلم‌ها و سایت‌ها فردا دوباره باز می‌شوند. بازی‌ها، کتاب‌ها، درس‌ها، نقاشی و کاردستی همین حالا هم کار می‌کنند 🎨📚", fontSize = 18.sp, textAlign = TextAlign.Center)
+            Button(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text("برگشت", fontSize = 18.sp) }
+            Text("(مامان یا بابا می‌توانند از پنل والدین حجم بیشتری بدهند)", fontSize = 14.sp, color = Color(0xFF546E7A), textAlign = TextAlign.Center)
+        }
     }
 }

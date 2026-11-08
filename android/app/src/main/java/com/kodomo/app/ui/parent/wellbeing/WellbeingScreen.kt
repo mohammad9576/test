@@ -37,11 +37,13 @@ import com.kodomo.app.data.prefs.Wellbeing
 import com.kodomo.app.data.prefs.WellbeingStore
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
 @HiltViewModel
-class WellbeingViewModel @Inject constructor(private val store: WellbeingStore) : ViewModel() {
+class WellbeingViewModel @Inject constructor(private val store: WellbeingStore, session: com.kodomo.app.data.prefs.SessionPreferences) : ViewModel() {
     val state = store.state
+    val allowedApps = session.state.map { it.allowedApps }
     fun save(w: Wellbeing) { viewModelScope.launch { store.save(w) } }
 }
 
@@ -81,7 +83,7 @@ fun WellbeingScreen(onBack: () -> Unit) {
                 val consent = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()) { r ->
                     if (r.resultCode == android.app.Activity.RESULT_OK) vm.save(w.copy(blockOtherInternet = true))
                 }
-                Section("🌐 اینترنت و نور صفحه", "اینترنت خاموش: وقتی کودک در محیط کدومو است، برنامه‌ها و بازی‌های دیگر به اینترنت دسترسی ندارند (خود کدومو برای کارتون‌ها و کتاب‌های تأییدشده آنلاین می‌ماند). اندروید یک بار اجازه‌ی «VPN» می‌خواهد.") {
+                Section("🌐 اینترنت و نور صفحه", "اینترنت همیشه برای کدومو و برنامه‌هایی که خودتان مجاز کرده‌اید (مثل تلوبیون، فیلیمو، نماوا) وصل است. این کلید فقط اینترنت بقیه‌ی برنامه‌ها و بازی‌ها را در زمان کودک قطع می‌کند (به‌طور پیش‌فرض خاموش است). اندروید یک بار اجازه‌ی «VPN» می‌خواهد.") {
                     Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                         androidx.compose.material3.Switch(checked = w.blockOtherInternet, onCheckedChange = { on ->
                             if (!on) vm.save(w.copy(blockOtherInternet = false))
@@ -90,8 +92,24 @@ fun WellbeingScreen(onBack: () -> Unit) {
                                 if (i == null) vm.save(w.copy(blockOtherInternet = true)) else consent.launch(i)
                             }
                         })
-                        Text("  اینترنت برنامه‌های دیگر خاموش", style = MaterialTheme.typography.bodyLarge)
+                        Text("  اینترنت برنامه‌های غیرمجاز خاموش", style = MaterialTheme.typography.bodyLarge)
                     }
+                    val quota by com.kodomo.app.kiosk.DataQuota.state.collectAsStateWithLifecycle()
+                    val apps by vm.allowedApps.collectAsStateWithLifecycle(emptySet())
+                    androidx.compose.runtime.LaunchedEffect(w.dailyDataMb, apps) {
+                        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { com.kodomo.app.kiosk.DataQuota.refresh(context, w.dailyDataMb, apps, counting = false) }
+                    }
+                    Text("📶 حجم اینترنت روزانه‌ی کودک", style = MaterialTheme.typography.titleSmall)
+                    Text(
+                        if (w.dailyDataMb == 0) "بدون محدودیت. اگر حجم تعیین کنید، وقتی تمام شود فیلم‌ها و سایت‌ها در محیط کودک بسته می‌شوند و پیام «اینترنت امروز تمام شد» می‌بیند؛ بازی‌ها، کتاب‌ها و درس‌ها کار می‌کنند."
+                        else "مصرف امروز: ${quota.usedMb.fa()} از ${quota.limitMb.fa()} مگابایت (کدومو + برنامه‌های مجاز)",
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    Choices(listOf(0 to "نامحدود", 300 to "۳۰۰ مگ", 500 to "۵۰۰ مگ", 1024 to "۱ گیگ", 2048 to "۲ گیگ"), w.dailyDataMb) { vm.save(w.copy(dailyDataMb = it)) }
+                    if (w.dailyDataMb > 0) androidx.compose.material3.OutlinedButton(onClick = {
+                        com.kodomo.app.kiosk.DataQuota.addBonus(context, 100)
+                        com.kodomo.app.kiosk.DataQuota.refresh(context, w.dailyDataMb, apps, counting = false)
+                    }) { Text("➕ ۱۰۰ مگابایت بیشتر برای امروز") }
                     Text("نور صفحه در محیط کودک: ${if (w.brightnessPercent == 0) "تنظیم خود گوشی" else w.brightnessPercent.fa() + "٪"}", style = MaterialTheme.typography.labelLarge)
                     Choices(listOf(0 to "خودکار", 30 to "کم", 60 to "متوسط", 90 to "زیاد"), w.brightnessPercent) { vm.save(w.copy(brightnessPercent = it)) }
                 }

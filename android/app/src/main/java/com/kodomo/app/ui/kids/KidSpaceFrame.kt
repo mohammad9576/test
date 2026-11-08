@@ -61,6 +61,7 @@ class KidSpaceViewModel @Inject constructor(
     wellbeingStore: com.kodomo.app.data.prefs.WellbeingStore,
     private val session: com.kodomo.app.data.prefs.SessionPreferences,
 ) : ViewModel() {
+    val allowedApps = session.state.map { it.allowedApps }
     fun markKidSpace(childId: Long?) = kotlinx.coroutines.runBlocking { session.setKidSpaceChild(childId) }
     val wellbeing = wellbeingStore.state
 
@@ -115,7 +116,7 @@ fun TrackActivity(category: ActivityCategory, title: String, contentId: String? 
  * lock overlays (daily limit / bedtime) and the friendly 5-minute mascot warning.
  */
 @Composable
-fun KidSpaceFrame(childId: Long, onParentExit: () -> Unit, content: @Composable () -> Unit) {
+fun KidSpaceFrame(childId: Long, onParentExit: () -> Unit, online: Boolean = false, content: @Composable () -> Unit) {
     val vm: KidSpaceViewModel = hiltViewModel()
     val loaded by remember(childId) { vm.child(childId).map { c -> Pair<Child?, Boolean>(c, true) } }.collectAsStateWithLifecycle(Pair<Child?, Boolean>(null, false))
     val child = loaded.first
@@ -163,7 +164,10 @@ fun KidSpaceFrame(childId: Long, onParentExit: () -> Unit, content: @Composable 
         }
     }
     com.kodomo.app.ui.kids.wellbeing.VolumeGuard(wellbeing.maxVolumePercent)
-    com.kodomo.app.ui.kids.wellbeing.BrightnessAndInternet(wellbeing.brightnessPercent, wellbeing.blockOtherInternet)
+    val allowedApps by vm.allowedApps.collectAsStateWithLifecycle(emptySet())
+    com.kodomo.app.ui.kids.wellbeing.BrightnessAndInternet(wellbeing.brightnessPercent, wellbeing.blockOtherInternet, wellbeing.dailyDataMb, allowedApps)
+    val quota by com.kodomo.app.kiosk.DataQuota.state.collectAsStateWithLifecycle()
+    val backDispatcher = androidx.activity.compose.LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
 
     val current = child ?: return
     val spec = AgeUiSpec.forGroup(current.ageGroup())
@@ -193,7 +197,9 @@ fun KidSpaceFrame(childId: Long, onParentExit: () -> Unit, content: @Composable 
         CompositionLocalProvider(LocalKidSpace provides scope, com.kodomo.app.ui.mascot.LocalBuddy provides buddy, LocalWellbeing provides wellbeing) {
             Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
                 com.kodomo.app.ui.fx.KidsBackground(spec.group, current.darkMode)
-                content()
+                // Online sections are replaced (so players stop) when today's internet allowance is used up.
+                if (online && quota.exhausted) com.kodomo.app.ui.kids.wellbeing.DataUsedUpOverlay(onBack = { backDispatcher?.onBackPressed() })
+                else content()
                 if (party > 0) com.kodomo.app.ui.fx.ConfettiBurst(party)
                 if (state.child?.id == childId && state.lock != ScreenTimeManager.LockReason.NONE) {
                     LockOverlay(

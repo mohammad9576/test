@@ -29,3 +29,12 @@ class WindowsTest {
         org.junit.Assert.assertEquals(13 * 60 + 15, Wellbeing.parseHhmm("13:15"))
     }
 }
+
+class DataQuotaTest {
+    @Test fun quotaState() {
+        val s = com.kodomo.app.kiosk.DataQuota.State(usedMb = 520, limitMb = 500)
+        assertTrue(s.exhausted)
+        assertFalse(com.kodomo.app.kiosk.DataQuota.State(usedMb = 520, limitMb = 0).exhausted)
+        org.junit.Assert.assertEquals(80, com.kodomo.app.kiosk.DataQuota.State(usedMb = 420, limitMb = 500).leftMb)
+    }
+}

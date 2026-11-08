@@ -14,12 +14,17 @@ import android.util.Log
  */
 class InternetBlockVpn : VpnService() {
     private var tun: ParcelFileDescriptor? = null
+    private var current: Set<String> = emptySet()
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_STOP) { stopVpn(); stopSelf(); return START_NOT_STICKY }
+        val keepOnline = intent?.getStringArrayExtra(EXTRA_KEEP)?.toSet().orEmpty()
+        if (tun != null && keepOnline != current) stopVpn()
+        current = keepOnline
         if (tun == null) {
             tun = runCatching {
                 Builder()
+                    .apply { keepOnline.forEach { pkg -> runCatching { addDisallowedApplication(pkg) } } }
                     .setSession("کدومو: اینترنت برنامه‌های دیگر خاموش")
                     .addAddress("10.111.0.2", 32)
                     .addAddress("fd00:111::2", 128)
@@ -47,15 +52,17 @@ class InternetBlockVpn : VpnService() {
 
     companion object {
         private const val ACTION_STOP = "com.kodomo.app.STOP_BLOCK"
+        private const val EXTRA_KEEP = "keep_online"
         @Volatile var running = false
             private set
 
         /** The consent intent to show first, or null when Android already allows Kodomo's VPN. */
         fun consentIntent(context: Context): Intent? = VpnService.prepare(context)
 
-        fun start(context: Context) {
+        /** Blocks every app except Kodomo and [keepOnline] (the parent-approved apps, e.g. Telewebion or Filimo). */
+        fun start(context: Context, keepOnline: Set<String> = emptySet()) {
             if (VpnService.prepare(context) != null) return
-            runCatching { context.startService(Intent(context, InternetBlockVpn::class.java)) }
+            runCatching { context.startService(Intent(context, InternetBlockVpn::class.java).putExtra(EXTRA_KEEP, keepOnline.toTypedArray())) }
         }
 
         fun stop(context: Context) {

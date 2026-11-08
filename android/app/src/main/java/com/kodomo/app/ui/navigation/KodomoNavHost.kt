@@ -254,6 +254,9 @@ private fun NavGraphBuilder.kid(
 ) {
     composable(route, arguments = listOf(navArgument(Routes.ARG_CHILD) { type = NavType.LongType }) + extraArgs) { entry ->
         val childId = entry.arguments?.getLong(Routes.ARG_CHILD) ?: 0L
-        KidSpaceFrame(childId = childId, onParentExit = onParentExit) { content(childId, entry) }
+        KidSpaceFrame(childId = childId, onParentExit = onParentExit, online = route in onlineRoutes) { content(childId, entry) }
     }
 }
+
+/** Kids sections that need the internet (closed when the daily allowance is used up). */
+private val onlineRoutes = setOf(Routes.KID_VIDEOS, Routes.KID_VIDEO_PLAYER, Routes.KID_LIVE_TV, Routes.KID_BROWSER)

@@ -39,6 +39,8 @@ data class Wellbeing(
     val blockOtherInternet: Boolean = false,
     /** Screen brightness in the kids space in percent; 0 = the phone's own setting. */
     val brightnessPercent: Int = 0,
+    /** Daily internet allowance in megabytes for the kids space; 0 = unlimited. */
+    val dailyDataMb: Int = 0,
 ) {
     fun inWindow(now: java.time.LocalTime): Boolean {
         if (windows.isEmpty()) return true
@@ -89,12 +91,13 @@ class WellbeingStore @Inject constructor(@ApplicationContext private val context
     private val windowsKey = stringPreferencesKey("windows")
     private val netKey = booleanPreferencesKey("block_net")
     private val brightKey = intPreferencesKey("brightness")
+    private val dataKey = intPreferencesKey("daily_data_mb")
 
     val state: Flow<Wellbeing> = context.wellbeingStore.data.map { p ->
         Wellbeing(
             p[eyeKey] ?: 20, p[volKey] ?: 100, p[studyKey] ?: 0, p[momKey].orEmpty(), p[dadKey].orEmpty(),
             p[weekendKey] ?: 0, p[schoolKey] ?: false, p[schoolStartKey] ?: (7 * 60 + 30), p[schoolEndKey] ?: (13 * 60),
-            Wellbeing.decode(p[windowsKey]), p[netKey] ?: false, p[brightKey] ?: 0,
+            Wellbeing.decode(p[windowsKey]), p[netKey] ?: false, p[brightKey] ?: 0, p[dataKey] ?: 0,
         )
     }
 
@@ -113,5 +116,6 @@ class WellbeingStore @Inject constructor(@ApplicationContext private val context
         p[windowsKey] = Wellbeing.encode(w.windows)
         p[netKey] = w.blockOtherInternet
         p[brightKey] = w.brightnessPercent.coerceIn(0, 100)
+        p[dataKey] = w.dailyDataMb.coerceIn(0, 20_000)
     }
 }
