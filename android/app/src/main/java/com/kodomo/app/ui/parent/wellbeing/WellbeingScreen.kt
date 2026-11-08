@@ -160,6 +160,26 @@ fun WellbeingScreen(onBack: () -> Unit) {
                 }
             }
             item {
+                val context = androidx.compose.ui.platform.LocalContext.current
+                val available = androidx.compose.runtime.remember { com.kodomo.app.core.security.BiometricGate.isAvailable(context) }
+                var on by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(com.kodomo.app.core.security.BiometricGate.isEnabled(context)) }
+                Section(
+                    "🔐 ورود والدین با اثر انگشت یا چهره",
+                    if (available) "به جای رمز، با اثر انگشت یا تشخیص چهره‌ی گوشی وارد بخش والدین شوید (رمز همیشه راه دوم است). اگر اثر انگشت کودک هم روی این گوشی ثبت شده، این گزینه را روشن نکنید."
+                    else "این گوشی اثر انگشت یا چهره‌ی ثبت‌شده ندارد. اول از تنظیمات گوشی اثر انگشت یا چهره‌ی خود را ثبت کنید.",
+                ) {
+                    Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                        androidx.compose.material3.Switch(checked = on, enabled = available, onCheckedChange = { want ->
+                            if (!want) { com.kodomo.app.core.security.BiometricGate.setEnabled(context, false); on = false }
+                            else com.kodomo.app.core.security.BiometricGate.authenticate(context, "فعال کردن ورود با اثر انگشت", onSuccess = {
+                                com.kodomo.app.core.security.BiometricGate.setEnabled(context, true); on = true
+                            })
+                        })
+                        Text("  ورود با اثر انگشت / چهره", style = MaterialTheme.typography.bodyLarge)
+                    }
+                }
+            }
+            item {
                 Section("🛡️ همیشه فعال", "") {
                     listOf(
                         "قفل محیط کودک (Kiosk) و دکمه‌ی برگشت روی برنامه‌های مجاز",

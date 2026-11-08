@@ -66,6 +66,11 @@ fun ParentGateDialog(
     var error by remember { mutableStateOf<String?>(null) }
     var lockSeconds by remember { mutableIntStateOf(gateThrottle.remainingLockSeconds().toInt()) }
     val scope = rememberCoroutineScope()
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val biometric = remember { com.kodomo.app.core.security.BiometricGate.isEnabled(context) && com.kodomo.app.core.security.BiometricGate.isAvailable(context) }
+    fun askBiometric() = com.kodomo.app.core.security.BiometricGate.authenticate(context, title, onSuccess = { gateThrottle.registerSuccess(); onVerified() })
+    // Offer the fingerprint / face dialog straight away; the PIN stays as the fallback.
+    LaunchedEffect(biometric) { if (biometric && !gateThrottle.isLocked()) askBiometric() }
 
     LaunchedEffect(lockSeconds) {
         if (lockSeconds > 0) {
@@ -102,6 +107,9 @@ fun ParentGateDialog(
                 KodomoMascot(MascotMood.THINKING, size = 72.dp)
                 Text(title, style = MaterialTheme.typography.headlineSmall)
                 Text("این بخش فقط برای پدر و مادر است", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (biometric) {
+                    TextButton(onClick = { askBiometric() }) { Text("👆 ورود با اثر انگشت یا چهره", style = MaterialTheme.typography.titleSmall) }
+                }
                 Spacer(Modifier.height(14.dp))
                 PinDots(length = pin.length)
                 Spacer(Modifier.height(12.dp))
