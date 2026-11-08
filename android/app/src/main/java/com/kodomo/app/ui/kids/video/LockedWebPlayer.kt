@@ -165,6 +165,8 @@ fun LockedWebPlayer(
     focusPlayer: Boolean = true,
 ) {
     var fullscreenView by remember { mutableStateOf<View?>(null) }
+    var loadError by remember { mutableStateOf<String?>(null) }
+    var webRef by remember { mutableStateOf<WebView?>(null) }
     var fullscreenCallback by remember { mutableStateOf<android.webkit.WebChromeClient.CustomViewCallback?>(null) }
     val pinned = lock is WebLock.Pinned
     val home = when (lock) {
@@ -241,6 +243,7 @@ fun LockedWebPlayer(
                         }
 
                         override fun onPageStarted(view: WebView, url: String, favicon: Bitmap?) {
+                            loadError = null
                             if (url.startsWith("http") && !WebLockRules.allowsMainFrame(lock, url)) restore(view)
                         }
 
@@ -249,6 +252,19 @@ fun LockedWebPlayer(
                             view.evaluateJavascript(script, null)
                             if (pinned && focusPlayer) view.evaluateJavascript(WebLockRules.PLAYER_FOCUS_JS, null)
                             onPageChanged(url, view.title.orEmpty())
+                        }
+
+                        override fun onReceivedError(view: WebView, request: WebResourceRequest, error: android.webkit.WebResourceError) {
+                            if (request.isForMainFrame) loadError = "${error.errorCode}: ${error.description} \n${request.url.host}"
+                        }
+
+                        override fun onReceivedHttpError(view: WebView, request: WebResourceRequest, response: WebResourceResponse) {
+                            if (request.isForMainFrame && response.statusCode >= 400) loadError = "HTTP ${response.statusCode} \n${request.url.host}"
+                        }
+
+                        override fun onReceivedSslError(view: WebView, handler: android.webkit.SslErrorHandler, error: android.net.http.SslError) {
+                            handler.cancel()
+                            loadError = "SSL ${error.primaryError} \n${android.net.Uri.parse(error.url).host}"
                         }
 
                         override fun doUpdateVisitedHistory(view: WebView, url: String, isReload: Boolean) {
@@ -280,6 +296,7 @@ fun LockedWebPlayer(
                         override fun onCreateWindow(view: WebView?, isDialog: Boolean, isUserGesture: Boolean, resultMsg: android.os.Message?) = false
                     }
                     onWebView(this)
+                    webRef = this
                     loadUrl(home)
                 }
             },
@@ -292,6 +309,16 @@ fun LockedWebPlayer(
                 }
             },
         )
+        loadError?.let { err ->
+        Box(Modifier.fillMaxSize().background(Color(0xFF101826)), contentAlignment = Alignment.Center) {
+            androidx.compose.foundation.layout.Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(24.dp)) {
+                androidx.compose.material3.Text("صفحه باز نشد 😕", color = Color.White, style = androidx.compose.material3.MaterialTheme.typography.titleLarge)
+                androidx.compose.material3.Text("اینترنت یا فیلترشکن را بررسی کنید. اگر تکرار شد، این متن را برای پشتیبانی بفرستید:", color = Color.White.copy(alpha = 0.8f), style = androidx.compose.material3.MaterialTheme.typography.bodySmall)
+                androidx.compose.material3.Text(err, color = Color(0xFFFFD54F), style = androidx.compose.material3.MaterialTheme.typography.labelMedium)
+                androidx.compose.material3.Button(onClick = { loadError = null; webRef?.loadUrl(home) }) { androidx.compose.material3.Text("تلاش دوباره") }
+            }
+        }
+        }
     }
     // The site's own «fullscreen» button: whole screen, turned sideways, with Kodomo's back button.
     fullscreenView?.let { view ->
