@@ -432,7 +432,8 @@ object Curriculum {
         ))),
     )
 
-    val units: List<StudyUnit> = math + persian + science + social + skills
+    private val lessons: List<StudyUnit> = math + persian + science + social + skills + CurriculumMore.units
+    val units: List<StudyUnit> = lessons + CurriculumMore.exams(lessons)
 
     fun forGrade(g: Grade): List<StudyUnit> = units.filter { it.grade == g }
 
