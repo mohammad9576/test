@@ -17,8 +17,15 @@ class KodomoDeviceAdminReceiver : DeviceAdminReceiver() {
         Log.i(TAG, "Kodomo device admin disabled")
     }
 
-    override fun onDisableRequested(context: Context, intent: Intent): CharSequence =
-        "با غیرفعال کردن محافظ کدومو، قفل امن محیط کودک برداشته می‌شود. این کار فقط باید توسط والدین انجام شود."
+    override fun onDisableRequested(context: Context, intent: Intent): CharSequence {
+        // Someone is trying to switch off Kodomo's protection (the step before uninstalling it). While a child is in
+        // the kids space the phone is locked at once, so only a parent who knows the phone's PIN can continue.
+        val inKidSpace = runCatching {
+            kotlinx.coroutines.runBlocking { com.kodomo.app.data.prefs.SessionPreferences(context.applicationContext).current().kidSpaceChildId != null }
+        }.getOrDefault(true)
+        if (inKidSpace) runCatching { (context.getSystemService(Context.DEVICE_POLICY_SERVICE) as android.app.admin.DevicePolicyManager).lockNow() }
+        return "با غیرفعال کردن محافظ کدومو، قفل امن محیط کودک برداشته می‌شود و کدومو قابل حذف می‌شود. این کار فقط باید توسط والدین انجام شود."
+    }
 
     override fun onProfileProvisioningComplete(context: Context, intent: Intent) {
         DeviceOwnerManager(context.applicationContext).applyKioskPolicies()

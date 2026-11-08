@@ -68,8 +68,11 @@ class ProfilePickerViewModel @Inject constructor(
 fun ProfilePickerScreen(
     onChild: (Long) -> Unit,
     onParentVerified: () -> Unit,
+    onSetup: () -> Unit = {},
     viewModel: ProfilePickerViewModel = hiltViewModel(),
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var unguarded by remember { mutableStateOf<Long?>(null) }
     val family by viewModel.family.collectAsStateWithLifecycle()
     val children by viewModel.children.collectAsStateWithLifecycle()
     var gateOpen by remember { mutableStateOf(false) }
@@ -105,7 +108,9 @@ fun ProfilePickerScreen(
             items(children, key = { it.id }) { child ->
                 ProfileCard(child.name, "${child.ageYears().fa()} ساله", child.avatar, child.id) {
                     viewModel.rememberActive(child.id)
-                    onChild(child.id)
+                    // Without the app guard a child could open Settings and stop or uninstall Kodomo: warn first.
+                    val guarded = com.kodomo.app.kiosk.KioskPermissions.hasUsageAccess(context) && com.kodomo.app.kiosk.KioskPermissions.canDrawOverlays(context)
+                    if (guarded || com.kodomo.app.core.demo.DemoMode.route != null) onChild(child.id) else unguarded = child.id
                 }
             }
             if (children.isEmpty()) {
@@ -114,6 +119,22 @@ fun ProfilePickerScreen(
                 }
             }
         }
+    }
+
+    unguarded?.let { id ->
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { unguarded = null },
+            icon = { Text("⚠️", style = MaterialTheme.typography.displaySmall) },
+            title = { Text("نگهبان کدومو هنوز روشن نیست") },
+            text = {
+                Text(
+                    "بدون «دسترسی استفاده» و «نمایش روی برنامه‌ها»، کودک می‌تواند از نوار بالای گوشی وارد تنظیمات شود و کدومو را ببندد یا حذف کند. " +
+                        "لطفاً اول آماده‌سازی گوشی را کامل کنید (فقط چند دقیقه، یک بار).",
+                )
+            },
+            confirmButton = { androidx.compose.material3.Button(onClick = { unguarded = null; onSetup() }) { Text("تکمیل آماده‌سازی") } },
+            dismissButton = { androidx.compose.material3.TextButton(onClick = { unguarded = null; onChild(id) }) { Text("فعلاً بدون محافظت") } },
+        )
     }
 
     if (gateOpen) {

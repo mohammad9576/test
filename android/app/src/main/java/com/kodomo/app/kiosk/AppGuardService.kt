@@ -87,7 +87,7 @@ class AppGuardService : Service() {
 
     private suspend fun guardLoop() {
         while (scope.isActive) {
-            delay(600)
+            delay(400)
             val state = screenTime.state.value
             if (state.child == null) { bubble.hide(); continue }
             if (!KioskPermissions.hasUsageAccess(this)) {
@@ -104,7 +104,8 @@ class AppGuardService : Service() {
             val blocked = state.lock != ScreenTimeManager.LockReason.NONE || fg !in allowed
             if (blocked) {
                 bubble.hide()
-                bringKodomoToFront()
+                // Settings, app info, installers: these could stop or remove Kodomo — back at once, every time.
+                bringKodomoToFront(force = dangerous.any { fg.startsWith(it) })
             } else {
                 bubble.show(state.remainingSeconds)
                 if (!screenTime.externalAppActive) {
@@ -151,12 +152,19 @@ class AppGuardService : Service() {
 
         /** System surfaces that may briefly take the foreground (permission dialogs, keyboard, system UI). */
         private val ignoredPackages = setOf(
-            "android", "com.android.systemui", "com.android.permissioncontroller", "com.google.android.permissioncontroller",
+            "android", "com.android.systemui",
             "com.google.android.inputmethod.latin", "com.android.inputmethod.latin",
             "com.lbe.security.miui", "com.samsung.android.honeyboard",
         )
 
         @Volatile private var running = false
+
+        /** Places where a child could force-stop, uninstall or reconfigure Kodomo. */
+        private val dangerous = listOf(
+            "com.android.settings", "com.samsung.android.settings", "com.miui.securitycenter", "com.miui.packageinstaller",
+            "com.android.packageinstaller", "com.google.android.packageinstaller", "com.android.permissioncontroller",
+            "com.google.android.permissioncontroller", "com.coloros.safecenter", "com.oplus.safecenter", "com.huawei.systemmanager",
+        )
 
         /** Set when Kodomo opened an approved app, cleared when Kodomo is back on screen. */
         @Volatile var externalLaunched = false

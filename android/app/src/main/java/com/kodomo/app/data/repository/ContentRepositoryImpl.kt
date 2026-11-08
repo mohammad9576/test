@@ -23,6 +23,7 @@ class ContentRepositoryImpl @Inject constructor(
     db: KodomoDatabase,
     private val cloudSync: CloudSyncRepository,
     private val wellbeing: com.kodomo.app.data.prefs.WellbeingStore,
+    private val approvals: com.kodomo.app.data.prefs.ApprovalsStore,
 ) : ContentRepository {
     private val contentDao = db.contentDao()
     private val feedbackDao = db.feedbackDao()
@@ -37,9 +38,12 @@ class ContentRepositoryImpl @Inject constructor(
         childDao.observe(childId).filterNotNull(),
         settingsDao.observe(childId),
         wellbeing.state,
-    ) { all, childEntity, settingsEntity, w ->
-        // Unless the parent chose «show everything kodoumo approved», kodoumo's catalogue is for the parent only.
-        val items = if (w.kodoumoAutoShow) all else all.filterNot { it.id.startsWith("kodoumo_") }
+        approvals.all,
+    ) { all, childEntity, settingsEntity, w, allowedKids ->
+        // Unless the parent chose «show everything kodoumo approved», kodoumo's catalogue is for the parent only;
+        // and a title approved for some children only is hidden from the others.
+        val items = (if (w.kodoumoAutoShow) all else all.filterNot { it.id.startsWith("kodoumo_") })
+            .filter { e -> allowedKids[e.id]?.contains(childId) ?: true }
         val child = childEntity.toDomain()
         val age = child.ageYears()
         val settings = settingsEntity?.toDomain()

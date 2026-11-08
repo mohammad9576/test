@@ -105,12 +105,29 @@ class TelewebionPickerViewModel @Inject constructor(
     private val importer: KodoumoImporter,
     private val reviewRequests: com.kodomo.app.data.remote.ReviewRequestSender,
     private val db: com.kodomo.app.data.local.KodomoDatabase,
+    familyRepository: com.kodomo.app.domain.repository.FamilyRepository,
+    private val approvals: com.kodomo.app.data.prefs.ApprovalsStore,
 ) : ViewModel() {
+    val children = familyRepository.observeChildren()
+        .stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.Eagerly, emptyList())
+    /** The children this approval is for (all of them until the parent unticks some). */
+    val chosen = MutableStateFlow<Set<Long>?>(null)
+    fun toggleChild(id: Long) {
+        val cur = chosen.value ?: children.value.map { it.id }.toSet()
+        chosen.value = if (id in cur) cur - id else cur + id
+    }
+    val allowedKids = approvals.all.stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5_000), emptyMap())
+    fun setKids(contentId: String, kids: Set<Long>) = viewModelScope.launch { approvals.set(contentId, kids) }
+    private suspend fun saveKids(contentId: String) {
+        val kids = chosen.value ?: children.value.map { it.id }.toSet()
+        // A series approved again for another child keeps the children it already had.
+        approvals.set(contentId, (approvals.childrenFor(contentId) ?: emptySet()) + kids)
+    }
     /** Cartoons already approved through this screen. */
     val approved = db.contentDao().observeParentApprovedVideos()
         .stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5_000), emptyList())
 
-    fun remove(id: String) = viewModelScope.launch { db.contentDao().delete(id) }
+    fun remove(id: String) = viewModelScope.launch { db.contentDao().delete(id); approvals.remove(id) }
 
     data class State(
         val searching: Boolean = false,
@@ -167,7 +184,7 @@ class TelewebionPickerViewModel @Inject constructor(
         val item = s.selected ?: return@launch
         val review = s.review ?: return@launch
         runCatching { importer.saveApprovedVideo(item, review, pageUrl, episodes, provider.book, provider.label) }
-            .onSuccess { e -> _state.update { State(saved = "«${e.title}» با ارزیابی کدومو اضافه شد ✅" + episodesNote(episodes)) } }
+            .onSuccess { e -> saveKids(e.id); _state.update { State(saved = "«${e.title}» با ارزیابی کدومو اضافه شد ✅" + episodesNote(episodes)) } }
             .onFailure { err -> _state.update { it.copy(error = err.message ?: "ذخیره نشد.") } }
     }
 
@@ -175,6 +192,7 @@ class TelewebionPickerViewModel @Inject constructor(
     fun approveWithoutRating(title: String, pageUrl: String, minAge: Int, note: String, episodes: List<Episode>) = viewModelScope.launch {
         runCatching { importer.saveParentApprovedVideo(title, pageUrl, minAge, note, episodes, provider.book, provider.label) }
             .onSuccess { e ->
+                saveKids(e.id)
                 val sent = reviewRequests.request(e.title, provider.name, pageUrl, note, minAge)
                 _state.update {
                     State(
@@ -246,7 +264,9 @@ fun TelewebionPickerScreen(
                     )
                     val approved by viewModel.approved.collectAsStateWithLifecycle()
                     val mine = approved.filter { provider.owns(it.mediaUrl.orEmpty()) }
-                    if (mine.isNotEmpty()) ApprovedStrip(mine, viewModel::remove)
+                    val kidsAll by viewModel.children.collectAsStateWithLifecycle()
+                    val allowedKids by viewModel.allowedKids.collectAsStateWithLifecycle()
+                    if (mine.isNotEmpty()) ApprovedStrip(mine, viewModel::remove, kidsAll, allowedKids, viewModel::setKids)
                     val isListing = android.net.Uri.parse(provider.startUrl).path.orEmpty().trimEnd('/') == android.net.Uri.parse(pageUrl).path.orEmpty().trimEnd('/') || !provider.owns(pageUrl)
                     Button(
                         onClick = {
@@ -286,6 +306,11 @@ fun TelewebionPickerScreen(
                     modifier = Modifier.fillMaxWidth().weight(1f).background(MaterialTheme.colorScheme.background),
                     pagePoster = pagePoster,
                     book = provider.book,
+                    kidsChooser = {
+                        val kids by viewModel.children.collectAsStateWithLifecycle()
+                        val chosen by viewModel.chosen.collectAsStateWithLifecycle()
+                        KidsChooser(kids, chosen ?: kids.map { it.id }.toSet(), viewModel::toggleChild)
+                    },
                 )
             }
         }
@@ -308,8 +333,10 @@ private fun CheckPanel(
     modifier: Modifier = Modifier,
     pagePoster: String? = null,
     book: Boolean = false,
+    kidsChooser: @Composable () -> Unit = {},
 ) {
     LazyColumn(modifier, contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        item { kidsChooser() }
         item {
             if (pagePoster != null) Row(verticalAlignment = Alignment.CenterVertically) {
                 AsyncImage(pagePoster, contentDescription = null, modifier = Modifier.size(56.dp, 76.dp))
@@ -401,7 +428,7 @@ private fun CheckPanel(
                     var confirmed by remember(review.id) { mutableStateOf(false) }
                     if (blocked) {
                         Text("این اثر هنوز ارزیابی کامل کدومو را ندارد.", color = KodomoColors.Danger)
-                        ParentOnlyApprovalCard(onApproveWithoutRating)
+                        ParentOnlyApprovalCard(onApproveWithoutRating, book)
                     } else {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Checkbox(checked = confirmed, onCheckedChange = { confirmed = it })
@@ -448,32 +475,45 @@ private fun ParentOnlyApprovalCard(onApprove: (minAge: Int, note: String) -> Uni
 
 /** The cartoons the family has added, with age and episode count; long list scrolls sideways. */
 @Composable
-private fun ApprovedStrip(list: List<com.kodomo.app.data.local.entity.ContentEntity>, onRemove: (String) -> Unit) {
+private fun ApprovedStrip(
+    list: List<com.kodomo.app.data.local.entity.ContentEntity>,
+    onRemove: (String) -> Unit,
+    kids: List<com.kodomo.app.domain.model.Child> = emptyList(),
+    allowedKids: Map<String, Set<Long>> = emptyMap(),
+    onKids: (String, Set<Long>) -> Unit = { _, _ -> },
+) {
     var confirm by remember { mutableStateOf<com.kodomo.app.data.local.entity.ContentEntity?>(null) }
-    Text("کارتون‌های افزوده‌شده (${list.size.fa()}) – برای حذف روی هر کدام بزنید", style = MaterialTheme.typography.labelLarge)
+    Text("افزوده‌شده‌ها (${list.size.fa()}) – برای انتخاب بچه‌ها یا حذف، روی هر کدام بزنید", style = MaterialTheme.typography.labelLarge)
     androidx.compose.foundation.lazy.LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         items(list.size) { i ->
             val e = list[i]
             val episodes = e.episodes?.lines()?.size ?: 1
             Column(
                 Modifier
-                    .size(width = 150.dp, height = 64.dp)
+                    .size(width = 170.dp, height = 82.dp)
                     .background(MaterialTheme.colorScheme.surfaceVariant, androidx.compose.foundation.shape.RoundedCornerShape(14.dp))
                     .clickable { confirm = e }
                     .padding(8.dp),
             ) {
                 Text(e.title, style = MaterialTheme.typography.labelLarge, maxLines = 1)
                 Text("${e.minAge.fa()}+ سال • ${episodes.fa()} قسمت" + if (e.parentOnly) " • تأیید والد" else " • کدومو", style = MaterialTheme.typography.labelSmall)
+                val forKids = allowedKids[e.id]
+                Text(if (forKids == null) "👨‍👩‍👧 همه‌ی بچه‌ها" else "👧 " + kids.filter { it.id in forKids }.joinToString("، ") { it.name }.ifBlank { "هیچ‌کس" }, style = MaterialTheme.typography.labelSmall, maxLines = 1)
             }
         }
     }
     confirm?.let { e ->
         androidx.compose.material3.AlertDialog(
             onDismissRequest = { confirm = null },
-            title = { Text("حذف «${e.title}»؟") },
-            text = { Text("این کارتون دیگر برای کودک نمایش داده نمی‌شود.") },
-            confirmButton = { androidx.compose.material3.TextButton(onClick = { onRemove(e.id); confirm = null }) { Text("حذف") } },
-            dismissButton = { androidx.compose.material3.TextButton(onClick = { confirm = null }) { Text("انصراف") } },
+            title = { Text("«${e.title}»") },
+            text = {
+                Column {
+                    var sel by remember(e.id) { mutableStateOf(allowedKids[e.id] ?: kids.map { it.id }.toSet()) }
+                    KidsChooser(kids, sel) { id -> sel = if (id in sel) sel - id else sel + id; onKids(e.id, sel) }
+                }
+            },
+            confirmButton = { androidx.compose.material3.TextButton(onClick = { confirm = null }) { Text("بستن") } },
+            dismissButton = { androidx.compose.material3.TextButton(onClick = { onRemove(e.id); confirm = null }) { Text("حذف برای همه", color = KodomoColors.Danger) } },
         )
     }
 }
@@ -523,5 +563,24 @@ internal object TitleMatch {
             shortDescription = e.description, age = e.minAge.takeIf { it <= 18 }, rate = null, underEvaluation = e.minAge > 18,
             permalink = e.sourceUrl.orEmpty(), typeSlug = e.category,
         )
+    }
+}
+
+/** «برای کدام فرزندان؟» — tick the children this title is for. */
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+@Composable
+private fun KidsChooser(kids: List<com.kodomo.app.domain.model.Child>, chosen: Set<Long>, onToggle: (Long) -> Unit) {
+    if (kids.isEmpty()) return
+    KodomoCard(Modifier.fillMaxWidth()) {
+        Text("👨‍👩‍👧 برای کدام فرزندان؟", style = MaterialTheme.typography.titleSmall)
+        Text("فقط بچه‌هایی که تیک دارند این اثر را می‌بینند (سن هر کودک هم جداگانه بررسی می‌شود).", style = MaterialTheme.typography.bodySmall)
+        androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            kids.forEach { k ->
+                androidx.compose.material3.FilterChip(
+                    selected = k.id in chosen, onClick = { onToggle(k.id) },
+                    label = { Text("${if (k.id in chosen) "✅" else "⬜"} ${k.name} (${k.ageYears().fa()} ساله)") },
+                )
+            }
+        }
     }
 }

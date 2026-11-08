@@ -75,6 +75,7 @@ fun KodomoNavHost(navController: NavHostController, startDestination: String) {
             ProfilePickerScreen(
                 onChild = { id -> navController.navigate(Routes.kidHome(id)) { popUpTo(Routes.PROFILES) } },
                 onParentVerified = { navController.navigate(Routes.PARENT_HUB) },
+                onSetup = { navController.navigate(Routes.SETUP_PERMISSIONS) },
             )
         }
 
