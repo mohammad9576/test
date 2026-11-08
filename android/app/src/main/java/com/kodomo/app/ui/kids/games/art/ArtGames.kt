@@ -201,6 +201,10 @@ private fun renderStrokes(strokes: List<PaintStroke>, size: IntSize): Bitmap {
 @Composable
 fun ColoringGame(onFinish: (Int, Boolean) -> Unit, viewModel: ArtViewModel = hiltViewModel()) {
     val space = LocalKidSpace.current
+    val age = space.child.ageYears()
+    var category by remember { mutableStateOf<ColoringCategory?>(null) }
+    val pagesForAge = remember(age) { ColoringPages.all.filter { it.minAge <= age + 1 } }
+    val shown = pagesForAge.filter { category == null || it.category == category }
     var pageIndex by remember { mutableIntStateOf(0) }
     val page = ColoringPages.all[pageIndex]
     val fills = remember(pageIndex) { mutableStateListOf<Color?>().apply { repeat(page.regions.size) { add(null) } } }
@@ -210,8 +214,17 @@ fun ColoringGame(onFinish: (Int, Boolean) -> Unit, viewModel: ArtViewModel = hil
 
     Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(horizontal = 12.dp)) {
-            items(ColoringPages.all.size) { i ->
-                FilterChip(selected = i == pageIndex, onClick = { pageIndex = i }, label = { Text(ColoringPages.all[i].title) })
+            item { FilterChip(selected = category == null, onClick = { category = null }, label = { Text("همه (${pagesForAge.size})") }) }
+            items(ColoringCategory.entries.filter { c -> pagesForAge.any { it.category == c } }.size) { i ->
+                val c = ColoringCategory.entries.filter { cc -> pagesForAge.any { it.category == cc } }[i]
+                FilterChip(selected = category == c, onClick = { category = c }, label = { Text("${c.emoji} ${c.label}") })
+            }
+        }
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(horizontal = 12.dp)) {
+            items(shown.size) { i ->
+                val p = shown[i]
+                val index = ColoringPages.all.indexOf(p)
+                FilterChip(selected = index == pageIndex, onClick = { pageIndex = index }, label = { Text(p.title) })
             }
         }
         Box(
@@ -277,9 +290,14 @@ fun ColoringGame(onFinish: (Int, Boolean) -> Unit, viewModel: ArtViewModel = hil
     }
 }
 
-class ColoringPage(val title: String, val regions: List<android.graphics.Path>) {
-    val hitRegions: List<Region> = regions.map { path ->
-        Region().apply { setPath(path, Region(0, 0, ColoringPages.SPACE.toInt(), ColoringPages.SPACE.toInt())) }
+class ColoringPage(
+    val title: String,
+    val regions: List<android.graphics.Path>,
+    val category: ColoringCategory = ColoringCategory.HOME,
+    val minAge: Int = 3,
+) {
+    val hitRegions: List<Region> by lazy {
+        regions.map { path -> Region().apply { setPath(path, Region(0, 0, ColoringPages.SPACE.toInt(), ColoringPages.SPACE.toInt())) } }
     }
 }
 
@@ -301,7 +319,9 @@ object ColoringPages {
         close()
     }
 
-    val all: List<ColoringPage> = listOf(
+    val all: List<ColoringPage> by lazy { classic + ColoringBookPages.all }
+
+    private val classic: List<ColoringPage> = listOf(
         ColoringPage(
             "خانه‌ی من",
             listOf(

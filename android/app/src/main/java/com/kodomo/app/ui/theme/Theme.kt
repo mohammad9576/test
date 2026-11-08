@@ -69,13 +69,13 @@ private fun kodomoTypography(scale: Float): Typography {
         headlineSmall = style(21, FontWeight.Bold),
         titleLarge = style(19, FontWeight.Bold),
         titleMedium = style(16, FontWeight.Bold),
-        titleSmall = style(14, FontWeight.Bold),
-        bodyLarge = style(16, FontWeight.Normal, 26),
-        bodyMedium = style(14, FontWeight.Normal, 23),
-        bodySmall = style(12, FontWeight.Normal, 19),
+        titleSmall = style(15, FontWeight.Bold),
+        bodyLarge = style(17, FontWeight.Normal, 28),
+        bodyMedium = style(15, FontWeight.Normal, 25),
+        bodySmall = style(14, FontWeight.Normal, 22),
         labelLarge = style(14, FontWeight.Bold),
-        labelMedium = style(12, FontWeight.Medium),
-        labelSmall = style(11, FontWeight.Medium),
+        labelMedium = style(13, FontWeight.Medium),
+        labelSmall = style(13, FontWeight.Medium),
     )
 }
 
