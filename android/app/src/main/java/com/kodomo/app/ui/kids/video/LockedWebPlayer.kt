@@ -34,14 +34,15 @@ import java.io.ByteArrayInputStream
  */
 sealed interface WebLock {
     data class Pinned(val url: String) : WebLock
-    data class SameSite(val startUrl: String, val hosts: List<String>) : WebLock
+    /** [anyHost]: the parent's own sign-in and browsing may leave the site (e.g. a separate login domain). */
+    data class SameSite(val startUrl: String, val hosts: List<String>, val anyHost: Boolean = false) : WebLock
 }
 
 object WebLockRules {
     /** Advertising / tracking networks used on Iranian sites. Requests to them are answered with an empty response. */
     val adHosts = listOf(
         "yektanet.com", "yektanet.ir", "tapsell.ir", "tapsell.com", "adivery.com", "mediaad.org", "mediad.ir", "sabavision.com",
-        "sabaidea.com", "anetwork.ir", "adtrace.io", "kaprila.com", "deema.agency", "hezardastan.net", "zarpop.com",
+        "anetwork.ir", "adtrace.io", "kaprila.com", "deema.agency", "hezardastan.net", "zarpop.com",
         "doubleclick.net", "googlesyndication.com", "googleadservices.com", "google-analytics.com", "googletagmanager.com",
         "adservice.google.com", "amazon-adsystem.com", "taboola.com", "outbrain.com", "popads.net", "propellerads.com",
         "najva.com", "pushe.co", "metrix.ir", "webengage.com", "hotjar.com", "clarity.ms", "facebook.net", "chabok.io",
@@ -60,7 +61,10 @@ object WebLockRules {
         val b = Uri.parse(candidate)
         val hostA = a.host.orEmpty().removePrefix("www.")
         val hostB = b.host.orEmpty().removePrefix("www.")
-        return hostA == hostB && a.path.orEmpty().trimEnd('/') == b.path.orEmpty().trimEnd('/')
+        val pa = a.path.orEmpty().trimEnd('/')
+        val pb = b.path.orEmpty().trimEnd('/')
+        // the approved page and its own sub-pages (e.g. a book's reader at /book/123/read), nothing else
+        return hostA == hostB && (pa == pb || (pa.isNotEmpty() && pb.startsWith("$pa/")))
     }
 
     fun allowsMainFrame(lock: WebLock, url: String): Boolean {
@@ -68,7 +72,7 @@ object WebLockRules {
         if (uri.scheme != "https" && uri.scheme != "http") return false
         return when (lock) {
             is WebLock.Pinned -> samePage(lock.url, url)
-            is WebLock.SameSite -> hostMatches(uri.host.orEmpty().removePrefix("www."), lock.hosts) || hostMatches(uri.host.orEmpty(), lock.hosts)
+            is WebLock.SameSite -> lock.anyHost || hostMatches(uri.host.orEmpty().removePrefix("www."), lock.hosts) || hostMatches(uri.host.orEmpty(), lock.hosts)
         }
     }
 
@@ -76,7 +80,7 @@ object WebLockRules {
      * Injected after every load: cancels link clicks and `window.open`, freezes client-side routing (pushState) in
      * pinned mode and hides site chrome and ad slots, so the child sees only the player.
      */
-    fun lockScript(pinned: Boolean): String = """
+    fun lockScript(pinned: Boolean, frames: List<String> = telewebionHosts): String = """
         (function(){
           if (window.__kodomoLock) return; window.__kodomoLock = true;
           window.open = function(){ return null; };
@@ -95,7 +99,7 @@ object WebLockRules {
             history.replaceState = guard(history.replaceState);
           }
           var css = pinned
-            ? 'header,footer,nav,aside,[class*="navbar" i],[class*="sidebar" i],[class*="banner" i],[class*="advert" i],[id*="advert" i],[class*="yektanet" i],[id*="yektanet" i],[class*="tapsell" i],[class*="download-app" i],[class*="app-promo" i],[class*="comment" i],[class*="share" i],[class*="social" i],iframe:not([src*="telewebion"]),a[target="_blank"]{display:none!important;}'
+            ? 'header,footer,nav,aside,[class*="navbar" i],[class*="sidebar" i],[class*="banner" i],[class*="advert" i],[id*="advert" i],[class*="yektanet" i],[id*="yektanet" i],[class*="tapsell" i],[class*="download-app" i],[class*="app-promo" i],[class*="comment" i],[class*="share" i],[class*="social" i],iframe${frames.joinToString("") { ":not([src*=\"" + it.substringBefore('.') + "\"])" }},a[target="_blank"]{display:none!important;}'
             : '[class*="advert" i],[id*="advert" i],[class*="yektanet" i],[id*="yektanet" i],[class*="tapsell" i]{display:none!important;}';
           var st = document.createElement('style'); st.textContent = css;
           (document.head || document.documentElement).appendChild(st);
@@ -126,14 +130,15 @@ fun LockedWebPlayer(
         is WebLock.Pinned -> lock.url
         is WebLock.SameSite -> lock.startUrl
     }
-    val script = remember(pinned) { WebLockRules.lockScript(pinned) }
     // Frames (players) may only come from the locked site itself.
     val frameHosts = remember(lock) {
         when (lock) {
-            is WebLock.Pinned -> WebLockRules.telewebionHosts + Uri.parse(lock.url).host.orEmpty().removePrefix("www.")
+            is WebLock.Pinned -> (ContentProvider.forUrl(lock.url)?.hosts ?: WebLockRules.telewebionHosts) + Uri.parse(lock.url).host.orEmpty().removePrefix("www.")
             is WebLock.SameSite -> lock.hosts
         }
     }
+
+    val script = remember(pinned, frameHosts) { WebLockRules.lockScript(pinned, frameHosts) }
 
     Box(modifier.background(Color.Black)) {
         AndroidView(

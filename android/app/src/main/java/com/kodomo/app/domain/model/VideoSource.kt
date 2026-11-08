@@ -17,12 +17,24 @@ sealed interface VideoSource {
      */
     data class LockedPage(val platform: Platform, val pageUrl: String) : VideoSource
 
-    enum class Platform(val label: String) { APARAT("آپارات"), YOUTUBE("یوتیوب"), TELEWEBION("تلوبیون") }
+    enum class Platform(val label: String) {
+        APARAT("آپارات"), YOUTUBE("یوتیوب"), TELEWEBION("تلوبیون"),
+        APARAT_KIDS("آپارات کودک"), FILIMO("فیلیمو"), FILMNET("فیلم‌نت"), SHEYDA("شیدا"), NAMAVA("نماوا"),
+    }
 
     companion object {
         private val aparat = Regex("""aparat\.com/(?:v/|embed/|video/video/embed/videohash/)([A-Za-z0-9]+)""")
         private val youtube = Regex("""(?:youtube(?:-nocookie)?\.com/(?:watch\?(?:.*&)?v=|embed/|shorts/|live/)|youtu\.be/)([A-Za-z0-9_-]{11})""")
         private val telewebion = Regex("""^https?://(?:[a-z0-9-]+\.)*telewebion\.(?:ir|com)/""", RegexOption.IGNORE_CASE)
+
+        /** Subscription services that play only on their own page (the family signs in with its own account). */
+        private val services = listOf(
+            Regex("""^https?://(?:[a-z0-9-]+\.)*aparatkids\.com/""", RegexOption.IGNORE_CASE) to Platform.APARAT_KIDS,
+            Regex("""^https?://(?:[a-z0-9-]+\.)*filimo\.com/""", RegexOption.IGNORE_CASE) to Platform.FILIMO,
+            Regex("""^https?://(?:[a-z0-9-]+\.)*filmnet\.(?:ir|com)/""", RegexOption.IGNORE_CASE) to Platform.FILMNET,
+            Regex("""^https?://(?:[a-z0-9-]+\.)*sheyda\.(?:com|ir)/""", RegexOption.IGNORE_CASE) to Platform.SHEYDA,
+            Regex("""^https?://(?:[a-z0-9-]+\.)*namava\.(?:ir|com)/""", RegexOption.IGNORE_CASE) to Platform.NAMAVA,
+        )
 
         fun parse(url: String): VideoSource {
             aparat.find(url)?.let {
@@ -35,6 +47,7 @@ sealed interface VideoSource {
                 )
             }
             if (telewebion.containsMatchIn(url.trim())) return LockedPage(Platform.TELEWEBION, url.trim())
+            services.forEach { (re, platform) -> if (re.containsMatchIn(url.trim())) return LockedPage(platform, url.trim()) }
             return Direct(url)
         }
 

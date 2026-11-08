@@ -90,6 +90,14 @@ fun BookReaderScreen(
     val pages = state.pages
     TrackActivity(ActivityCategory.BOOK, book?.title ?: "کتاب", contentId)
 
+    // A book approved from Taaghche / Fidibo: read on its own page (with the family's account), locked to that page.
+    val store = book?.mediaUrl?.takeIf { it.startsWith("http") && book.id.startsWith(com.kodomo.app.domain.engine.ContentPolicy.PARENT_APPROVED_PREFIX) }
+    if (book != null && store != null) {
+        KidScreenScaffold(title = book.title, onBack = onBack) { pad ->
+            com.kodomo.app.ui.kids.video.LockedWebPlayer(com.kodomo.app.ui.kids.video.WebLock.Pinned(store), Modifier.fillMaxSize().padding(pad))
+        }
+        return
+    }
     if (book == null || pages.isEmpty()) {
         KidScreenScaffold(title = "کتاب", onBack = onBack) { Box(Modifier.fillMaxSize().padding(it)) }
         return

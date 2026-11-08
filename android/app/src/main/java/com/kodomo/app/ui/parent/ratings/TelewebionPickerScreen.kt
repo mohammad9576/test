@@ -64,7 +64,7 @@ const val TELEWEBION_KIDS = "https://telewebion.ir/kids"
 /** Turns a Telewebion page title such as «انیمیشن فلان - قسمت ۳ | تلوبیون» into a search term for kodoumo. */
 internal fun cleanTelewebionTitle(title: String): String {
     var t = title.split('|', '｜').first()
-    listOf("تلوبیون", "Telewebion", "پخش زنده", "تماشای آنلاین", "تماشای", "آنلاین", "دانلود", "انیمیشن", "کارتون", "سریال", "فیلم", "کودک")
+    listOf("تلوبیون", "Telewebion", "آپارات کودک", "آپارات", "فیلیمو", "فیلم‌نت", "فیلم نت", "نماوا", "شیدا", "طاقچه", "فیدیبو", "کتاب صوتی", "دانلود کتاب", "خرید", "پخش زنده", "تماشای آنلاین", "تماشای", "آنلاین", "دانلود", "انیمیشن", "کارتون", "سریال", "فیلم", "کودک")
         .forEach { t = t.replace(it, " ") }
     t = t.replace(Regex("""(قسمت|فصل|اپیزود)\s*\S+"""), " ")
     return t.replace(Regex("""[\-–—:«»"]+"""), " ").replace(Regex("""\s+"""), " ").trim()
@@ -76,7 +76,7 @@ private const val COLLECT_EPISODES_JS = """
   var out = [], seen = {};
   document.querySelectorAll('a[href]').forEach(function(a){
     var h = a.href;
-    if (/\/episode\//.test(h) && !seen[h]) {
+    if (h.indexOf(location.host) >= 0 && h !== location.href && !seen[h]) {
       seen[h] = 1;
       var t = (a.getAttribute('title') || a.getAttribute('aria-label') || a.innerText || '').trim().replace(/\s+/g, ' ').slice(0, 80);
       out.push([h, t]);
@@ -87,14 +87,15 @@ private const val COLLECT_EPISODES_JS = """
 """
 
 /** Parses the evaluateJavascript result (a JSON-encoded string holding a JSON array of [url, title]). */
-internal fun parseEpisodeLinks(raw: String?): List<Episode> = runCatching {
+internal fun parseEpisodeLinks(raw: String?, provider: com.kodomo.app.ui.kids.video.ContentProvider = com.kodomo.app.ui.kids.video.ContentProvider.TELEWEBION): List<Episode> = runCatching {
     val inner = kotlinx.serialization.json.Json.parseToJsonElement(raw ?: "null")
     val text = (inner as? kotlinx.serialization.json.JsonPrimitive)?.content ?: return emptyList()
     (kotlinx.serialization.json.Json.parseToJsonElement(text) as kotlinx.serialization.json.JsonArray).mapNotNull { e ->
         val pair = e as? kotlinx.serialization.json.JsonArray ?: return@mapNotNull null
         val url = (pair.getOrNull(0) as? kotlinx.serialization.json.JsonPrimitive)?.content ?: return@mapNotNull null
         val title = (pair.getOrNull(1) as? kotlinx.serialization.json.JsonPrimitive)?.content.orEmpty()
-        if (url.startsWith("https://") && WebLockRules.hostMatches(android.net.Uri.parse(url).host.orEmpty(), WebLockRules.telewebionHosts)) Episode(url, title) else null
+        val episodeLike = if (provider == com.kodomo.app.ui.kids.video.ContentProvider.TELEWEBION) "/episode/" in url else provider.isItem(url)
+        if (url.startsWith("https://") && episodeLike && provider.owns(url)) Episode(url, title) else null
     }
 }.getOrDefault(emptyList())
 
@@ -147,20 +148,22 @@ class TelewebionPickerViewModel @Inject constructor(
 
     fun clearSelection() = _state.update { it.copy(selected = null, review = null) }
 
+    var provider: com.kodomo.app.ui.kids.video.ContentProvider = com.kodomo.app.ui.kids.video.ContentProvider.TELEWEBION
+
     fun approve(pageUrl: String, episodes: List<Episode>) = viewModelScope.launch {
         val s = _state.value
         val item = s.selected ?: return@launch
         val review = s.review ?: return@launch
-        runCatching { importer.saveApprovedVideo(item, review, pageUrl, episodes) }
+        runCatching { importer.saveApprovedVideo(item, review, pageUrl, episodes, provider.book, provider.label) }
             .onSuccess { e -> _state.update { State(saved = "«${e.title}» با ارزیابی کدومو اضافه شد ✅" + episodesNote(episodes)) } }
             .onFailure { err -> _state.update { it.copy(error = err.message ?: "ذخیره نشد.") } }
     }
 
     /** No (finished) kodoumo evaluation: the parent takes responsibility and the Kodomo team is asked to evaluate it. */
     fun approveWithoutRating(title: String, pageUrl: String, minAge: Int, note: String, episodes: List<Episode>) = viewModelScope.launch {
-        runCatching { importer.saveParentApprovedVideo(title, pageUrl, minAge, note, episodes) }
+        runCatching { importer.saveParentApprovedVideo(title, pageUrl, minAge, note, episodes, provider.book, provider.label) }
             .onSuccess { e ->
-                val sent = reviewRequests.request(e.title, "TELEWEBION", pageUrl, note, minAge)
+                val sent = reviewRequests.request(e.title, provider.name, pageUrl, note, minAge)
                 _state.update {
                     State(
                         saved = "«${e.title}» با تأیید شما اضافه شد ✅" + episodesNote(episodes) +
@@ -183,15 +186,21 @@ class TelewebionPickerViewModel @Inject constructor(
  * approve it on their own responsibility, which also sends an evaluation request to the Kodomo team.
  */
 @Composable
-fun TelewebionPickerScreen(onBack: () -> Unit, viewModel: TelewebionPickerViewModel = hiltViewModel()) {
+fun TelewebionPickerScreen(
+    onBack: () -> Unit,
+    provider: com.kodomo.app.ui.kids.video.ContentProvider = com.kodomo.app.ui.kids.video.ContentProvider.TELEWEBION,
+    viewModel: TelewebionPickerViewModel = hiltViewModel(),
+) {
+    viewModel.provider = provider
     val state by viewModel.state.collectAsStateWithLifecycle()
-    var pageUrl by remember { mutableStateOf(TELEWEBION_KIDS) }
+    var pageUrl by remember { mutableStateOf(provider.startUrl) }
     var pageTitle by remember { mutableStateOf("") }
     var checking by remember { mutableStateOf(false) }
     var query by remember { mutableStateOf("") }
     var webView by remember { mutableStateOf<WebView?>(null) }
     var episodes by remember { mutableStateOf<List<Episode>>(emptyList()) }
-    val lock = remember { WebLock.SameSite(TELEWEBION_KIDS, WebLockRules.telewebionHosts) }
+    // The parent may sign in with their own account, so the sign-in pages of the service are reachable here.
+    val lock = remember(provider) { WebLock.SameSite(provider.startUrl, provider.hosts, anyHost = provider.needsAccount) }
 
     BackHandler {
         when {
@@ -201,7 +210,7 @@ fun TelewebionPickerScreen(onBack: () -> Unit, viewModel: TelewebionPickerViewMo
         }
     }
 
-    KidScreenScaffold(title = if (checking) "بررسی با کدومو" else "کارتون‌های تلوبیون", onBack = {
+    KidScreenScaffold(title = if (checking) "بررسی با کدومو" else provider.label, onBack = {
         if (checking) { checking = false; viewModel.reset() } else onBack()
     }) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).background(MaterialTheme.colorScheme.background)) {
@@ -217,19 +226,22 @@ fun TelewebionPickerScreen(onBack: () -> Unit, viewModel: TelewebionPickerViewMo
                 Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     state.saved?.let { Text(it, color = KodomoColors.Green, style = MaterialTheme.typography.labelLarge) }
                     Text(
-                        "صفحه‌ی کارتون موردنظر را باز کنید، سپس دکمه‌ی زیر را بزنید. کودک فقط همین صفحه را می‌بیند و نمی‌تواند به جای دیگری برود.",
+                        (if (provider.needsAccount) "اگر لازم است با حساب کاربری خودتان در ${provider.label} وارد شوید. " else "") +
+                            (if (provider.book) "صفحه‌ی کتاب موردنظر را باز کنید" else "صفحه‌ی کارتون موردنظر را باز کنید") +
+                            "، سپس دکمه‌ی زیر را بزنید. کودک فقط همین صفحه را می‌بیند و نمی‌تواند به جای دیگری برود.",
                         style = MaterialTheme.typography.bodySmall,
                     )
                     val approved by viewModel.approved.collectAsStateWithLifecycle()
-                    if (approved.isNotEmpty()) ApprovedStrip(approved, viewModel::remove)
-                    val isListing = WebLockRules.samePage(TELEWEBION_KIDS, pageUrl)
+                    val mine = approved.filter { provider.owns(it.mediaUrl.orEmpty()) }
+                    if (mine.isNotEmpty()) ApprovedStrip(mine, viewModel::remove)
+                    val isListing = android.net.Uri.parse(provider.startUrl).path.orEmpty().trimEnd('/') == android.net.Uri.parse(pageUrl).path.orEmpty().trimEnd('/') || !provider.owns(pageUrl)
                     Button(
                         onClick = {
                             query = cleanTelewebionTitle(pageTitle)
                             val current = pageUrl
                             // Remember every episode of the series shown on this page, so the child can pick between them.
                             webView?.evaluateJavascript(COLLECT_EPISODES_JS) { raw ->
-                                val found = parseEpisodeLinks(raw)
+                                val found = if (provider.book) emptyList() else parseEpisodeLinks(raw, provider)
                                 episodes = if (found.none { WebLockRules.samePage(it.url, current) }) listOf(Episode(current, pageTitle)) + found else found
                             } ?: run { episodes = listOf(Episode(current, pageTitle)) }
                             checking = true
@@ -237,7 +249,7 @@ fun TelewebionPickerScreen(onBack: () -> Unit, viewModel: TelewebionPickerViewMo
                         },
                         enabled = !isListing,
                         modifier = Modifier.fillMaxWidth(),
-                    ) { Text(if (isListing) "یک کارتون را باز کنید" else "بررسی این کارتون در کدومو و افزودن") }
+                    ) { Text(if (isListing) (if (provider.book) "یک کتاب را باز کنید" else "یک کارتون را باز کنید") else "بررسی در کدومو و افزودن برای کودک") }
                 }
             } else {
                 CheckPanel(

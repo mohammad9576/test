@@ -97,9 +97,10 @@ fun RatingsTab(viewModel: ParentHubViewModel, onOpen: (String) -> Unit, onOpenTe
         }
         item {
             KodomoCard(Modifier.fillMaxWidth(), onClick = onOpenTelewebion) {
-                Text("📺 افزودن کارتون از تلوبیون", style = MaterialTheme.typography.titleMedium)
+                Text("📺 افزودن کارتون و کتاب از سرویس‌ها", style = MaterialTheme.typography.titleMedium)
+                Text("تلوبیون • آپارات کودک • فیلیمو • فیلم‌نت • شیدا • نماوا • طاقچه • فیدیبو", style = MaterialTheme.typography.labelLarge)
                 Text(
-                    "بخش کودک تلوبیون را مرور کنید؛ برای هر کارتون، ارزیابی کدومو (سن، خشونت، ترس، ناهنجاری و نکات والدین) جستجو و نمایش داده می‌شود و فقط پس از تأیید شما و تطبیق با کدومو به کودک نشان داده می‌شود.",
+                    "بخش کودک سرویس را مرور کنید؛ برای هر کارتون، ارزیابی کدومو (سن، خشونت، ترس، ناهنجاری و نکات والدین) جستجو و نمایش داده می‌شود و فقط پس از تأیید شما و تطبیق با کدومو به کودک نشان داده می‌شود.",
                     style = MaterialTheme.typography.bodySmall,
                 )
             }

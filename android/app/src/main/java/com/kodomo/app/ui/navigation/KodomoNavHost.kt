@@ -216,7 +216,13 @@ fun KodomoNavHost(navController: NavHostController, startDestination: String) {
         composable(Routes.PARENT_MODULES) { com.kodomo.app.ui.parent.wellbeing.ModulesScreen(onBack = back) }
         composable(Routes.PARENT_WELLBEING) { com.kodomo.app.ui.parent.wellbeing.WellbeingScreen(onBack = back) }
         composable(Routes.PARENT_SITES) { com.kodomo.app.ui.parent.apps.SafeSitesScreen(onBack = back) }
-        composable(Routes.PARENT_TELEWEBION) { com.kodomo.app.ui.parent.ratings.TelewebionPickerScreen(onBack = back) }
+        composable(Routes.PARENT_TELEWEBION) {
+            com.kodomo.app.ui.parent.ratings.ProvidersHubScreen(onBack = back, onOpen = { p -> navController.navigate(Routes.parentProvider(p.name)) })
+        }
+        composable(Routes.PARENT_PROVIDER, arguments = listOf(stringArg(Routes.ARG_ID))) { entry ->
+            val p = runCatching { com.kodomo.app.ui.kids.video.ContentProvider.valueOf(entry.stringArg(Routes.ARG_ID)) }.getOrDefault(com.kodomo.app.ui.kids.video.ContentProvider.TELEWEBION)
+            com.kodomo.app.ui.parent.ratings.TelewebionPickerScreen(onBack = back, provider = p)
+        }
         composable(Routes.PARENT_CONTENT, arguments = listOf(stringArg(Routes.ARG_ID))) { entry ->
             ContentPassportScreen(contentId = entry.stringArg(Routes.ARG_ID), onBack = back)
         }

@@ -89,12 +89,19 @@ class KodoumoImporter @Inject constructor(
      * Saves a parent-approved video (e.g. a Telewebion cartoon page) together with its kodoumo evaluation. Refuses
      * items that kodoumo has not finished rating, so nothing unrated can reach a child.
      */
-    suspend fun saveApprovedVideo(item: KodoumoListItem, review: KodoumoReview, mediaUrl: String, episodes: List<com.kodomo.app.domain.model.Episode> = emptyList()): ContentEntity {
+    suspend fun saveApprovedVideo(
+        item: KodoumoListItem, review: KodoumoReview, mediaUrl: String, episodes: List<com.kodomo.app.domain.model.Episode> = emptyList(),
+        book: Boolean = false, sourceLabel: String? = null,
+    ): ContentEntity {
         require(!item.underEvaluation && !review.underEvaluation) { "این اثر هنوز در کدومو در حال ارزیابی است." }
         require((review.age ?: item.age) != null) { "کدومو هنوز برای این اثر رده‌ی سنی ثبت نکرده است." }
         val category = videoCategoryOf(item.typeSlug + " " + review.typeLabel)
         // Own id per approved page: several cartoons never overwrite each other (search results may lack a review id).
-        val entity = toEntity(category, item, review).copy(id = approvedId(mediaUrl), type = ContentType.VIDEO, mediaUrl = mediaUrl.trim(), episodes = encodeEpisodes(episodes))
+        val base = toEntity(if (book) "books" else category, item, review)
+        val entity = base.copy(
+            id = approvedId(mediaUrl), type = if (book) ContentType.BOOK else ContentType.VIDEO, mediaUrl = mediaUrl.trim(),
+            episodes = encodeEpisodes(episodes), category = sourceLabel ?: base.category,
+        )
         db.contentDao().upsertAll(listOf(entity))
         return entity
     }
@@ -103,12 +110,15 @@ class KodoumoImporter @Inject constructor(
      * A title the parent approved although kodoumo has not evaluated it. It is playable for children aged [minAge]+,
      * clearly marked «تأیید والدین؛ در انتظار ارزیابی», and an evaluation request goes to the Kodomo team.
      */
-    suspend fun saveParentApprovedVideo(title: String, pageUrl: String, minAge: Int, note: String, episodes: List<com.kodomo.app.domain.model.Episode>): ContentEntity {
+    suspend fun saveParentApprovedVideo(
+        title: String, pageUrl: String, minAge: Int, note: String, episodes: List<com.kodomo.app.domain.model.Episode>,
+        book: Boolean = false, sourceLabel: String? = null,
+    ): ContentEntity {
         val id = approvedId(pageUrl)
         val entity = ContentEntity(
-            id = id, type = ContentType.VIDEO, title = title.trim().ifBlank { "کارتون تأییدشده" },
-            description = "این کارتون را پدر یا مادرت برایت انتخاب کرده‌اند.",
-            body = note, category = "انتخاب والدین", emoji = "📺", colorStart = 0xFFFFE0B2L, colorEnd = 0xFFFB8C00L,
+            id = id, type = if (book) ContentType.BOOK else ContentType.VIDEO, title = title.trim().ifBlank { if (book) "کتاب تأییدشده" else "کارتون تأییدشده" },
+            description = if (book) "این کتاب را پدر یا مادرت برایت انتخاب کرده‌اند." else "این کارتون را پدر یا مادرت برایت انتخاب کرده‌اند.",
+            body = note, category = sourceLabel ?: "انتخاب والدین", emoji = if (book) "📗" else "📺", colorStart = 0xFFFFE0B2L, colorEnd = 0xFFFB8C00L,
             mediaUrl = pageUrl.trim(), durationMinutes = 0, minAge = minAge.coerceIn(0, 18), maxAge = 18,
             violence = 0, fear = 0, educational = 0, abnormality = 0, creativity = 0, familyValues = 0,
             positives = emptyList(), negatives = emptyList(),

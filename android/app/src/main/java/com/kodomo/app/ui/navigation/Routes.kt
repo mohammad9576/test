@@ -53,6 +53,8 @@ object Routes {
     const val PARENT_CLOUD = "parent/cloud"
     const val PARENT_ALLOWED_APPS = "parent/allowed-apps"
     const val PARENT_TELEWEBION = "parent/telewebion"
+    const val PARENT_PROVIDER = "parent/provider/{id}"
+    fun parentProvider(name: String) = "parent/provider/$name"
     const val PARENT_SITES = "parent/sites"
     const val PARENT_WELLBEING = "parent/wellbeing"
     const val PARENT_MODULES = "parent/modules"
