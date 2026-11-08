@@ -24,6 +24,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -88,7 +89,7 @@ fun WellbeingScreen(onBack: () -> Unit) {
                     w.windows.forEach { r ->
                         Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                             Text("🟢 از ${Wellbeing.hhmm(r.first)} تا ${Wellbeing.hhmm(r.last)}", Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
-                            androidx.compose.material3.TextButton(onClick = { vm.save(w.copy(windows = w.windows - r)) }) { Text("حذف") }
+                            androidx.compose.material3.TextButton(onClick = { vm.save(w.copy(windows = w.windows.filter { it != r })) }) { Text("حذف") }
                         }
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
@@ -98,7 +99,7 @@ fun WellbeingScreen(onBack: () -> Unit) {
                     val a = Wellbeing.parseHhmm(from.faToEn())
                     val b = Wellbeing.parseHhmm(to.faToEn())
                     androidx.compose.material3.Button(
-                        onClick = { if (a != null && b != null) { vm.save(w.copy(windows = (w.windows + (a..b)).sortedBy { it.first })); from = ""; to = "" } },
+                        onClick = { if (a != null && b != null) { vm.save(w.copy(windows = (w.windows + listOf(a..b)).sortedBy { it.first })); from = ""; to = "" } },
                         enabled = a != null && b != null && a < b,
                         modifier = Modifier.fillMaxWidth(),
                     ) { Text("➕ افزودن نوبت") }
