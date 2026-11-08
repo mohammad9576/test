@@ -79,7 +79,6 @@ import kotlinx.coroutines.launch
 import java.time.ZoneId
 import javax.inject.Inject
 
-@Composable
 private val parentingTips = listOf(
     "به جای «نکن»، بگویید چه کاری بکند: «آرام راه برو» به جای «ندو».",
     "روزی ۱۰ دقیقه بازی بدون گوشی با فرزندتان، بیش از ساعت‌ها هدیه ارزش دارد.",
@@ -93,6 +92,7 @@ private val parentingTips = listOf(
     "پیش از تمام شدن وقت گوشی، ۵ دقیقه زودتر خبر بدهید تا کودک آماده شود.",
 )
 
+@Composable
 fun CommunityTab(viewModel: ParentHubViewModel, onOpenArticle: (String) -> Unit, onOpenTopic: (Long) -> Unit, modifier: Modifier = Modifier) {
     val sections = listOf("مقالات و نشریه‌ها", "تالار گفتگو", "دورهمی آخر هفته")
     var section by rememberSaveable { mutableIntStateOf(0) }
