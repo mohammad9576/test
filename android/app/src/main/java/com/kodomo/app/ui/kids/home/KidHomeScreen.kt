@@ -87,53 +87,16 @@ class KidHomeViewModel @Inject constructor(
     private val familyRepository: FamilyRepository,
     rewardRepository: RewardRepository,
     screenTime: ScreenTimeManager,
+    modulesStore: com.kodomo.app.data.prefs.ModulesStore,
 ) : ViewModel() {
     val childId = savedState.childId
+    val visible = modulesStore.visible(savedState.childId)
     val dialogue = MascotDialogueEngine()
     val time: StateFlow<ScreenTimeManager.State> = screenTime.state
     val achievements: StateFlow<List<EarnedAchievement>> =
         rewardRepository.observeAchievements(childId).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     fun toggleDarkMode(child: Child) = viewModelScope.launch { familyRepository.updateChild(child.copy(darkMode = !child.darkMode)) }
-}
-
-private data class HomeModule(
-    val title: String,
-    val subtitle: String,
-    val emoji: String,
-    val colors: Pair<Long, Long>,
-    val route: String,
-)
-
-private fun modulesFor(child: Child): List<HomeModule> {
-    val id = child.id
-    val age = child.ageYears()
-    val group = child.ageGroup()
-    val all = buildList {
-        add(HomeModule("فیلم و انیمیشن", "محتوای امن و رده‌بندی‌شده", "🎬", 0xFFBFE3FF to 0xFF5AA9E6, Routes.kidVideos(id)))
-        add(HomeModule("درس و تمرین", "مطابق پایه‌ی تحصیلی + جایزه‌ی بازی", "📝", 0xFFFFF59D to 0xFFF9A825, Routes.kidStudy(id)))
-        add(HomeModule("انگلیسی", "Hello! از صفر با تلفظ", "🔤", 0xFFD1C4E9 to 0xFF7E57C2, Routes.kidEnglish(id)))
-        add(HomeModule("شبکه پویا", "کارتون زنده، فقط همین شبکه", "📺", 0xFFFFE0B2 to 0xFFFB8C00, Routes.kidLiveTv(id)))
-        add(HomeModule("بازی و نقاشی", "بازی با بدن، حسگرها و نقاشی", "🤸", 0xFFFFD1DC to 0xFFF28AA6, Routes.kidGames(id)))
-        add(HomeModule("کتاب", "صوتی، با صدای والد، خودم می‌خوانم", "📚", 0xFFFFE6A7 to 0xFFFFB648, Routes.kidBooks(id)))
-        add(HomeModule("موسیقی", "آهنگ‌های شاد و آرام", "🎵", 0xFFE2D6FF to 0xFF9B7FE6, Routes.kidMusic(id)))
-        if (group != AgeGroup.TODDLER) {
-            add(HomeModule(if (group == AgeGroup.PRE_TEEN) "تفکر و یادگیری" else "آموزش", "علوم، سواد رسانه‌ای، کاردستی", "🔬", 0xFFB9E4CB to 0xFF5FB98A, Routes.kidLearning(id)))
-        }
-        if (age >= AgeGroup.SCHOOL_MODULE_MIN_AGE) {
-            add(HomeModule("مدرسه من", "برنامه، تکالیف، امتحان‌ها", "🏫", 0xFFD6E4F5 to 0xFF4C6A92, Routes.kidSchool(id)))
-        }
-        add(HomeModule("کشف محتوا", "چیزهای تازه و امن", "🧭", 0xFFFFD9C2 to 0xFFF59E6C, Routes.kidExplore(id)))
-        if (group != AgeGroup.TODDLER) {
-            add(HomeModule("مرورگر امن من", "جستجو در دانشنامه‌ی کودک", "🌍", 0xFFC6F0EA to 0xFF2BAEA0, Routes.kidBrowser(id)))
-            add(HomeModule("پروژه‌های من", "کاردستی ۵ مرحله‌ای", "✂️", 0xFFF3DCC8 to 0xFFB57A4A, Routes.kidProjects(id)))
-        }
-        add(HomeModule("برنامه‌های من", "بازی‌ها و برنامه‌های مجاز", "📱", 0xFFE3DAFF to 0xFF7E57C2, Routes.kidApps(id)))
-        add(HomeModule("کمک به خانواده", "کار خوب انجام بده، ستاره بگیر", "🧹", 0xFFDCEDC8 to 0xFF7CB342, Routes.kidChores(id)))
-        add(HomeModule("پاداش‌ها", "ستاره، مدال و جایزه‌ی خانوادگی", "🏆", 0xFFFFF1C7 to 0xFFFFC83D, Routes.kidRewards(id)))
-        if (group != AgeGroup.TODDLER) add(HomeModule("علایق من", "انتخاب موضوع‌های مورد علاقه", "💚", 0xFFDDF7E8 to 0xFF3FA977, Routes.kidInterests(id)))
-    }
-    return all
 }
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -145,7 +108,12 @@ fun KidHomeScreen(onOpen: (String) -> Unit, childId: Long, viewModel: KidHomeVie
     val time by viewModel.time.collectAsStateWithLifecycle()
     val achievements by viewModel.achievements.collectAsStateWithLifecycle()
     val greeting = remember(child.id, child.interests) { viewModel.dialogue.greeting(child) }
-    val modules = remember(child) { modulesFor(child) }
+    val chosen by viewModel.visible.collectAsStateWithLifecycle(null)
+    val modules = remember(child, chosen) {
+        val all = HomeModules.forChild(child)
+        val keys = chosen
+        if (keys == null) all.filter { it.key !in HomeModules.hiddenByDefault } else all.filter { it.key in keys }
+    }
 
     BackHandler(enabled = true) { }
     TrackActivity(ActivityCategory.HOME, "خانه")
@@ -164,7 +132,7 @@ fun KidHomeScreen(onOpen: (String) -> Unit, childId: Long, viewModel: KidHomeVie
     ) {
         item(span = { GridItemSpan(maxLineSpan) }) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                KodomoAvatar(child.avatar, size = 52.dp, modifier = Modifier.graphicsLayer { scaleX = avatarScale; scaleY = avatarScale })
+                KodomoAvatar(child.avatar, size = 52.dp, photoId = child.id, modifier = Modifier.graphicsLayer { scaleX = avatarScale; scaleY = avatarScale })
                 Spacer(Modifier.width(10.dp))
                 Column(Modifier.weight(1f)) {
                     Text("سلام ${child.name}!", style = MaterialTheme.typography.titleLarge)
@@ -214,7 +182,7 @@ fun KidHomeScreen(onOpen: (String) -> Unit, childId: Long, viewModel: KidHomeVie
                 title = module.title,
                 emoji = module.emoji,
                 colors = module.colors,
-                subtitle = module.subtitle,
+                subtitle = null,
                 onClick = {
                     space.guide(module.title)
                     onOpen(module.route)

@@ -41,8 +41,11 @@ class ScreenTimeManager @Inject constructor(
     private val liveUsageSocket: LiveUsageSocket,
     @ApplicationScope private val scope: CoroutineScope,
     wellbeingStore: com.kodomo.app.data.prefs.WellbeingStore,
+    choreStore: com.kodomo.app.data.prefs.ChoreStore,
 ) {
-    enum class LockReason { NONE, DAILY_LIMIT, BEDTIME, SCHOOL }
+    /** Today's good-deed / bad-deed minutes per child. */
+    @Volatile private var deltas: Map<Long, Int> = emptyMap()
+    enum class LockReason { NONE, DAILY_LIMIT, BEDTIME, SCHOOL, WINDOW }
 
     @Volatile private var wellbeing = com.kodomo.app.data.prefs.Wellbeing()
 
@@ -52,6 +55,10 @@ class ScreenTimeManager @Inject constructor(
 
     init {
         scope.launch { wellbeingStore.state.collect { wellbeing = it } }
+        scope.launch {
+            // picked up by evaluateLocked() on the next tick
+            choreStore.todayDeltas.collect { d -> deltas = d }
+        }
     }
 
     data class State(
@@ -192,12 +199,12 @@ class ScreenTimeManager @Inject constructor(
     }
 
     /** Called after a parent passes the gate and grants extra time for today. */
-    fun grantExtraMinutes(minutes: Int) {
+    fun grantExtraMinutes(minutes: Int, liftLocks: Boolean = false) {
         scope.launch {
             mutex.withLock {
                 bonusSeconds += minutes * 60L
                 bonusDate = LocalDate.now()
-                lockOverrideUntil = maxOf(lockOverrideUntil, System.currentTimeMillis()) + minutes * 60_000L
+                if (liftLocks) lockOverrideUntil = maxOf(lockOverrideUntil, System.currentTimeMillis()) + minutes * 60_000L
                 warningIssued = false
                 _state.update { it.copy(limitSeconds = limitSeconds()) }
                 evaluateLocked()
@@ -255,16 +262,20 @@ class ScreenTimeManager @Inject constructor(
 
     private fun limitSeconds(): Long {
         val weekend = if (wellbeing.isWeekend(java.time.LocalDate.now().dayOfWeek)) wellbeing.weekendExtraMinutes * 60L else 0L
-        return (settings?.dailyLimitMinutes ?: 60) * 60L + weekend + bonusSeconds
+        val delta = (_state.value.child?.id?.let { deltas[it] } ?: 0) * 60L
+        return ((settings?.dailyLimitMinutes ?: 60) * 60L + weekend + bonusSeconds + delta).coerceAtLeast(0L)
     }
 
     private fun evaluateLocked() {
+        val limit = limitSeconds()
+        if (_state.value.child != null && limit != _state.value.limitSeconds) _state.update { it.copy(limitSeconds = limit) }
         val current = _state.value
         val child = current.child ?: return
         val s = settings
         val newLock = when {
             !overridden && s != null && s.bedtimeEnabled && isBedtime(LocalTime.now(), s.bedtimeStartMinutes, s.bedtimeEndMinutes) -> LockReason.BEDTIME
             !overridden && wellbeing.inSchoolHours(java.time.LocalDateTime.now()) -> LockReason.SCHOOL
+            !overridden && !wellbeing.inWindow(LocalTime.now()) -> LockReason.WINDOW
             current.usedSeconds >= current.limitSeconds -> LockReason.DAILY_LIMIT
             else -> LockReason.NONE
         }
@@ -273,7 +284,7 @@ class ScreenTimeManager @Inject constructor(
             when (newLock) {
                 LockReason.DAILY_LIMIT -> _events.tryEmit(Event.TimeUp(child))
                 LockReason.BEDTIME -> _events.tryEmit(Event.Bedtime(child))
-                LockReason.SCHOOL, LockReason.NONE -> Unit
+                LockReason.SCHOOL, LockReason.WINDOW, LockReason.NONE -> Unit
             }
         }
         if (newLock == LockReason.NONE && !warningIssued && current.remainingSeconds in 1..WARNING_SECONDS) {

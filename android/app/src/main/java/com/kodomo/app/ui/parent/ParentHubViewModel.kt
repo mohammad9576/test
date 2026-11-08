@@ -67,8 +67,15 @@ class ParentHubViewModel @Inject constructor(
 
     fun resolveChore(item: com.kodomo.app.data.prefs.PendingChore, approved: Boolean) = viewModelScope.launch {
         chores.resolve(item, approved)
-        if (approved) familyRepository.addStars(item.childId, item.chore.stars)
+        if (approved) {
+            familyRepository.addStars(item.childId, item.chore.stars)
+            chores.addMinutes(item.childId, com.kodomo.app.data.prefs.ChoreStore.GOOD_DEED_MINUTES)
+        }
     }
+    val badCatalog = com.kodomo.app.data.prefs.ChoreStore.badCatalog
+    fun badToday(childId: Long) = chores.badToday(childId)
+    fun recordBad(childId: Long, deed: com.kodomo.app.data.prefs.BadDeed) = viewModelScope.launch { chores.recordBad(childId, deed) }
+    fun undoBad(childId: Long, e: com.kodomo.app.data.prefs.BadDeedEntry) = viewModelScope.launch { chores.undoBad(childId, e) }
     private fun <T> stateOf(flow: kotlinx.coroutines.flow.Flow<T>, initial: T) = flow.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), initial)
 
     val family: StateFlow<Family?> = stateOf(familyRepository.observeFamily(), null)

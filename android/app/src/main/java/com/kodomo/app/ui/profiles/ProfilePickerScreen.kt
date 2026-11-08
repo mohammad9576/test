@@ -99,11 +99,11 @@ fun ProfilePickerScreen(
             modifier = Modifier.fillMaxWidth(),
         ) {
             family?.let { f ->
-                if (f.fatherName.isNotBlank()) item { ProfileCard(f.fatherName, "پدر", AvatarKind.FATHER) { gateOpen = true } }
-                if (f.motherName.isNotBlank()) item { ProfileCard(f.motherName, "مادر", AvatarKind.MOTHER) { gateOpen = true } }
+                if (f.fatherName.isNotBlank()) item { ProfileCard(f.fatherName, "پدر", AvatarKind.FATHER, com.kodomo.app.ui.components.AvatarPhotos.FATHER) { gateOpen = true } }
+                if (f.motherName.isNotBlank()) item { ProfileCard(f.motherName, "مادر", AvatarKind.MOTHER, com.kodomo.app.ui.components.AvatarPhotos.MOTHER) { gateOpen = true } }
             }
             items(children, key = { it.id }) { child ->
-                ProfileCard(child.name, "${child.ageYears().fa()} ساله", child.avatar) {
+                ProfileCard(child.name, "${child.ageYears().fa()} ساله", child.avatar, child.id) {
                     viewModel.rememberActive(child.id)
                     onChild(child.id)
                 }
@@ -129,7 +129,7 @@ fun ProfilePickerScreen(
 }
 
 @Composable
-private fun ProfileCard(name: String, role: String, avatar: AvatarKind, onClick: () -> Unit) {
+private fun ProfileCard(name: String, role: String, avatar: AvatarKind, photoId: Long? = null, onClick: () -> Unit) {
     Column(
         Modifier
             .shadow(3.dp, RoundedCornerShape(26.dp))
@@ -139,7 +139,7 @@ private fun ProfileCard(name: String, role: String, avatar: AvatarKind, onClick:
             .fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        KodomoAvatar(avatar, size = 84.dp)
+        KodomoAvatar(avatar, size = 84.dp, photoId = photoId)
         Spacer(Modifier.height(8.dp))
         Text(name, style = MaterialTheme.typography.titleMedium)
         Text(role, style = MaterialTheme.typography.labelMedium, color = KodomoColors.InkSoft)

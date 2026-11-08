@@ -153,8 +153,10 @@ fun ModuleTile(
             if (spec.showCardLabels) {
                 Spacer(Modifier.height(6.dp))
                 Text(
-                    title, style = MaterialTheme.typography.titleMedium, color = Color.White, textAlign = TextAlign.Center,
-                    maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.ExtraBold,
+                    title,
+                    style = MaterialTheme.typography.titleMedium.copy(shadow = androidx.compose.ui.graphics.Shadow(Color.Black.copy(alpha = 0.35f), androidx.compose.ui.geometry.Offset(0f, 3f), 6f)),
+                    color = Color.White, textAlign = TextAlign.Center,
+                    maxLines = 2, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.ExtraBold,
                 )
             }
             if (spec.showDescriptions && subtitle != null) {

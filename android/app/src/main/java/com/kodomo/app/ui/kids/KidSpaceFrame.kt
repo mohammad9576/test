@@ -74,7 +74,7 @@ class KidSpaceViewModel @Inject constructor(
 
     fun setActivity(category: ActivityCategory, title: String, contentId: String?) = screenTime.setActivity(category, title, contentId)
 
-    fun grantExtra(minutes: Int) = screenTime.grantExtraMinutes(minutes)
+    fun grantExtra(minutes: Int) = screenTime.grantExtraMinutes(minutes, liftLocks = true)
 
     suspend fun verifyPin(pin: String) = familyRepository.verifyPin(pin)
 }
@@ -246,6 +246,8 @@ private fun LockOverlay(child: Child, reason: ScreenTimeManager.LockReason, line
     BackHandler(enabled = true) { }
     val bedtime = reason == ScreenTimeManager.LockReason.BEDTIME
     val school = reason == ScreenTimeManager.LockReason.SCHOOL
+    val window = reason == ScreenTimeManager.LockReason.WINDOW
+    val w = LocalWellbeing.current
     val gradient = if (bedtime) {
         Brush.verticalGradient(listOf(Color(0xFF14213D), Color(0xFF283A5B)))
     } else {
@@ -259,9 +261,9 @@ private fun LockOverlay(child: Child, reason: ScreenTimeManager.LockReason, line
         contentAlignment = Alignment.Center,
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(if (bedtime) "🌙" else if (school) "🏫" else "🌳", style = MaterialTheme.typography.displayMedium)
+            Text(if (bedtime) "🌙" else if (school) "🏫" else if (window) "⏰" else "🌳", style = MaterialTheme.typography.displayMedium)
             KodomoMascot(line.mood, size = 200.dp)
-            if (!school) Text(
+            if (!school && !window) Text(
                 line.text,
                 style = MaterialTheme.typography.headlineSmall,
                 textAlign = TextAlign.Center,
@@ -270,6 +272,8 @@ private fun LockOverlay(child: Child, reason: ScreenTimeManager.LockReason, line
             Text(
                 if (bedtime) "وقت خواب ${child.name} رسیده است."
                 else if (school) "الان وقت مدرسه و درس است، ${child.name} جان. بعد از مدرسه دوباره همدیگر را می‌بینیم!"
+                else if (window) (w.nextWindow(java.time.LocalTime.now())?.let { "الان وقت استراحت از گوشی است، ${child.name} جان. نوبت بعدی ساعت ${com.kodomo.app.data.prefs.Wellbeing.hhmm(it)} است ⏰" }
+                    ?: "نوبت‌های گوشی امروز تمام شد، ${child.name} جان. فردا دوباره بازی می‌کنیم!")
                 else "زمان امروز ${child.name} تمام شد. بیا یک بازی بیرون از صفحه انجام بدیم!",
                 style = MaterialTheme.typography.bodyLarge,
                 textAlign = TextAlign.Center,

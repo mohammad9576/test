@@ -181,7 +181,7 @@ fun SafeBrowserScreen(onBack: () -> Unit, onOpen: (Int) -> Unit, onOpenRoute: (S
         }
     }
 
-    KidScreenScaffold(title = "مرورگر امن من", onBack = onBack) { padding ->
+    KidScreenScaffold(title = "دانشنامه و سایت‌های امن", onBack = onBack) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
             // ---- toolbar ----
             Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {

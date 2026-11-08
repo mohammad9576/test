@@ -44,6 +44,8 @@ class WellbeingViewModel @Inject constructor(private val store: WellbeingStore) 
     fun save(w: Wellbeing) { viewModelScope.launch { store.save(w) } }
 }
 
+private fun String.faToEn() = map { if (it in '۰'..'۹') '0' + (it - '۰') else it }.joinToString("")
+
 private fun Int.fa() = toString().map { if (it.isDigit()) '۰' + (it - '0') else it }.joinToString("")
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -76,6 +78,34 @@ fun WellbeingScreen(onBack: () -> Unit) {
             item {
                 Section("📚 اول درس، بعد بازی", "بازی‌ها فقط بعد از این تعداد پاسخ درست در «درس و تمرین» همان روز باز می‌شوند.") {
                     Choices(listOf(0 to "خاموش", 3 to "۳ تمرین", 5 to "۵ تمرین", 10 to "۱۰ تمرین"), w.studyFirstAnswers) { vm.save(w.copy(studyFirstAnswers = it)) }
+                }
+            }
+            item {
+                Section("⏰ نوبت‌های استفاده از گوشی", "اگر نوبت تعریف کنید، کودک فقط در این بازه‌ها گوشی دارد (سقف روزانه هم همچنان رعایت می‌شود). خالی = هر ساعتی.") {
+                    var from by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("") }
+                    var to by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("") }
+                    if (w.windows.isEmpty()) Text("فعلاً بدون نوبت (هر ساعتی مجاز است)", style = MaterialTheme.typography.bodySmall)
+                    w.windows.forEach { r ->
+                        Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                            Text("🟢 از ${Wellbeing.hhmm(r.first)} تا ${Wellbeing.hhmm(r.last)}", Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+                            androidx.compose.material3.TextButton(onClick = { vm.save(w.copy(windows = w.windows - r)) }) { Text("حذف") }
+                        }
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                        OutlinedTextField(from, { from = it }, Modifier.weight(1f), label = { Text("از (۱۳:۰۰)") }, singleLine = true)
+                        OutlinedTextField(to, { to = it }, Modifier.weight(1f), label = { Text("تا (۱۳:۱۵)") }, singleLine = true)
+                    }
+                    val a = Wellbeing.parseHhmm(from.faToEn())
+                    val b = Wellbeing.parseHhmm(to.faToEn())
+                    androidx.compose.material3.Button(
+                        onClick = { if (a != null && b != null) { vm.save(w.copy(windows = (w.windows + (a..b)).sortedBy { it.first })); from = ""; to = "" } },
+                        enabled = a != null && b != null && a < b,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) { Text("➕ افزودن نوبت") }
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        androidx.compose.material3.AssistChip(onClick = { vm.save(w.copy(windows = listOf(16 * 60..17 * 60, 19 * 60..19 * 60 + 30))) }, label = { Text("نمونه: عصر + شب") })
+                        androidx.compose.material3.AssistChip(onClick = { vm.save(w.copy(windows = emptyList())) }, label = { Text("پاک کردن همه") })
+                    }
                 }
             }
             item {

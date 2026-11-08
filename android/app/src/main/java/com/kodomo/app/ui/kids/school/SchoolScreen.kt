@@ -1,6 +1,8 @@
 package com.kodomo.app.ui.kids.school
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -84,6 +86,7 @@ class SchoolViewModel @Inject constructor(
     private val schoolRepository: SchoolRepository,
     private val familyRepository: FamilyRepository,
     private val rewardRepository: RewardRepository,
+    val planner: com.kodomo.app.data.prefs.PlannerStore,
 ) : ViewModel() {
     private val childId = savedState.childId
     val schedule: StateFlow<List<ClassSession>> = schoolRepository.observeSchedule(childId).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
@@ -116,7 +119,7 @@ class SchoolViewModel @Inject constructor(
     fun deleteExam(id: Long) = viewModelScope.launch { schoolRepository.deleteExam(id) }
 }
 
-private enum class SchoolTab(val label: String) { SCHEDULE("برنامه هفتگی"), HOMEWORK("تکالیف"), EXAMS("امتحان‌ها"), PROJECTS("پروژه‌ها") }
+private enum class SchoolTab(val label: String) { TODAY("امروز"), SCHEDULE("هفتگی"), HOMEWORK("تکالیف"), EXAMS("امتحان"), PROJECTS("پروژه") }
 
 @Composable
 fun SchoolScreen(onBack: () -> Unit, viewModel: SchoolViewModel = hiltViewModel()) {
@@ -124,14 +127,17 @@ fun SchoolScreen(onBack: () -> Unit, viewModel: SchoolViewModel = hiltViewModel(
     val schedule by viewModel.schedule.collectAsStateWithLifecycle()
     val tasks by viewModel.tasks.collectAsStateWithLifecycle()
     val exams by viewModel.exams.collectAsStateWithLifecycle()
-    var tab by remember { mutableStateOf(SchoolTab.SCHEDULE) }
+    var tab by remember { mutableStateOf(SchoolTab.TODAY) }
+    val routine by remember(space.child.id) { viewModel.planner.routine(space.child.id, space.child.ageYears()) }.collectAsStateWithLifecycle(emptyList())
+    val doneToday by remember(space.child.id) { viewModel.planner.doneToday(space.child.id) }.collectAsStateWithLifecycle(emptySet())
+    val plannerScope = androidx.compose.runtime.rememberCoroutineScope()
     var adding by remember { mutableStateOf(false) }
-    TrackActivity(ActivityCategory.SCHOOL, "مدرسه من")
+    TrackActivity(ActivityCategory.SCHOOL, "برنامه‌ی من")
 
     val todayTasks = tasks.filter { !it.done }.size
     val nextExam = exams.firstOrNull { !it.date.isBefore(LocalDate.now()) }
 
-    KidScreenScaffold(title = "مدرسه من", onBack = onBack) { padding ->
+    KidScreenScaffold(title = "برنامه‌ی من", onBack = onBack) { padding ->
         Scaffold(
             modifier = Modifier.padding(padding),
             floatingActionButton = {
@@ -157,6 +163,23 @@ fun SchoolScreen(onBack: () -> Unit, viewModel: SchoolViewModel = hiltViewModel(
                         MascotSpeech(message, if (todayTasks == 0) MascotMood.EXCITED else MascotMood.THINKING)
                     }
                     when (tab) {
+                        SchoolTab.TODAY -> {
+                            item(key = "today") {
+                                TodayPlan(
+                                    routine = routine,
+                                    done = doneToday,
+                                    homeworkLeft = todayTasks,
+                                    nextExam = nextExam?.let { it.subject to ChronoUnit.DAYS.between(LocalDate.now(), it.date) },
+                                    onToggle = { item ->
+                                        val wasDone = item.id in doneToday
+                                        plannerScope.launch { viewModel.planner.toggle(space.child.id, item) }
+                                        if (!wasDone) { com.kodomo.app.ui.fx.GameSfx.sparkle(); space.voice.speak("آفرین! ${item.title}") }
+                                    },
+                                    onRemove = { item -> plannerScope.launch { viewModel.planner.save(space.child.id, routine - item) } },
+                                    onFocusDone = { space.celebrate(); space.voice.speak("آفرین! بیست دقیقه تمرکز کردی. حالا پنج دقیقه استراحت کن.") },
+                                )
+                            }
+                        }
                         SchoolTab.SCHEDULE -> {
                             PersianCalendar.iranianWeek.filter { it != DayOfWeek.FRIDAY }.forEach { day ->
                                 val classes = schedule.filter { it.day == day }
@@ -202,7 +225,12 @@ fun SchoolScreen(onBack: () -> Unit, viewModel: SchoolViewModel = hiltViewModel(
         }
     }
 
-    if (adding) {
+    if (adding && tab == SchoolTab.TODAY) {
+        AddRoutineDialog(onDismiss = { adding = false }) { item ->
+            plannerScope.launch { viewModel.planner.save(space.child.id, routine + item) }
+            adding = false
+        }
+    } else if (adding) {
         AddSchoolItemDialog(
             tab = tab,
             onDismiss = { adding = false },
@@ -254,7 +282,7 @@ private fun AddSchoolItemDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(when (tab) { SchoolTab.SCHEDULE -> "کلاس جدید"; SchoolTab.HOMEWORK -> "تکلیف جدید"; SchoolTab.EXAMS -> "امتحان جدید"; SchoolTab.PROJECTS -> "پروژه‌ی جدید" }) },
+        title = { Text(when (tab) { SchoolTab.SCHEDULE, SchoolTab.TODAY -> "کلاس جدید"; SchoolTab.HOMEWORK -> "تکلیف جدید"; SchoolTab.EXAMS -> "امتحان جدید"; SchoolTab.PROJECTS -> "پروژه‌ی جدید" }) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(subject, { subject = it.take(30) }, label = { Text("درس (مثلاً ریاضی)") }, singleLine = true)
@@ -277,7 +305,7 @@ private fun AddSchoolItemDialog(
                 enabled = subject.isNotBlank() && (tab == SchoolTab.SCHEDULE || tab == SchoolTab.EXAMS || title.isNotBlank()),
                 onClick = {
                     when (tab) {
-                        SchoolTab.SCHEDULE -> onAddClass(days[dayIndex], subject, time)
+                        SchoolTab.SCHEDULE, SchoolTab.TODAY -> onAddClass(days[dayIndex], subject, time)
                         SchoolTab.HOMEWORK -> onAddTask(SchoolTaskKind.HOMEWORK, subject, title, date)
                         SchoolTab.PROJECTS -> onAddTask(SchoolTaskKind.PROJECT, subject, title, date)
                         SchoolTab.EXAMS -> onAddExam(subject, date, title)
@@ -293,3 +321,114 @@ private fun AddSchoolItemDialog(
     }
 }
 
+
+
+/** Today at a glance: what is now and next, tick-off routine, homework/exam reminders and a 20-minute focus timer. */
+@Composable
+private fun TodayPlan(
+    routine: List<com.kodomo.app.data.prefs.RoutineItem>,
+    done: Set<String>,
+    homeworkLeft: Int,
+    nextExam: Pair<String, Long>?,
+    onToggle: (com.kodomo.app.data.prefs.RoutineItem) -> Unit,
+    onRemove: (com.kodomo.app.data.prefs.RoutineItem) -> Unit,
+    onFocusDone: () -> Unit,
+) {
+    var nowMinute by remember { mutableStateOf(java.time.LocalTime.now().let { it.hour * 60 + it.minute }) }
+    androidx.compose.runtime.LaunchedEffect(Unit) { while (true) { kotlinx.coroutines.delay(30_000); nowMinute = java.time.LocalTime.now().let { it.hour * 60 + it.minute } } }
+    val current = routine.lastOrNull { it.minute <= nowMinute }
+    val next = routine.firstOrNull { it.minute > nowMinute }
+    fun hhmm(m: Int) = "%02d:%02d".format(m / 60, m % 60).fa()
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            InfoTile("الان", current?.let { "${it.emoji} ${it.title}" } ?: "—", androidx.compose.ui.graphics.Color(0xFFE3F2FD), Modifier.weight(1f))
+            InfoTile("بعدی", next?.let { "${it.emoji} ${hhmm(it.minute)} ${it.title}" } ?: "پایان روز 🌙", androidx.compose.ui.graphics.Color(0xFFFFF8E1), Modifier.weight(1f))
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            InfoTile("تکالیف", if (homeworkLeft == 0) "همه انجام شده ✅" else "${homeworkLeft.fa()} تکلیف مانده 📚", androidx.compose.ui.graphics.Color(0xFFE8F5E9), Modifier.weight(1f))
+            InfoTile("امتحان", nextExam?.let { (s, d) -> if (d <= 0L) "امروز: $s 🍀" else "$s تا ${d.fa()} روز دیگر" } ?: "امتحانی نیست", androidx.compose.ui.graphics.Color(0xFFFCE4EC), Modifier.weight(1f))
+        }
+        if (nextExam != null && nextExam.second in 1L..3L) {
+            Text("💡 پیشنهاد امروز: ۲۰ دقیقه درس «${nextExam.first}» را مرور کن.", style = MaterialTheme.typography.bodyMedium)
+        }
+        FocusTimer(onFocusDone)
+        Text("برنامه‌ی روزانه (${done.count { d -> routine.any { it.id == d } }.fa()} از ${routine.size.fa()} ✓)", style = MaterialTheme.typography.titleMedium)
+        routine.forEach { item ->
+            val isDone = item.id in done
+            val isNow = item == current
+            Row(
+                Modifier.fillMaxWidth()
+                    .background(
+                        when { isDone -> androidx.compose.ui.graphics.Color(0xFFE8F5E9); isNow -> androidx.compose.ui.graphics.Color(0xFFFFF3E0); else -> MaterialTheme.colorScheme.surface },
+                        androidx.compose.foundation.shape.RoundedCornerShape(18.dp),
+                    )
+                    .clickable { onToggle(item) }
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(hhmm(item.minute), style = MaterialTheme.typography.labelLarge, modifier = Modifier.width(52.dp))
+                com.kodomo.app.ui.fx.Emoji(item.emoji, 32.dp)
+                Text(item.title, Modifier.weight(1f).padding(horizontal = 10.dp), style = MaterialTheme.typography.bodyLarge, fontWeight = if (isNow) androidx.compose.ui.text.font.FontWeight.Bold else null)
+                Text(if (isDone) "✅" else "⬜", style = MaterialTheme.typography.titleLarge)
+                IconButton(onClick = { onRemove(item) }) { Icon(Icons.Rounded.Delete, contentDescription = "حذف", modifier = Modifier.size(18.dp)) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun InfoTile(label: String, value: String, color: androidx.compose.ui.graphics.Color, modifier: Modifier) {
+    Column(modifier.background(color, androidx.compose.foundation.shape.RoundedCornerShape(18.dp)).padding(12.dp)) {
+        Text(label, style = MaterialTheme.typography.labelMedium)
+        Text(value, style = MaterialTheme.typography.titleSmall, maxLines = 2)
+    }
+}
+
+/** A 20-minute focus timer for homework (then a 5-minute break). */
+@Composable
+private fun FocusTimer(onDone: () -> Unit) {
+    var left by remember { mutableStateOf(0) }
+    androidx.compose.runtime.LaunchedEffect(left > 0) {
+        while (left > 0) { kotlinx.coroutines.delay(1000); left--; if (left == 0) onDone() }
+    }
+    Row(
+        Modifier.fillMaxWidth().background(androidx.compose.ui.graphics.Color(0xFFEDE7F6), androidx.compose.foundation.shape.RoundedCornerShape(18.dp)).padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        com.kodomo.app.ui.fx.Emoji("⏳", 36.dp)
+        Column(Modifier.weight(1f).padding(horizontal = 10.dp)) {
+            Text("زمان تمرکز", style = MaterialTheme.typography.titleSmall)
+            Text(if (left > 0) "%02d:%02d".format(left / 60, left % 60).fa() + " — گوشی را کنار بگذار و درس بخوان" else "۲۰ دقیقه درس، بعد ۵ دقیقه استراحت", style = MaterialTheme.typography.bodySmall)
+        }
+        androidx.compose.material3.TextButton(onClick = { left = if (left > 0) 0 else 20 * 60 }) { Text(if (left > 0) "توقف" else "شروع") }
+    }
+}
+
+@Composable
+private fun AddRoutineDialog(onDismiss: () -> Unit, onAdd: (com.kodomo.app.data.prefs.RoutineItem) -> Unit) {
+    var title by remember { mutableStateOf("") }
+    var time by remember { mutableStateOf("") }
+    var emoji by remember { mutableStateOf("⭐") }
+    val emojis = listOf("⭐", "📚", "🏃", "🎹", "🎨", "🧹", "🍎", "💧", "🛁", "📖", "🙏", "👪")
+    val minute = time.map { if (it in '۰'..'۹') '0' + (it - '۰') else it }.joinToString("").split(':').let { p ->
+        val h = p.getOrNull(0)?.trim()?.toIntOrNull(); val m = p.getOrNull(1)?.trim()?.toIntOrNull() ?: 0
+        if (h != null && h in 0..23 && m in 0..59) h * 60 + m else null
+    }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("کار تازه در برنامه‌ی روزانه") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(title, { title = it.take(40) }, label = { Text("چه کاری؟ (مثلاً تمرین پیانو)") }, singleLine = true)
+                OutlinedTextField(time, { time = it.take(5) }, label = { Text("ساعت (مثلاً ۱۷:۳۰)") }, singleLine = true)
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    items(emojis.size) { i -> FilterChip(selected = emoji == emojis[i], onClick = { emoji = emojis[i] }, label = { Text(emojis[i]) }) }
+                }
+            }
+        },
+        confirmButton = {
+            androidx.compose.material3.TextButton(enabled = title.isNotBlank() && minute != null, onClick = { onAdd(com.kodomo.app.data.prefs.RoutineItem(minute!!, emoji, title.trim())) }) { Text("افزودن") }
+        },
+        dismissButton = { androidx.compose.material3.TextButton(onClick = onDismiss) { Text("انصراف") } },
+    )
+}

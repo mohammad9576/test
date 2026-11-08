@@ -66,6 +66,8 @@ fun ParentHubScreen(
     onOpenTelewebion: () -> Unit,
     onOpenSites: () -> Unit,
     onOpenWellbeing: () -> Unit = {},
+    onOpenModules: () -> Unit = {},
+    onOpenContacts: () -> Unit = {},
     viewModel: ParentHubViewModel = hiltViewModel(),
 ) {
     var tab by rememberSaveable { mutableTabState() }
@@ -102,7 +104,7 @@ fun ParentHubScreen(
             HubTab.REPORTS -> ReportsTab(viewModel, modifier)
             HubTab.RATINGS -> RatingsTab(viewModel, onOpenContent, onOpenTelewebion, modifier)
             HubTab.COMMUNITY -> CommunityTab(viewModel, onOpenArticle, onOpenTopic, modifier)
-            HubTab.FAMILY -> FamilyTab(viewModel, onEditChild, onAddChild, onOpenGallery, onOpenCloud, onOpenAllowedApps, onOpenSites, modifier, onOpenWellbeing = onOpenWellbeing)
+            HubTab.FAMILY -> FamilyTab(viewModel, onEditChild, onAddChild, onOpenGallery, onOpenCloud, onOpenAllowedApps, onOpenSites, modifier, onOpenWellbeing = onOpenWellbeing, onOpenModules = onOpenModules, onOpenContacts = onOpenContacts)
         }
     }
 }
@@ -119,7 +121,7 @@ fun ChildSwitcher(children: List<Child>, selected: Child?, onSelect: (Long) -> U
                 onClick = { onSelect(child.id) },
                 label = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        KodomoAvatar(child.avatar, size = 24.dp)
+                        KodomoAvatar(child.avatar, size = 24.dp, photoId = child.id)
                         Spacer(Modifier.width(6.dp))
                         Text(child.name)
                     }

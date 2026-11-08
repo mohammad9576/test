@@ -33,7 +33,35 @@ data class Wellbeing(
     val schoolLock: Boolean = false,
     val schoolStartMinutes: Int = 7 * 60 + 30,
     val schoolEndMinutes: Int = 13 * 60,
+    /** Allowed time windows in minutes of the day (empty = any time); e.g. 13:00-13:15 and 14:30-15:00. */
+    val windows: List<IntRange> = emptyList(),
 ) {
+    fun inWindow(now: java.time.LocalTime): Boolean {
+        if (windows.isEmpty()) return true
+        val m = now.hour * 60 + now.minute
+        return windows.any { m in it.first until it.last }
+    }
+
+    /** Start of the next allowed window today, in minutes (null if none is left today). */
+    fun nextWindow(now: java.time.LocalTime): Int? {
+        val m = now.hour * 60 + now.minute
+        return windows.map { it.first }.filter { it > m }.minOrNull()
+    }
+
+    companion object {
+        fun encode(w: List<IntRange>) = w.joinToString(",") { "${it.first}-${it.last}" }
+        fun decode(s: String?): List<IntRange> = s.orEmpty().split(',').mapNotNull { part ->
+            val (a, b) = part.split('-').map { it.trim().toIntOrNull() }.let { (it.getOrNull(0) ?: return@mapNotNull null) to (it.getOrNull(1) ?: return@mapNotNull null) }
+            if (a in 0 until b && b <= 24 * 60) a..b else null
+        }.sortedBy { it.first }
+        fun hhmm(m: Int) = "%02d:%02d".format(m / 60, m % 60)
+        fun parseHhmm(s: String): Int? {
+            val p = s.trim().replace('٫', ':').replace('.', ':').split(':')
+            val h = p.getOrNull(0)?.toIntOrNull() ?: return null
+            val mm = p.getOrNull(1)?.toIntOrNull() ?: 0
+            return if (h in 0..24 && mm in 0..59 && h * 60 + mm <= 24 * 60) h * 60 + mm else null
+        }
+    }
     fun isWeekend(day: java.time.DayOfWeek) = day == java.time.DayOfWeek.THURSDAY || day == java.time.DayOfWeek.FRIDAY
 
     fun inSchoolHours(now: java.time.LocalDateTime): Boolean {
@@ -54,11 +82,13 @@ class WellbeingStore @Inject constructor(@ApplicationContext private val context
     private val schoolKey = booleanPreferencesKey("school_lock")
     private val schoolStartKey = intPreferencesKey("school_start")
     private val schoolEndKey = intPreferencesKey("school_end")
+    private val windowsKey = stringPreferencesKey("windows")
 
     val state: Flow<Wellbeing> = context.wellbeingStore.data.map { p ->
         Wellbeing(
             p[eyeKey] ?: 20, p[volKey] ?: 100, p[studyKey] ?: 0, p[momKey].orEmpty(), p[dadKey].orEmpty(),
             p[weekendKey] ?: 0, p[schoolKey] ?: false, p[schoolStartKey] ?: (7 * 60 + 30), p[schoolEndKey] ?: (13 * 60),
+            Wellbeing.decode(p[windowsKey]),
         )
     }
 
@@ -74,5 +104,6 @@ class WellbeingStore @Inject constructor(@ApplicationContext private val context
         p[schoolKey] = w.schoolLock
         p[schoolStartKey] = w.schoolStartMinutes.coerceIn(0, 24 * 60 - 1)
         p[schoolEndKey] = w.schoolEndMinutes.coerceIn(0, 24 * 60)
+        p[windowsKey] = Wellbeing.encode(w.windows)
     }
 }

@@ -51,6 +51,13 @@ parent_hub|7|parent|6
 parent_sites|7|parent/sites|4
 parent_wellbeing|7|parent/wellbeing|4
 profiles|7|profiles|4
+discover|8|kid/{child}/discover|4
+crafts|7|kid/{child}/crafts|4
+craft_boat|7|kid/{child}/craft/o_boat|5
+camera|7|kid/{child}/camera|6
+call|7|kid/{child}/call|4
+parent_modules|7|parent/modules|4
+parent_contacts|7|parent/contacts|4
 end_jacks|7|kid/{child}/game/JUMPING_JACKS|13|true
 end_body_quiz|7|kid/{child}/game/BODY_QUIZ|13|true
 end_forest|7|kid/{child}/game/FOREST_QUEST|13|true

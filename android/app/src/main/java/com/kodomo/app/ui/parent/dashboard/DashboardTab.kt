@@ -59,6 +59,7 @@ fun DashboardTab(viewModel: ParentHubViewModel, modifier: Modifier = Modifier) {
         item { ChildSwitcher(children, child, viewModel::selectChild) }
         item { child?.let { SetupChecklistCard(viewModel, it) } }
         item { PendingChoresCard(viewModel, children) }
+        item { child?.let { BehaviourCard(viewModel, it) } }
         item { child?.let { StudyCard(viewModel, it) } }
         val s = settings
         val c = child
@@ -406,5 +407,44 @@ private fun SetupChecklistCard(viewModel: ParentHubViewModel, child: com.kodomo.
                 if (!st.done && st.action != null) androidx.compose.material3.TextButton(onClick = st.action) { Text("انجام") }
             }
         }
+    }
+}
+
+
+/** Good and bad behaviour: noting a bad deed takes play time away today (with a fix suggestion for the child). */
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+@Composable
+private fun BehaviourCard(viewModel: ParentHubViewModel, child: com.kodomo.app.domain.model.Child) {
+    val today by remember(child.id) { viewModel.badToday(child.id) }.collectAsStateWithLifecycle(emptyList())
+    var open by remember { mutableStateOf(false) }
+    var confirm by remember { mutableStateOf<com.kodomo.app.data.prefs.BadDeed?>(null) }
+    KodomoCard(Modifier.fillMaxWidth().padding16()) {
+        androidx.compose.foundation.layout.Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+            Text("⚖️ رفتار امروز ${child.name}", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+            androidx.compose.material3.TextButton(onClick = { open = !open }) { Text(if (open) "بستن" else "ثبت کار نادرست") }
+        }
+        Text("کار خوب تأییدشده = ستاره + ${com.kodomo.app.data.prefs.ChoreStore.GOOD_DEED_MINUTES.fa()} دقیقه. کار نادرست از وقت امروز کم می‌کند و کودک راه جبران را می‌بیند.", style = MaterialTheme.typography.bodySmall)
+        today.forEach { e ->
+            androidx.compose.foundation.layout.Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                Text("${e.deed.emoji} ${e.deed.title} (−${e.deed.minutes.fa()} دقیقه)", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                androidx.compose.material3.TextButton(onClick = { viewModel.undoBad(child.id, e) }) { Text("بخشیدم ↩") }
+            }
+        }
+        if (open) {
+            androidx.compose.foundation.layout.FlowRow(horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(6.dp)) {
+                viewModel.badCatalog.forEach { d ->
+                    androidx.compose.material3.AssistChip(onClick = { confirm = d }, label = { Text("${d.emoji} ${d.title} −${d.minutes.fa()}") })
+                }
+            }
+        }
+    }
+    confirm?.let { d ->
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { confirm = null },
+            title = { Text("${d.emoji} ${d.title}") },
+            text = { Text("${d.minutes.fa()} دقیقه از وقت امروز ${child.name} کم شود؟ کودک این را در «کارهای من» می‌بیند، همراه با راه جبران: «${d.fix}»") },
+            confirmButton = { androidx.compose.material3.TextButton(onClick = { viewModel.recordBad(child.id, d); confirm = null; open = false }) { Text("ثبت") } },
+            dismissButton = { androidx.compose.material3.TextButton(onClick = { confirm = null }) { Text("انصراف") } },
+        )
     }
 }

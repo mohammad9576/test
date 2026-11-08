@@ -41,6 +41,7 @@ import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.ImageBitmap
@@ -90,6 +91,8 @@ fun FamilyTab(
     onOpenSites: () -> Unit,
     modifier: Modifier = Modifier,
     onOpenWellbeing: () -> Unit = {},
+    onOpenModules: () -> Unit = {},
+    onOpenContacts: () -> Unit = {},
 ) {
     val family by viewModel.family.collectAsStateWithLifecycle()
     val children by viewModel.children.collectAsStateWithLifecycle()
@@ -100,8 +103,8 @@ fun FamilyTab(
         item {
             KodomoCard(Modifier.fillMaxWidth()) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    KodomoAvatar(AvatarKind.FATHER, size = 48.dp)
-                    KodomoAvatar(AvatarKind.MOTHER, size = 48.dp)
+                    PhotoAvatarPicker(AvatarKind.FATHER, com.kodomo.app.ui.components.AvatarPhotos.FATHER, 48.dp)
+                    PhotoAvatarPicker(AvatarKind.MOTHER, com.kodomo.app.ui.components.AvatarPhotos.MOTHER, 48.dp)
                     Spacer(Modifier.width(10.dp))
                     Column(Modifier.weight(1f)) {
                         Text(family?.familyName.orEmpty(), style = MaterialTheme.typography.titleLarge)
@@ -122,8 +125,10 @@ fun FamilyTab(
         item { OutlinedButton(onClick = onAddChild, modifier = Modifier.fillMaxWidth()) { Text("➕ افزودن فرزند") } }
         item { SectionTitle("امکانات") }
         item { MemberRow(AvatarKind.ROBOT, "برنامه‌های مجاز", "بازی‌ها و برنامه‌هایی که کودک اجازه دارد از داخل کدومو باز کند", onOpenAllowedApps) }
+        item { MemberRow(AvatarKind.ROBOT, "مخاطبان تماس کودک", "پدر، مادر، پدربزرگ، خاله، دایی و… که کودک می‌تواند به آن‌ها زنگ بزند", onOpenContacts) }
+        item { MemberRow(AvatarKind.ROBOT, "بخش‌های محیط کودک", "انتخاب کنید فرزندتان کدام بخش‌ها را ببیند", onOpenModules) }
         item { MemberRow(AvatarKind.ROBOT, "سلامت و ایمنی کودک", "استراحت چشم، محدودیت صدا، اول درس بعد بازی، تماس اضطراری", onOpenWellbeing) }
-        item { MemberRow(AvatarKind.ROBOT, "سایت‌های مجاز مرورگر", "سایت‌هایی که «مرورگر امن من» اجازه دارد باز کند و درخواست‌های فرزند", onOpenSites) }
+        item { MemberRow(AvatarKind.ROBOT, "سایت‌های مجاز مرورگر", "سایت‌هایی که بخش «دانشنامه و سایت‌های امن» اجازه دارد باز کند و درخواست‌های فرزند", onOpenSites) }
         item { MemberRow(AvatarKind.ROBOT, "گالری محرمانه‌ی خاطرات", "عکس‌های رمزنگاری‌شده‌ی پروژه‌ها و لحظه‌های شاد", onOpenGallery) }
         item { MemberRow(AvatarKind.ROBOT, "حساب ابری و همگام‌سازی", "ورود با کد یکبارمصرف، پشتیبان پروفایل‌ها و پایش زنده", onOpenCloud) }
         item { OutlinedButton(onClick = { changePin = true }, modifier = Modifier.fillMaxWidth()) { Text("🔐 تغییر رمز والدین") } }
@@ -234,7 +239,10 @@ fun ChildEditorScreen(childId: Long?, onBack: () -> Unit, viewModel: ChildEditor
         },
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            KodomoAvatar(draft.avatar, size = 96.dp)
+            if (childId != null) {
+                PhotoAvatarPicker(draft.avatar, childId, 96.dp)
+                Text("برای گذاشتن عکس واقعی روی تصویر بزنید", style = MaterialTheme.typography.labelSmall)
+            } else KodomoAvatar(draft.avatar, size = 96.dp)
             ChildProfileForm(draft = draft, onChange = { draft = it }, modifier = Modifier.padding(vertical = 12.dp))
             KodomoPrimaryButton("ذخیره", onClick = { viewModel.save(draft, onBack) }, enabled = draft.isValid)
         }
@@ -405,5 +413,25 @@ private fun ExitAppCard() {
             confirmButton = { TextButton(onClick = { confirm = false; kiosk.exitToPhone() }) { Text("خروج") } },
             dismissButton = { TextButton(onClick = { confirm = false }) { Text("انصراف") } },
         )
+    }
+}
+
+
+/** An avatar that opens the photo picker (no storage permission needed); long-press removes the photo. */
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
+@Composable
+fun PhotoAvatarPicker(kind: AvatarKind, photoId: Long, size: androidx.compose.ui.unit.Dp) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val picker = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia()) { uri ->
+        if (uri != null) com.kodomo.app.ui.components.AvatarPhotos.save(context, photoId, uri)
+    }
+    androidx.compose.foundation.layout.Box(
+        Modifier.combinedClickable(
+            onClick = { picker.launch(androidx.activity.result.PickVisualMediaRequest(androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia.ImageOnly)) },
+            onLongClick = { com.kodomo.app.ui.components.AvatarPhotos.delete(context, photoId) },
+        ),
+    ) {
+        KodomoAvatar(kind, size = size, photoId = photoId)
+        Text("📷", modifier = Modifier.align(Alignment.BottomEnd), style = MaterialTheme.typography.labelLarge)
     }
 }

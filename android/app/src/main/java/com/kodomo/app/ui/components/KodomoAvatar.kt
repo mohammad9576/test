@@ -10,6 +10,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -42,7 +44,19 @@ private fun styleOf(kind: AvatarKind) = when (kind) {
 
 /** Hand-drawn vector avatars for family members – no bitmap assets required. */
 @Composable
-fun KodomoAvatar(kind: AvatarKind, modifier: Modifier = Modifier, size: Dp = 64.dp, selected: Boolean = false) {
+fun KodomoAvatar(kind: AvatarKind, modifier: Modifier = Modifier, size: Dp = 64.dp, selected: Boolean = false, photoId: Long? = null) {
+    if (photoId != null) {
+        val context = androidx.compose.ui.platform.LocalContext.current
+        val v = AvatarPhotos.version.intValue
+        val photo = androidx.compose.runtime.remember(photoId, v) { AvatarPhotos.load(context, photoId)?.asImageBitmap() }
+        if (photo != null) {
+            androidx.compose.foundation.Image(
+                photo, contentDescription = null, contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                modifier = modifier.size(size).clip(CircleShape).then(if (selected) Modifier.border(3.dp, KodomoColors.Green, CircleShape) else Modifier),
+            )
+            return
+        }
+    }
     val style = styleOf(kind)
     Box(
         modifier = modifier

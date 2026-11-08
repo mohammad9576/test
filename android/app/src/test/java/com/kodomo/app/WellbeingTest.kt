@@ -17,3 +17,15 @@ class WellbeingTest {
         assertFalse(w.copy(schoolLock = false).inSchoolHours(LocalDateTime.of(2026, 11, 7, 9, 0)))
     }
 }
+
+class WindowsTest {
+    @Test fun windowsLimitUse() {
+        val w = Wellbeing(windows = listOf(13 * 60..13 * 60 + 15, 14 * 60 + 30..15 * 60))
+        assertTrue(w.inWindow(java.time.LocalTime.of(13, 5)))
+        assertFalse(w.inWindow(java.time.LocalTime.of(13, 20)))
+        assertTrue(w.inWindow(java.time.LocalTime.of(14, 45)))
+        org.junit.Assert.assertEquals(14 * 60 + 30, w.nextWindow(java.time.LocalTime.of(13, 20)))
+        org.junit.Assert.assertEquals(w.windows, Wellbeing.decode(Wellbeing.encode(w.windows)))
+        org.junit.Assert.assertEquals(13 * 60 + 15, Wellbeing.parseHhmm("13:15"))
+    }
+}

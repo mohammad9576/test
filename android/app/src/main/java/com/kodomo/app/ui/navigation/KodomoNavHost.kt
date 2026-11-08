@@ -66,7 +66,10 @@ fun KodomoNavHost(navController: NavHostController, startDestination: String) {
                 androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(300))
         },
     ) {
-        composable(Routes.ONBOARDING) { OnboardingScreen(onFinished = toProfiles) }
+        composable(Routes.ONBOARDING) {
+            OnboardingScreen(onFinished = { navController.navigate(Routes.SETUP_PERMISSIONS) { popUpTo(Routes.ONBOARDING) { inclusive = true } } })
+        }
+        composable(Routes.SETUP_PERMISSIONS) { com.kodomo.app.ui.setup.PermissionSetupScreen(onDone = toProfiles) }
 
         composable(Routes.PROFILES) {
             ProfilePickerScreen(
@@ -109,6 +112,22 @@ fun KodomoNavHost(navController: NavHostController, startDestination: String) {
             com.kodomo.app.ui.kids.study.EnglishHomeScreen(onBack = back, onOpen = { id -> navController.navigate(Routes.kidEnglishUnit(childId, id)) })
         }
         kid(Routes.KID_ENGLISH_UNIT, toProfiles, listOf(stringArg(Routes.ARG_ID))) { _, _ -> com.kodomo.app.ui.kids.study.EnglishUnitScreen(onBack = back) }
+        kid(Routes.KID_DISCOVER, toProfiles) { childId, _ ->
+            com.kodomo.app.ui.kids.discover.DiscoverScreen(
+                onBack = back,
+                onLessons = { navController.navigate(Routes.kidLearning(childId)) },
+                onFacts = { navController.navigate(Routes.kidExplore(childId)) },
+                onEncyclopedia = { navController.navigate(Routes.kidBrowser(childId)) },
+            )
+        }
+        kid(Routes.KID_CRAFTS, toProfiles) { childId, _ ->
+            com.kodomo.app.ui.kids.crafts.CraftsScreen(onBack = back, onOpen = { id -> navController.navigate(Routes.kidCraft(childId, id)) }, onMyProjects = { navController.navigate(Routes.kidProjects(childId)) })
+        }
+        kid(Routes.KID_CRAFT, toProfiles, listOf(stringArg(Routes.ARG_ID))) { childId, entry ->
+            com.kodomo.app.ui.kids.crafts.CraftGuideScreen(entry.stringArg(Routes.ARG_ID), onBack = back, onMyProjects = { navController.navigate(Routes.kidProjects(childId)) })
+        }
+        kid(Routes.KID_CAMERA, toProfiles) { _, _ -> com.kodomo.app.ui.kids.camera.KidCameraScreen(onBack = back) }
+        kid(Routes.KID_CALL, toProfiles) { _, _ -> com.kodomo.app.ui.kids.call.KidCallScreen(onBack = back) }
         kid(Routes.KID_CHORES, toProfiles) { _, _ -> com.kodomo.app.ui.kids.family.ChoresScreen(onBack = back) }
         kid(Routes.KID_LIVE_TV, toProfiles) { _, _ -> com.kodomo.app.ui.kids.video.LiveTvScreen(onBack = back) }
         kid(Routes.KID_GAMES, toProfiles) { childId, _ ->
@@ -189,8 +208,12 @@ fun KodomoNavHost(navController: NavHostController, startDestination: String) {
                 onOpenTelewebion = { navController.navigate(Routes.PARENT_TELEWEBION) },
                 onOpenSites = { navController.navigate(Routes.PARENT_SITES) },
                 onOpenWellbeing = { navController.navigate(Routes.PARENT_WELLBEING) },
+                onOpenModules = { navController.navigate(Routes.PARENT_MODULES) },
+                onOpenContacts = { navController.navigate(Routes.PARENT_CONTACTS) },
             )
         }
+        composable(Routes.PARENT_CONTACTS) { com.kodomo.app.ui.parent.family.ContactsScreen(onBack = back) }
+        composable(Routes.PARENT_MODULES) { com.kodomo.app.ui.parent.wellbeing.ModulesScreen(onBack = back) }
         composable(Routes.PARENT_WELLBEING) { com.kodomo.app.ui.parent.wellbeing.WellbeingScreen(onBack = back) }
         composable(Routes.PARENT_SITES) { com.kodomo.app.ui.parent.apps.SafeSitesScreen(onBack = back) }
         composable(Routes.PARENT_TELEWEBION) { com.kodomo.app.ui.parent.ratings.TelewebionPickerScreen(onBack = back) }

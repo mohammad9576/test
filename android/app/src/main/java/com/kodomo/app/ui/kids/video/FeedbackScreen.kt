@@ -58,7 +58,7 @@ fun FeedbackScreen(contentId: String, onDone: () -> Unit, viewModel: FeedbackVie
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            KodomoAvatar(space.child.avatar, size = 72.dp)
+            KodomoAvatar(space.child.avatar, size = 72.dp, photoId = space.child.id)
             Text(
                 "${space.child.name}، «${item?.title.orEmpty()}» را دوست داشتی؟",
                 style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.Center,
