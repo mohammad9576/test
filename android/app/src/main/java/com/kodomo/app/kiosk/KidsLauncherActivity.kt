@@ -79,16 +79,39 @@ class KidsLauncherActivity : ComponentActivity(), KioskController {
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
         if (hasFocus && inKidSpace) applyImmersive(true)
+        // The child pulled down the notification shade / quick settings: close it again (where Android allows it).
+        if (!hasFocus && inKidSpace && !AppGuardService.externalLaunched && !com.kodomo.app.ui.kids.wellbeing.EmergencyCall.active) {
+            lifecycleScope.launch {
+                repeat(6) {
+                    if (hasWindowFocus()) return@launch
+                    collapseShade()
+                    kotlinx.coroutines.delay(250)
+                }
+            }
+        }
+    }
+
+    @android.annotation.SuppressLint("WrongConstant")
+    private fun collapseShade() {
+        runCatching {
+            val sb = getSystemService("statusbar") ?: return
+            Class.forName("android.app.StatusBarManager").getMethod("collapsePanels").invoke(sb)
+        }
+        @Suppress("DEPRECATION")
+        if (android.os.Build.VERSION.SDK_INT < 31) runCatching { sendBroadcast(Intent(Intent.ACTION_CLOSE_SYSTEM_DIALOGS)) }
     }
 
     override fun launchExternalApp(intent: Intent): Boolean {
         // Screen pinning (no Device Owner) blocks every other app – lift it; the app guard keeps the child in bounds.
         if (deviceOwnerManager.isInLockTask && !deviceOwnerManager.isDeviceOwner) deviceOwnerManager.exitLockTask(this)
-        return runCatching { startActivity(intent) }.isSuccess
+        val ok = runCatching { startActivity(intent) }.isSuccess
+        if (ok && inKidSpace) { AppGuardService.externalLaunched = true; AppGuardService.start(this) }
+        return ok
     }
 
     override fun onResume() {
         super.onResume()
+        AppGuardService.externalLaunched = false
         if (inKidSpace) {
             applyImmersive(true)
             lifecycleScope.launch {
@@ -98,7 +121,7 @@ class KidsLauncherActivity : ComponentActivity(), KioskController {
     }
 
     override fun enterKidSpace() {
-        if (KioskPermissions.hasUsageAccess(this)) AppGuardService.start(this)
+        AppGuardService.start(this)
         inKidSpace = true
         applyImmersive(true)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -132,14 +155,14 @@ class KidsLauncherActivity : ComponentActivity(), KioskController {
     /** The Home role dialog only works when started for a result; if it is declined/unavailable, open Home settings. */
     private val homeRoleLauncher = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()) {
         // Samsung and some other skins close the role dialog without asking: fall back to Android's own chooser.
-        if (!deviceOwnerManager.isDefaultHome && !FakeHomeActivity.showHomeChooser(this)) openHomeSettings()
+        if (!deviceOwnerManager.isDefaultHome) openHomeSettings()
     }
 
     override fun requestDefaultHome() {
         if (deviceOwnerManager.isDefaultHome) return
         val intent = deviceOwnerManager.defaultHomeIntent()
         if (intent.action == android.provider.Settings.ACTION_HOME_SETTINGS) {
-            if (!FakeHomeActivity.showHomeChooser(this)) openHomeSettings()
+            openHomeSettings()
         } else {
             runCatching { homeRoleLauncher.launch(intent) }.onFailure { openHomeSettings() }
         }
@@ -151,11 +174,12 @@ class KidsLauncherActivity : ComponentActivity(), KioskController {
         val other = packageManager.queryIntentActivities(home, 0)
             .map { it.activityInfo }
             .firstOrNull { it.packageName != packageName && it.packageName != "com.android.settings" && it.packageName != "com.android.fallback" }
-        if (other != null) {
-            runCatching {
-                startActivity(Intent(home).setClassName(other.packageName, other.name).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-            }
-        }
+        kotlinx.coroutines.runBlocking { runCatching { session.setKidSpaceChild(null) } }
+        val opened = other != null && runCatching {
+            startActivity(Intent(home).setClassName(other.packageName, other.name).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK))
+        }.isSuccess
+        // No other launcher could be opened: let the parent choose the phone's own home app instead of staying here.
+        if (!opened) openHomeSettings()
         finishAndRemoveTask()
     }
 

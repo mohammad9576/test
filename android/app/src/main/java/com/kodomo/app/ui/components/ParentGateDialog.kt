@@ -1,6 +1,8 @@
 package com.kodomo.app.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -63,6 +65,7 @@ fun ParentGateDialog(
     var challenge by remember { mutableStateOf(ParentGateChallenge.random()) }
     var pin by remember { mutableStateOf("") }
     var answer by remember { mutableStateOf("") }
+    var answering by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var lockSeconds by remember { mutableIntStateOf(gateThrottle.remainingLockSeconds().toInt()) }
     val scope = rememberCoroutineScope()
@@ -95,6 +98,7 @@ fun ParentGateDialog(
                 }
                 pin = ""
                 answer = ""
+                answering = false
                 challenge = ParentGateChallenge.random()
                 lockSeconds = gateThrottle.remainingLockSeconds().toInt()
             }
@@ -111,22 +115,27 @@ fun ParentGateDialog(
                     TextButton(onClick = { askBiometric() }) { Text("👆 ورود با اثر انگشت یا چهره", style = MaterialTheme.typography.titleSmall) }
                 }
                 Spacer(Modifier.height(14.dp))
-                PinDots(length = pin.length)
-                Spacer(Modifier.height(12.dp))
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(
-                        challenge.questionPersian,
-                        style = MaterialTheme.typography.titleLarge.copy(textDirection = androidx.compose.ui.text.style.TextDirection.Ltr),
-                        color = KodomoColors.GreenDark,
-                    )
-                    OutlinedTextField(
-                        value = answer,
-                        onValueChange = { answer = it.take(4) },
-                        singleLine = true,
-                        modifier = Modifier.size(width = 110.dp, height = 58.dp),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        placeholder = { Text("پاسخ") },
-                    )
+                // Both the PIN and the maths answer are typed on Kodomo's own keypad (never the phone keyboard).
+                Box(
+                    Modifier.background(if (!answering) KodomoColors.Mint else Color.Transparent, RoundedCornerShape(16.dp))
+                        .bouncyClick { answering = false }.padding(horizontal = 14.dp, vertical = 8.dp),
+                ) { PinDots(length = pin.length) }
+                Text("رمز والدین", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(Modifier.height(10.dp))
+                Text(
+                    challenge.questionPersian,
+                    style = MaterialTheme.typography.titleLarge.copy(textDirection = androidx.compose.ui.text.style.TextDirection.Ltr),
+                    color = KodomoColors.GreenDark,
+                )
+                Box(
+                    Modifier.size(width = 140.dp, height = 52.dp)
+                        .background(if (answering) KodomoColors.Mint else MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(14.dp))
+                        .border(2.dp, if (answering) KodomoColors.Green else Color.Transparent, RoundedCornerShape(14.dp))
+                        .bouncyClick { answering = true },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(if (answer.isEmpty()) "پاسخ" else PersianDigits.toPersian(answer), style = MaterialTheme.typography.titleLarge,
+                        color = if (answer.isEmpty()) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface)
                 }
                 Spacer(Modifier.height(8.dp))
                 when {
@@ -136,8 +145,11 @@ fun ParentGateDialog(
                 Spacer(Modifier.height(8.dp))
                 PersianKeypad(
                     enabled = lockSeconds == 0,
-                    onDigit = { d -> if (pin.length < 4) pin += d },
-                    onBackspace = { pin = pin.dropLast(1) },
+                    onDigit = { d ->
+                        if (answering) { if (answer.length < 4) answer += d }
+                        else { if (pin.length < 4) pin += d; if (pin.length == 4) answering = true }
+                    },
+                    onBackspace = { if (answering) { if (answer.isEmpty()) answering = false else answer = answer.dropLast(1) } else pin = pin.dropLast(1) },
                 )
                 Spacer(Modifier.height(10.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {

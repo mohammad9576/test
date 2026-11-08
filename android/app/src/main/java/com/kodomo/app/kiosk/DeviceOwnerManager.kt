@@ -108,6 +108,9 @@ class DeviceOwnerManager @Inject constructor(@ApplicationContext private val con
 
     /** Pins Kodomo on screen. With Device Owner this is silent and inescapable; otherwise Android shows its pinning prompt. */
     fun enterLockTask(activity: Activity, allowedPackages: Collection<String> = emptyList()) {
+        // Without Device Owner, Android's screen pinning asks for the phone's PIN every time an approved app opens;
+        // the app guard keeps the child in bounds instead, so pinning is only used in full (Device Owner) mode.
+        if (!isDeviceOwner) return
         if (isInLockTask) return
         if (isDeviceOwner && !isLockTaskPermitted) applyKioskPolicies(allowedPackages)
         runCatching { activity.startLockTask() }.onFailure { Log.w(TAG, "startLockTask failed", it) }

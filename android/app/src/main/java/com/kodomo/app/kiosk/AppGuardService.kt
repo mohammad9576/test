@@ -90,6 +90,12 @@ class AppGuardService : Service() {
             delay(600)
             val state = screenTime.state.value
             if (state.child == null) { bubble.hide(); continue }
+            if (!KioskPermissions.hasUsageAccess(this)) {
+                // Without usage access the guard cannot see other apps: still show Kodomo's bubble (logo + time
+                // left) while an approved app that Kodomo opened is on screen.
+                if (externalLaunched) bubble.show(state.remainingSeconds) else bubble.hide()
+                continue
+            }
             val fg = foregroundPackage() ?: continue
             if (fg == packageName) { bubble.hide(); continue }
             if (fg in ignoredPackages) continue
@@ -146,11 +152,14 @@ class AppGuardService : Service() {
         /** System surfaces that may briefly take the foreground (permission dialogs, keyboard, system UI). */
         private val ignoredPackages = setOf(
             "android", "com.android.systemui", "com.android.permissioncontroller", "com.google.android.permissioncontroller",
-            "com.google.android.inputmethod.latin", "com.android.inputmethod.latin", "com.miui.securitycenter",
+            "com.google.android.inputmethod.latin", "com.android.inputmethod.latin",
             "com.lbe.security.miui", "com.samsung.android.honeyboard",
         )
 
         @Volatile private var running = false
+
+        /** Set when Kodomo opened an approved app, cleared when Kodomo is back on screen. */
+        @Volatile var externalLaunched = false
 
         fun start(context: Context) {
             if (running) return

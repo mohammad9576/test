@@ -88,33 +88,44 @@ fun PermissionSetupScreen(onDone: () -> Unit) {
             .recoverCatching { fallback?.let { context.startActivity(it.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) } }
     }
 
+    val tried = remember { mutableSetOf<String>() }
     val needs = remember(tick) {
         listOf(
             Need("📷", "دوربین، میکروفون، تماس و اعلان", "برای بازی‌های حرکتی، عکاسی کودک، تماس با مخاطبان تأییدشده و خبر دادن به شما.",
                 runtimePermissions.all { context.has(it) }) { runtime.launch(runtimePermissions) },
-            Need("🛡️", "نگهبان برنامه‌ها (دسترسی استفاده)", "تا کدومو بفهمد کودک کدام برنامه را باز کرده و او را برگرداند.",
+            Need("🛡️", "نگهبان برنامه‌ها (دسترسی استفاده)",
+                if (restricted(context)) "اندروید ۱۳ به بالا این اجازه را برای برنامه‌های نصب‌شده از فایل قفل می‌کند. در صفحه‌ای که باز می‌شود: سه‌نقطه‌ی بالای صفحه ← «اجازه به تنظیمات محدود» (Allow restricted settings) ← تأیید با اثر انگشت. بعد دوباره روی «اجازه» بزنید."
+                else "تا کدومو بفهمد کودک کدام برنامه را باز کرده و او را برگرداند.",
                 KioskPermissions.hasUsageAccess(context)) {
-                start(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS, Uri.parse("package:${context.packageName}")), KioskPermissions.usageAccessIntent(context))
+                if (restricted(context) && tried.contains("usage")) start(KioskPermissions.appDetailsIntent(context))
+                else { tried.add("usage"); start(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS, Uri.parse("package:${context.packageName}")), KioskPermissions.usageAccessIntent(context)) }
             },
             Need("🪟", "نمایش روی برنامه‌های دیگر", "برای دکمه‌ی «برگشت به کدومو» و زمان باقی‌مانده روی برنامه‌های مجاز.",
                 KioskPermissions.canDrawOverlays(context)) { start(KioskPermissions.overlayIntent(context)) },
-            Need("🔋", "اجرای همیشگی (بدون بهینه‌سازی باتری)", "تا گوشی نگهبان را در پس‌زمینه نبندد.",
+            Need("🔋", "اجرای همیشگی (بدون محدودیت باتری)",
+                if (tried.contains("battery")) "اگر تیک نخورد: در صفحه‌ی برنامه «ذخیره‌ی باتری / Battery saver» را روی «بدون محدودیت / No restrictions» بگذارید (در شیائومی و سامسونگ این صفحه جداست)."
+                else "تا گوشی نگهبان را در پس‌زمینه نبندد.",
                 context.ignoresBattery()) {
-                start(Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:${context.packageName}")), KioskPermissions.appDetailsIntent(context))
+                if (tried.add("battery")) start(Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:${context.packageName}")), KioskPermissions.appDetailsIntent(context))
+                else start(
+                    Intent().setClassName("com.miui.powerkeeper", "com.miui.powerkeeper.ui.HiddenAppsConfigActivity")
+                        .putExtra("package_name", context.packageName).putExtra("package_label", "کدومو"),
+                    KioskPermissions.appDetailsIntent(context),
+                )
             },
             Need("🏠", "کدومو صفحه‌ی اصلی گوشی", "تا دکمه‌ی Home کودک را از محیط امن بیرون نبرد.",
-                isDefaultHome(context)) { if (!FakeHomeActivity.showHomeChooser(context)) kiosk.openDefaultHomeSettings() },
+                isDefaultHome(context)) { kiosk.requestDefaultHome() },
             Need("🔐", "محافظت در برابر حذف برنامه", "مدیر دستگاه: کودک نمی‌تواند کدومو را حذف کند.",
                 isAdmin(context)) { kiosk.requestDeviceAdmin() },
         )
     }
     val next = needs.firstOrNull { !it.granted }
     // Android's own dialogs open by themselves the first time; each later step opens when the parent returns.
-    val tried = remember { mutableSetOf<String>() }
+    val autoTried = remember { mutableSetOf<String>() }
     LaunchedEffect(tick) {
         if (tick == 0) return@LaunchedEffect
         kotlinx.coroutines.delay(600)
-        if (auto && next != null && tried.add(next.title)) next.open()
+        if (auto && next != null && autoTried.add(next.title)) next.open()
     }
     val done = needs.count { it.granted }
 
@@ -144,6 +155,16 @@ fun PermissionSetupScreen(onDone: () -> Unit) {
             }
         }
         item {
+            Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(Color(0xFFEDE7F6)).padding(14.dp)) {
+                Text("🔒 قفل کامل (پیشرفته، اختیاری)", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                Text(
+                    "اندروید اجازه نمی‌دهد یک برنامه‌ی معمولی جلوی پایین کشیدن نوار اعلان، تنظیمات سریع و پنجره‌های شناور (مثل Game Turbo) را کاملاً بگیرد؛ کدومو آن‌ها را می‌بندد و کودک را برمی‌گرداند، ولی برای قفل صددرصد باید کدومو «مدیر دستگاه کامل» (Device Owner) شود. این کار یک بار با کامپیوتر انجام می‌شود و قبلش باید همه‌ی حساب‌های گوگل/شیائومی گوشی موقتاً حذف شوند:",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                Text("adb shell dpm set-device-owner com.kodomo.app/.kiosk.KodomoDeviceAdminReceiver", style = MaterialTheme.typography.labelMedium, color = Color(0xFF4527A0))
+            }
+        }
+        item {
             Button(onClick = onDone, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
                 Text(if (next == null) "همه‌چیز آماده است ✨ ورود به کدومو" else "ادامه (بعداً از داشبورد کامل می‌کنم)")
             }
@@ -161,4 +182,13 @@ private fun isDefaultHome(context: Context): Boolean {
 private fun isAdmin(context: Context): Boolean {
     val dpm = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as android.app.admin.DevicePolicyManager
     return dpm.isAdminActive(android.content.ComponentName(context, com.kodomo.app.kiosk.KodomoDeviceAdminReceiver::class.java))
+}
+
+/** Android 13+ blocks «restricted settings» (usage access, accessibility…) for apps installed from a file until allowed. */
+private fun restricted(context: Context): Boolean {
+    if (Build.VERSION.SDK_INT < 33) return false
+    val ops = context.getSystemService(Context.APP_OPS_SERVICE) as android.app.AppOpsManager
+    return runCatching {
+        ops.unsafeCheckOpNoThrow("android:access_restricted_settings", android.os.Process.myUid(), context.packageName) != android.app.AppOpsManager.MODE_ALLOWED
+    }.getOrDefault(false)
 }
