@@ -48,3 +48,10 @@ class CurriculumTest {
         }
     }
 }
+
+class CurriculumIdsTest {
+    @org.junit.Test fun unitIdsAreUnique() {
+        val ids = com.kodomo.app.domain.learn.Curriculum.units.map { it.id }
+        org.junit.Assert.assertEquals("duplicate unit ids: ${ids.groupBy { it }.filter { it.value.size > 1 }.keys}", ids.size, ids.toSet().size)
+    }
+}

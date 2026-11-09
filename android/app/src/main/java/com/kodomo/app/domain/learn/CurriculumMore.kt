@@ -29,7 +29,7 @@ internal object CurriculumMore {
             q("هویج چه رنگی است؟ 🥕", "نارنجی", "آبی", "سفید", "هویج نارنجی است."),
             q("کدام سفید است؟", "ابر ☁️", "توت‌فرنگی 🍓", "برگ 🍃", "ابرها سفیدند."),
         )),
-        u("pre_shapes", Grade.PRE, Subject.MATH, "شکل‌ها", "🔷", listOf(
+        u("pre_shapes_b", Grade.PRE, Subject.MATH, "شکل‌ها", "🔷", listOf(
             "⚪" to "دایره گرد است، مثل توپ و چرخ.",
             "🟥" to "مربع چهار ضلع مساوی دارد، مثل پنجره.",
             "🔺" to "مثلث سه ضلع و سه گوشه دارد، مثل کلاه تولد.",
@@ -129,7 +129,7 @@ internal object CurriculumMore {
         u("g1_clock", Grade.G1, Subject.MATH, "ساعت", "🕐", listOf(
             "🕐" to "عقربه‌ی کوتاه ساعت را نشان می‌دهد؛ وقتی عقربه‌ی بلند روی ۱۲ است، ساعت «تمام» است.",
         )) { r -> val h = r.nextInt(1, 13); Q.num("عقربه‌ی کوتاه روی ${h.fa()} و عقربه‌ی بلند روی ۱۲ است. ساعت چند است؟", h, "ساعت ${h.fa()} تمام است.", r, 2, 1) },
-        u("g2_add100", Grade.G2, Subject.MATH, "جمع دورقمی", "➕", listOf(
+        u("g2_add100_b", Grade.G2, Subject.MATH, "جمع دورقمی", "➕", listOf(
             "🔢" to "اول یکی‌ها را جمع کن، بعد ده‌تایی‌ها. اگر یکی‌ها از ۹ بیشتر شد، یک ده‌تایی به ده‌تایی‌ها اضافه کن.",
         )) { r -> val a = r.nextInt(10, 60); val c = r.nextInt(10, 40); Q.num(Q.ltr("${a.fa()} + ${c.fa()} = ؟"), a + c, "${a.fa()} + ${c.fa()} = ${(a + c).fa()}.", r, 10, 0) },
         u("g2_sub100", Grade.G2, Subject.MATH, "تفریق دورقمی", "➖", listOf(
@@ -144,7 +144,7 @@ internal object CurriculumMore {
         u("g3_3digit", Grade.G3, Subject.MATH, "عددهای سه‌رقمی", "💯", listOf(
             "🧱" to "۳۴۵ یعنی ۳ صدتایی، ۴ ده‌تایی و ۵ یکی.",
         )) { r -> val h = r.nextInt(1, 10); val t = r.nextInt(0, 10); val o = r.nextInt(0, 10); Q.num("${h.fa()} صدتایی، ${t.fa()} ده‌تایی و ${o.fa()} یکی چه عددی است؟", h * 100 + t * 10 + o, "${(h * 100).fa()} + ${(t * 10).fa()} + ${o.fa()} = ${(h * 100 + t * 10 + o).fa()}.", r, 30, 0) },
-        u("g3_division", Grade.G3, Subject.MATH, "تقسیم", "➗", listOf(
+        u("g3_division_b", Grade.G3, Subject.MATH, "تقسیم", "➗", listOf(
             "🍬" to "تقسیم یعنی پخش کردن مساوی: ۱۲ آبنبات بین ۳ نفر، به هر نفر ۴ تا می‌رسد.",
             "🔁" to "تقسیم برعکس ضرب است: چون ۳ × ۴ = ۱۲، پس ۱۲ ÷ ۳ = ۴.",
         )) { r -> val c = r.nextInt(2, 10); val a = r.nextInt(2, 10); Q.num(Q.ltr("${(a * c).fa()} ÷ ${c.fa()} = ؟"), a, "چون ${c.fa()} × ${a.fa()} = ${(a * c).fa()}.", r, 3, 1) },
@@ -172,7 +172,7 @@ internal object CurriculumMore {
             q("مربع چند خط تقارن دارد؟", "۴", "۱", "۲", "دو خط از وسط ضلع‌ها و دو قطر."),
             q("دایره چند خط تقارن دارد؟", "بی‌شمار", "۱", "۴", "هر خطی که از مرکز بگذرد خط تقارن است."),
         )),
-        u("g4_angle", Grade.G4, Subject.MATH, "زاویه", "📐", listOf(
+        u("g4_angle_b", Grade.G4, Subject.MATH, "زاویه", "📐", listOf(
             "📐" to "زاویه‌ی راست ۹۰ درجه است، مثل گوشه‌ی کتاب. کمتر از ۹۰ تند و بیشتر از ۹۰ باز است.",
         ), b(
             q("گوشه‌ی دفتر چه زاویه‌ای است؟", "راست (۹۰ درجه)", "تند", "باز", "گوشه‌ی دفتر ۹۰ درجه است."),
@@ -184,7 +184,7 @@ internal object CurriculumMore {
         )) { r -> val a = r.nextInt(1, 50); val c = r.nextInt(1, 50); val sum = a + c
             fun d(x: Int) = Q.ltr("${(x / 10).fa()}٫${(x % 10).fa()}")
             Q.pick("${d(a)} + ${d(c)} = ؟", d(sum), listOf(d(sum + 1), d(sum - 1), d(sum + 10)), "ممیزها را زیر هم بگذار و جمع کن: ${d(sum)}.", r) },
-        u("g5_area", Grade.G5, Subject.MATH, "مساحت", "🟦", listOf(
+        u("g5_area_b", Grade.G5, Subject.MATH, "مساحت", "🟦", listOf(
             "🟦" to "مساحت مستطیل = طول × عرض. مساحت مثلث = (قاعده × ارتفاع) ÷ ۲.",
         )) { r -> val a = r.nextInt(2, 15); val c = r.nextInt(2, 12); if (r.nextBoolean()) Q.num("مساحت مستطیلی با طول ${a.fa()} و عرض ${c.fa()} سانتی‌متر؟", a * c, "${a.fa()} × ${c.fa()} = ${(a * c).fa()}.", r, 6, 1)
             else { val base = a * 2; Q.num("مساحت مثلثی با قاعده‌ی ${base.fa()} و ارتفاع ${c.fa()}؟", base * c / 2, "(${base.fa()} × ${c.fa()}) ÷ ۲ = ${(base * c / 2).fa()}.", r, 6, 1) } },
