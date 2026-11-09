@@ -57,7 +57,7 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @Composable
-fun RatingsTab(viewModel: ParentHubViewModel, onOpen: (String) -> Unit, onOpenTelewebion: () -> Unit, modifier: Modifier = Modifier) {
+fun RatingsTab(viewModel: ParentHubViewModel, onOpen: (String) -> Unit, onOpenTelewebion: () -> Unit, modifier: Modifier = Modifier, onOpenWatch: () -> Unit = {}) {
     val items by viewModel.ratedContent.collectAsStateWithLifecycle()
     val status by viewModel.kodoumoStatus.collectAsStateWithLifecycle()
     val imported by viewModel.kodoumoCount.collectAsStateWithLifecycle()
@@ -106,6 +106,12 @@ fun RatingsTab(viewModel: ParentHubViewModel, onOpen: (String) -> Unit, onOpenTe
                     androidx.compose.material3.FilterChip(selected = w.kodoumoChoiceAsked && !w.kodoumoAutoShow, onClick = { viewModel.setKodoumoAutoShow(false) }, label = { Text("فقط انتخاب‌های من") })
                     androidx.compose.material3.FilterChip(selected = w.kodoumoChoiceAsked && w.kodoumoAutoShow, onClick = { viewModel.setKodoumoAutoShow(true) }, label = { Text("همه‌ی تأییدشده‌های کدومو") })
                 }
+            }
+        }
+        item {
+            KodomoCard(Modifier.fillMaxWidth(), onClick = onOpenWatch) {
+                Text("🍿 تماشا برای والدین", style = MaterialTheme.typography.titleMedium)
+                Text("تلوبیون، فیلیمو، نماوا، فیلم‌نت، آپارات، شیدا، طاقچه و فیدیبو به‌صورت کامل و بدون محدودیت؛ با دیدن ارزیابی کدومو و پخش روی تلویزیون.", style = MaterialTheme.typography.bodySmall)
             }
         }
         item {

@@ -84,11 +84,26 @@ object WebLockRules {
      * Injected after every load: cancels link clicks and `window.open`, freezes client-side routing (pushState) in
      * pinned mode and hides site chrome and ad slots, so the child sees only the player.
      */
-    fun lockScript(pinned: Boolean, frames: List<String> = telewebionHosts): String = """
+    fun lockScript(pinned: Boolean, frames: List<String> = telewebionHosts, free: Boolean = false): String = """
         (function(){
           if (window.__kodomoLock) return; window.__kodomoLock = true;
+          var pinned = $pinned, free = $free;
+          // «Get our app» / cookie / notification pop-ups that cover the page (e.g. Taaghche) are closed.
+          var promo = /(اپلیکیشن|اپلیکیشن|نصب|دانلود\s*اپ|برنامه‌ی|نسخه‌ی اندروید|cookie|کوکی|اعلان|notification|install the app|open in app)/i;
+          function clearPromos(){
+            document.querySelectorAll('div,section,aside,dialog').forEach(function(el){
+              var cs = getComputedStyle(el);
+              if ((cs.position === 'fixed' || cs.position === 'sticky') && parseInt(cs.zIndex || '0') >= 10) {
+                var r = el.getBoundingClientRect();
+                var covers = r.width > innerWidth * 0.6 && r.height > 40;
+                if (covers && promo.test((el.innerText || '').slice(0, 400)) && !el.querySelector('video')) el.style.setProperty('display', 'none', 'important');
+              }
+            });
+            [document.documentElement, document.body].forEach(function(n){ if (n && getComputedStyle(n).overflow === 'hidden' && !document.querySelector('.kd-player')) n.style.setProperty('overflow', 'auto', 'important'); });
+          }
+          clearPromos(); var pc = 0; var pt = setInterval(function(){ clearPromos(); if (++pc > 20) clearInterval(pt); }, 1500);
+          if (free) return;
           window.open = function(){ return null; };
-          var pinned = $pinned;
           document.addEventListener('click', function(e){
             var a = e.target && e.target.closest ? e.target.closest('a,[href],[onclick*="location"]') : null;
             if (!a) return;
@@ -182,7 +197,8 @@ fun LockedWebPlayer(
         }
     }
 
-    val script = remember(pinned, frameHosts) { WebLockRules.lockScript(pinned, frameHosts) }
+    val free = lock is WebLock.SameSite && lock.anyHost
+    val script = remember(pinned, frameHosts, free) { WebLockRules.lockScript(pinned, frameHosts, free) }
 
     Box(modifier.background(Color.Black)) {
         AndroidView(
@@ -229,7 +245,7 @@ fun LockedWebPlayer(
                             val url = request.url.toString()
                             if (request.isForMainFrame) return !WebLockRules.allowsMainFrame(lock, url)
                             // Sub-frames: only the site's own player frames.
-                            return !WebLockRules.hostMatches(request.url.host.orEmpty(), frameHosts)
+                            return !free && !WebLockRules.hostMatches(request.url.host.orEmpty(), frameHosts)
                         }
 
                         override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? {
@@ -238,7 +254,7 @@ fun LockedWebPlayer(
                             // A foreign HTML document (an ad iframe) is never loaded.
                             val accept = request.requestHeaders["Accept"].orEmpty()
                             if (!request.isForMainFrame && accept.startsWith("text/html") &&
-                                !WebLockRules.hostMatches(host, frameHosts)
+                                !free && !WebLockRules.hostMatches(host, frameHosts)
                             ) return WebLockRules.empty()
                             return null
                         }

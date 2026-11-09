@@ -123,77 +123,21 @@ fun KidHomeScreen(onOpen: (String) -> Unit, childId: Long, viewModel: KidHomeVie
     val bounce = rememberInfiniteTransition(label = "avatar")
     val avatarScale by bounce.animateFloat(1f, if (spec.gamified) 1.06f else 1f, infiniteRepeatable(tween(900), RepeatMode.Reverse), label = "s")
 
-    LazyVerticalGrid(
-        columns = GridCells.Fixed(spec.gridColumns),
-        modifier = Modifier.fillMaxSize().statusBarsPadding(),
-        contentPadding = PaddingValues(16.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        item(span = { GridItemSpan(maxLineSpan) }) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                KodomoAvatar(child.avatar, size = 52.dp, photoId = child.id, modifier = Modifier.graphicsLayer { scaleX = avatarScale; scaleY = avatarScale })
-                Spacer(Modifier.width(10.dp))
-                Column(Modifier.weight(1f)) {
-                    Text("سلام ${child.name}!", style = MaterialTheme.typography.titleLarge)
-                    if (spec.gamified || spec.group == AgeGroup.PRE_TEEN) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            StarBadge(child.stars)
-                            val medals = achievements.count { it.earnedAt != null }
-                            Text("🏅 ${medals.fa()}", style = MaterialTheme.typography.labelLarge)
-                        }
-                    }
-                }
-                if (time.child?.id == childId) TimeLeftChip(time.remainingSeconds, time.progress)
-                if (spec.darkThemeAllowed) {
-                    IconButton(onClick = { viewModel.toggleDarkMode(child) }) {
-                        Icon(if (child.darkMode) Icons.Rounded.LightMode else Icons.Rounded.DarkMode, contentDescription = "تغییر تم")
-                    }
-                }
-                Box(
-                    Modifier
-                        .size(40.dp)
-                        .background(MaterialTheme.colorScheme.surfaceVariant, CircleShape)
-                        .combinedClickable(onClick = {}, onLongClick = space.requestParentExit),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(Icons.Rounded.Lock, contentDescription = "ورود والدین (نگه دارید)", modifier = Modifier.size(18.dp))
-                }
-            }
-        }
-        item(span = { GridItemSpan(maxLineSpan) }) {
-            BuddyChooserRow()
-        }
-        item(span = { GridItemSpan(maxLineSpan) }) {
-            MascotSpeech(
-                text = greeting.text,
-                mood = greeting.mood,
-                mascotSize = if (spec.group == AgeGroup.TODDLER) 130.dp else 104.dp,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f), RoundedCornerShape(spec.cornerRadiusDp.dp))
-                    .padding(10.dp),
-            )
-        }
-        items(modules.size, key = { modules[it].route }) { i ->
-            val module = modules[i]
-            ModuleTile(
-                index = i,
-                title = module.title,
-                emoji = module.emoji,
-                colors = module.colors,
-                subtitle = null,
-                onClick = {
-                    space.guide(module.title)
-                    onOpen(module.route)
-                },
-            )
-        }
-        item(span = { GridItemSpan(maxLineSpan) }) {
-            com.kodomo.app.ui.kids.wellbeing.CallParentsRow(com.kodomo.app.ui.kids.LocalWellbeing.current, space.callParent)
-        }
-        item(span = { GridItemSpan(maxLineSpan) }) { Spacer(Modifier.height(24.dp)) }
-    }
+    val night = child.darkMode || com.kodomo.app.ui.theme.NightMode.isNight()
+    LauncherHome(
+        name = child.name,
+        modules = modules,
+        columns = if (spec.group == AgeGroup.TODDLER) 3 else 4,
+        remainingSeconds = if (time.child?.id == childId) time.remainingSeconds else null,
+        progress = time.progress,
+        stars = child.stars,
+        medals = achievements.count { it.earnedAt != null },
+        night = night,
+        buddy = { m -> BuddyWidget(greeting.text, m) },
+        extras = { com.kodomo.app.ui.kids.wellbeing.CallParentsRow(com.kodomo.app.ui.kids.LocalWellbeing.current, space.callParent) },
+        onParentLongPress = space.requestParentExit,
+        onOpen = { module -> space.guide(module.title); onOpen(module.route) },
+    )
 }
 
 /** Remembers when each child was last greeted aloud, so returning from a section stays quiet. */
@@ -208,24 +152,22 @@ internal object GreetingMemory {
     }
 }
 
-/** «دوست من»: shows the chosen companion and lets the child swap it for another character. */
+/** The companion as a home-screen widget: it says hello; tapping it lets the child pick another character. */
 @Composable
-private fun BuddyChooserRow() {
+private fun BuddyWidget(greeting: String, modifier: Modifier = Modifier) {
     val space = LocalKidSpace.current
     val buddy = com.kodomo.app.ui.mascot.LocalBuddy.current
     var picking by remember { mutableStateOf(false) }
     Row(
-        Modifier
-            .fillMaxWidth()
-            .background(Color(buddy.colors.first).copy(alpha = 0.6f), RoundedCornerShape(50))
-            .bouncyClick { picking = true }
-            .padding(horizontal = 14.dp, vertical = 6.dp),
+        modifier.glass().bouncyClick { picking = true }.padding(10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        com.kodomo.app.ui.fx.Emoji(buddy.emoji, 26.dp)
-        Spacer(Modifier.width(8.dp))
-        Text("دوست من: ${buddy.title}", style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f))
-        Text("عوض کن 🔄", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+        com.kodomo.app.ui.mascot.BuddyMascot(buddy, MascotMood.HAPPY, size = 58.dp)
+        Spacer(Modifier.width(6.dp))
+        Column(Modifier.weight(1f)) {
+            Text(buddy.title, style = MaterialTheme.typography.labelLarge, color = Color.White, fontWeight = FontWeight.Bold, maxLines = 1)
+            Text(greeting, style = MaterialTheme.typography.labelSmall, color = Color.White, maxLines = 3, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+        }
     }
     if (picking) {
         androidx.compose.material3.AlertDialog(

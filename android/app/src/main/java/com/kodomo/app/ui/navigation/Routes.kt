@@ -59,6 +59,7 @@ object Routes {
     const val PARENT_WELLBEING = "parent/wellbeing"
     const val PARENT_MODULES = "parent/modules"
     const val PARENT_CONTACTS = "parent/contacts"
+    const val PARENT_WATCH = "parent/watch"
     const val SETUP_PERMISSIONS = "setup/permissions"
 
     fun kidHome(childId: Long) = "kid/$childId/home"

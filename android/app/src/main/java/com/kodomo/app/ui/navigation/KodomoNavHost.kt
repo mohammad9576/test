@@ -211,7 +211,11 @@ fun KodomoNavHost(navController: NavHostController, startDestination: String) {
                 onOpenWellbeing = { navController.navigate(Routes.PARENT_WELLBEING) },
                 onOpenModules = { navController.navigate(Routes.PARENT_MODULES) },
                 onOpenContacts = { navController.navigate(Routes.PARENT_CONTACTS) },
+                onOpenWatch = { navController.navigate(Routes.PARENT_WATCH) },
             )
+        }
+        composable(Routes.PARENT_WATCH) {
+            com.kodomo.app.ui.parent.watch.ParentWatchScreen(onBack = back, onAddForKids = { p -> navController.navigate(Routes.parentProvider(p.name)) })
         }
         composable(Routes.PARENT_CONTACTS) { com.kodomo.app.ui.parent.family.ContactsScreen(onBack = back) }
         composable(Routes.PARENT_MODULES) { com.kodomo.app.ui.parent.wellbeing.ModulesScreen(onBack = back) }
