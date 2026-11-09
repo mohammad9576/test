@@ -72,8 +72,8 @@ private val textShadow = Shadow(Color.Black.copy(alpha = 0.35f), Offset(0f, 2f),
 /** Wallpaper colours by time of day (morning, day, evening, night) — the launcher feels alive like a phone's. */
 private fun wallpaper(hour: Int, night: Boolean): List<Color> = when {
     night || hour >= 21 || hour < 5 -> listOf(Color(0xFF0B1026), Color(0xFF1B2B5A), Color(0xFF3A2D6B))
-    hour < 9 -> listOf(Color(0xFFFF9A8B), Color(0xFFFFC3A0), Color(0xFF7FD1E8))
-    hour < 17 -> listOf(Color(0xFF4FACFE), Color(0xFF00C6FB), Color(0xFF6DE3B9))
+    hour < 9 -> listOf(Color(0xFFFF7E67), Color(0xFFD9577F), Color(0xFF5B6CDB))
+    hour < 17 -> listOf(Color(0xFF2F80ED), Color(0xFF1FA2C9), Color(0xFF2BB59A))
     else -> listOf(Color(0xFF7F53AC), Color(0xFFE96443), Color(0xFFFFB25B))
 }
 
@@ -105,7 +105,7 @@ fun LauncherWallpaper(night: Boolean) {
 /** Frosted-glass card used by the widgets and the dock. */
 fun Modifier.glass(corner: Dp = 28.dp) = this
     .clip(RoundedCornerShape(corner))
-    .background(Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.28f), Color.White.copy(alpha = 0.14f))))
+    .background(Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.26f), Color.Black.copy(alpha = 0.08f))))
     .border(1.dp, Color.White.copy(alpha = 0.38f), RoundedCornerShape(corner))
 
 @Composable
