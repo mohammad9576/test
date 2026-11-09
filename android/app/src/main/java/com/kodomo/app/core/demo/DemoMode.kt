@@ -30,6 +30,7 @@ object DemoMode {
 class DemoSeeder @Inject constructor(
     private val family: FamilyRepository,
     private val session: SessionPreferences,
+    private val settings: com.kodomo.app.domain.repository.SettingsRepository,
 ) {
     /** Makes sure the demo family exists and returns [route] with `{child}` replaced by the demo child's id. */
     suspend fun prepare(route: String, age: Int): String {
@@ -49,6 +50,8 @@ class DemoSeeder @Inject constructor(
             ),
             dailyLimitMinutes = 180,
         )
+        // Screenshots at any hour: no bedtime lock for the sample child.
+        runCatching { settings.saveSettings(settings.getSettings(id).copy(bedtimeEnabled = false)) }
         session.setActiveChild(id)
         return route.replace("{child}", id.toString())
     }
