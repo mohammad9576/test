@@ -1,6 +1,7 @@
 package com.kodomo.app.ui.parent.ratings
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
@@ -56,103 +57,183 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun RatingsTab(viewModel: ParentHubViewModel, onOpen: (String) -> Unit, onOpenTelewebion: () -> Unit, modifier: Modifier = Modifier, onOpenWatch: () -> Unit = {}) {
     val items by viewModel.ratedContent.collectAsStateWithLifecycle()
     val status by viewModel.kodoumoStatus.collectAsStateWithLifecycle()
-    val imported by viewModel.kodoumoCount.collectAsStateWithLifecycle()
-    var type by remember { mutableStateOf<ContentType?>(null) }
-    var query by remember { mutableStateOf("") }
-    val types = listOf(
-        ContentType.VIDEO, ContentType.BOOK_REVIEW, ContentType.GAME_REVIEW, ContentType.TOY_REVIEW,
-        ContentType.BOOK, ContentType.MUSIC, ContentType.LEARNING,
-    )
+    val lastSync by viewModel.kodoumoLastSync.collectAsStateWithLifecycle()
+    val w by viewModel.wellbeing.collectAsStateWithLifecycle()
+    var q by remember { mutableStateOf(RatingsFilter.Query()) }
+    var sortMenu by remember { mutableStateOf(false) }
+    // Quiet background refresh (at most twice a day); nothing on this screen waits for it.
     LaunchedEffect(Unit) { viewModel.autoSyncKodoumo() }
-    LazyColumn(modifier, contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    val kinds = remember(items) { RatingsFilter.kinds(items) }
+    val genres = remember(items, q.kind) { RatingsFilter.genres(items, q.kind) }
+    val shown = remember(items, q) { RatingsFilter.apply(items, q) }
+
+    LazyColumn(modifier, contentPadding = PaddingValues(bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         item {
-            Text("سامانه ارزیابی تربیتی کدومو", style = MaterialTheme.typography.headlineSmall)
-            Text("شناسنامه‌ی تخصصی هر اثر: سن پیشنهادی، شاخص‌های مثبت و منفی و دیدگاه کارشناسان.", style = MaterialTheme.typography.bodySmall)
-        }
-        item {
-            KodomoCard(Modifier.fillMaxWidth()) {
-                Text("ارزیابی‌های kodoumo.ir", style = MaterialTheme.typography.titleMedium)
-                Text(
-                    "${imported.fa()} اثر با رده‌بندی سنی و شاخص‌های کدومو دریافت شده است. فیلم‌ها و انیمیشن‌ها فقط در صورتی به کودک نشان داده می‌شوند که سن و سطح خشونت/ترس/ناهنجاری آن‌ها با تنظیمات شما بخواند.",
-                    style = MaterialTheme.typography.bodySmall,
-                )
-                Text(
-                    when (val s = status) {
-                        is com.kodomo.app.data.kodoumo.KodoumoImporter.Status.Running -> "⏳ در حال دریافت ${s.category}… (${s.done.fa()} اثر)"
-                        is com.kodomo.app.data.kodoumo.KodoumoImporter.Status.Finished -> "✅ به‌روزرسانی انجام شد (${s.imported.fa()} اثر)"
-                        is com.kodomo.app.data.kodoumo.KodoumoImporter.Status.Failed -> "⚠️ ${s.message}"
-                        com.kodomo.app.data.kodoumo.KodoumoImporter.Status.Idle -> "✅ به‌روز؛ با هر بار باز کردن این صفحه خودکار به‌روز می‌شود"
-                    },
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                )
+            Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp)) {
+                Text("ارزیابی‌های کدومو", style = MaterialTheme.typography.headlineSmall)
+                val running = status is com.kodomo.app.data.kodoumo.KodoumoImporter.Status.Running
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        buildString {
+                            append("${items.size.fa()} اثر")
+                            append(" • ")
+                            append(
+                                when {
+                                    running -> "در حال به‌روزرسانی در پس‌زمینه…"
+                                    status is com.kodomo.app.data.kodoumo.KodoumoImporter.Status.Failed && items.isEmpty() -> "kodoumo.ir فقط با اینترنت داخل ایران باز می‌شود"
+                                    lastSync == 0L -> "هنوز به‌روزرسانی نشده"
+                                    else -> "به‌روزرسانی: " + ago(lastSync)
+                                },
+                            )
+                        },
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(1f),
+                    )
+                    if (!running) androidx.compose.material3.TextButton(onClick = { viewModel.syncKodoumo() }) { Text("به‌روزرسانی") }
+                }
             }
         }
-        item {
-            val w by viewModel.wellbeing.collectAsStateWithLifecycle()
-            KodomoCard(Modifier.fillMaxWidth()) {
-                Text("👨‍👩‍👧 چه چیزی به کودک نشان داده شود؟", style = MaterialTheme.typography.titleMedium)
-                Text(
-                    if (!w.kodoumoChoiceAsked) "لطفاً یکی را انتخاب کنید:"
-                    else if (w.kodoumoAutoShow) "الان: همه‌ی آثاری که کدومو برای سن کودک مناسب دانسته، خودکار نمایش داده می‌شوند."
-                    else "الان: فقط آثاری که خودتان انتخاب و تأیید کرده‌اید به کودک نشان داده می‌شوند.",
-                    style = MaterialTheme.typography.bodySmall,
-                )
-                androidx.compose.foundation.layout.Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    androidx.compose.material3.FilterChip(selected = w.kodoumoChoiceAsked && !w.kodoumoAutoShow, onClick = { viewModel.setKodoumoAutoShow(false) }, label = { Text("فقط انتخاب‌های من") })
-                    androidx.compose.material3.FilterChip(selected = w.kodoumoChoiceAsked && w.kodoumoAutoShow, onClick = { viewModel.setKodoumoAutoShow(true) }, label = { Text("همه‌ی تأییدشده‌های کدومو") })
+        if (!w.kodoumoChoiceAsked) {
+            item {
+                KodomoCard(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                    Text("چه چیزی به کودک نشان داده شود؟", style = MaterialTheme.typography.titleMedium)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        FilterChip(selected = false, onClick = { viewModel.setKodoumoAutoShow(false) }, label = { Text("فقط انتخاب‌های من") })
+                        FilterChip(selected = false, onClick = { viewModel.setKodoumoAutoShow(true) }, label = { Text("همه‌ی تأییدشده‌های کدومو") })
+                    }
                 }
             }
         }
         item {
-            KodomoCard(Modifier.fillMaxWidth(), onClick = onOpenWatch) {
-                Text("🍿 تماشا برای والدین", style = MaterialTheme.typography.titleMedium)
-                Text("تلوبیون، فیلیمو، نماوا، فیلم‌نت، آپارات، شیدا، طاقچه و فیدیبو به‌صورت کامل و بدون محدودیت؛ با دیدن ارزیابی کدومو و پخش روی تلویزیون.", style = MaterialTheme.typography.bodySmall)
+            Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                KodomoCard(Modifier.weight(1f), onClick = onOpenTelewebion) {
+                    Text("➕ افزودن برای کودک", style = MaterialTheme.typography.titleSmall)
+                    Text("تلوبیون، فیلیمو، نماوا، فیلم‌نت…", style = MaterialTheme.typography.labelSmall, maxLines = 1)
+                }
+                KodomoCard(Modifier.weight(1f), onClick = onOpenWatch) {
+                    Text("🍿 تماشای والدین", style = MaterialTheme.typography.titleSmall)
+                    Text("بدون محدودیت، با ارزیابی", style = MaterialTheme.typography.labelSmall, maxLines = 1)
+                }
             }
         }
-        item {
-            KodomoCard(Modifier.fillMaxWidth(), onClick = onOpenTelewebion) {
-                Text("📺 افزودن کارتون و کتاب از سرویس‌ها", style = MaterialTheme.typography.titleMedium)
-                Text("تلوبیون • آپارات کودک • فیلیمو • فیلم‌نت • شیدا • نماوا • طاقچه • فیدیبو", style = MaterialTheme.typography.labelLarge)
-                Text(
-                    "بخش کودک سرویس را مرور کنید؛ برای هر کارتون، ارزیابی کدومو (سن، خشونت، ترس، ناهنجاری و نکات والدین) جستجو و نمایش داده می‌شود و فقط پس از تأیید شما و تطبیق با کدومو به کودک نشان داده می‌شود.",
-                    style = MaterialTheme.typography.bodySmall,
+        stickyHeader {
+            Column(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background).padding(horizontal = 16.dp, vertical = 6.dp)) {
+                androidx.compose.material3.OutlinedTextField(
+                    value = q.text, onValueChange = { q = q.copy(text = it) }, singleLine = true,
+                    placeholder = { Text("جستجو: نام اثر، ژانر، نویسنده…") },
+                    leadingIcon = { androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Rounded.Search, contentDescription = null) },
+                    trailingIcon = {
+                        if (q.text.isNotEmpty()) androidx.compose.material3.IconButton(onClick = { q = q.copy(text = "") }) {
+                            androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Rounded.Close, contentDescription = "پاک کردن")
+                        }
+                    },
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(28.dp),
+                    modifier = Modifier.fillMaxWidth(),
                 )
             }
         }
         item {
-            androidx.compose.material3.OutlinedTextField(
-                value = query, onValueChange = { query = it }, singleLine = true, placeholder = { Text("جستجوی عنوان…") },
-                modifier = Modifier.fillMaxWidth(),
-            )
-        }
-        item {
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                item { FilterChip(selected = type == null, onClick = { type = null }, label = { Text("همه") }) }
-                items(types) { t -> FilterChip(selected = type == t, onClick = { type = t }, label = { Text(t.label) }) }
+            LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                item { FilterChip(selected = q.kind == null, onClick = { q = q.copy(kind = null, genre = null) }, label = { Text("همه (${items.size.fa()})") }) }
+                items(kinds, key = { it.first }) { (k, n) ->
+                    FilterChip(selected = q.kind == k, onClick = { q = q.copy(kind = if (q.kind == k) null else k, genre = null) }, label = { Text("$k (${n.fa()})") })
+                }
             }
         }
-        items(items.filter { (type == null || it.type == type) && (query.isBlank() || it.title.contains(query.trim())) }, key = { it.id }) { item ->
-            KodomoCard(onClick = { onOpen(item.id) }) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    com.kodomo.app.ui.components.ContentCover(item, Modifier.size(width = 64.dp, height = 88.dp), emojiSize = 32, corner = 14.dp)
-                    Spacer(Modifier.width(12.dp))
-                    Column(Modifier.weight(1f)) {
-                        Text(item.title, style = MaterialTheme.typography.titleMedium)
-                        Text(if (item.rating.minAge > 18) "${item.type.label} • ⏳ در حال ارزیابی کدومو" else "${item.type.label} • سن پیشنهادی: ${item.rating.minAge.fa()} تا ${item.rating.maxAge.fa()} سال", style = MaterialTheme.typography.labelMedium)
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            RatingPill("خشونت", item.rating.violence)
-                            RatingPill("ترس", item.rating.fear)
-                            RatingPill("آموزندگی", item.rating.educational, positive = true)
+        if (genres.isNotEmpty()) {
+            item {
+                LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    items(genres, key = { it }) { g ->
+                        androidx.compose.material3.SuggestionChip(
+                            onClick = { q = q.copy(genre = if (q.genre == g) null else g) },
+                            label = { Text(if (q.genre == g) "✓ $g" else g) },
+                            colors = if (q.genre == g) androidx.compose.material3.SuggestionChipDefaults.suggestionChipColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+                            else androidx.compose.material3.SuggestionChipDefaults.suggestionChipColors(),
+                        )
+                    }
+                }
+            }
+        }
+        item {
+            LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(RatingsFilter.Age.entries.toList()) { a -> FilterChip(selected = q.age == a, onClick = { q = q.copy(age = a) }, label = { Text(a.label) }) }
+            }
+        }
+        item {
+            Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                LazyRow(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(RatingsFilter.Status.entries.toList()) { st -> FilterChip(selected = q.status == st, onClick = { q = q.copy(status = st) }, label = { Text(st.label) }) }
+                }
+                Box {
+                    androidx.compose.material3.AssistChip(onClick = { sortMenu = true }, label = { Text("↕ " + q.sort.label) })
+                    androidx.compose.material3.DropdownMenu(expanded = sortMenu, onDismissRequest = { sortMenu = false }) {
+                        RatingsFilter.Sort.entries.forEach { so ->
+                            androidx.compose.material3.DropdownMenuItem(text = { Text(so.label) }, onClick = { q = q.copy(sort = so); sortMenu = false })
                         }
                     }
                 }
             }
         }
+        item {
+            Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("${shown.size.fa()} نتیجه", style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f))
+                if (!q.isDefault) androidx.compose.material3.TextButton(onClick = { q = RatingsFilter.Query() }) { Text("پاک کردن فیلترها") }
+            }
+        }
+        if (shown.isEmpty()) {
+            item {
+                Text(
+                    if (items.isEmpty()) "فهرست کدومو هنوز دریافت نشده است. کمی بعد دوباره سر بزنید؛ به‌روزرسانی خودکار در پس‌زمینه انجام می‌شود."
+                    else "اثری با این فیلترها پیدا نشد.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(24.dp),
+                )
+            }
+        }
+        items(shown, key = { it.id }) { item ->
+            KodomoCard(Modifier.fillMaxWidth().padding(horizontal = 16.dp), onClick = { onOpen(item.id) }) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    com.kodomo.app.ui.components.ContentCover(item, Modifier.size(width = 64.dp, height = 88.dp), emojiSize = 32, corner = 14.dp)
+                    Spacer(Modifier.width(12.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(item.title, style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                        val genresText = RatingsFilter.genresOf(item).take(3).joinToString("، ")
+                        Text(
+                            RatingsFilter.kindOf(item) + (if (genresText.isNotEmpty()) " • $genresText" else ""),
+                            style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1,
+                        )
+                        Text(
+                            if (RatingsFilter.isPending(item)) "⏳ در حال ارزیابی کدومو" else "سن پیشنهادی: ${item.rating.minAge.fa()} تا ${item.rating.maxAge.fa()} سال" + if (item.mediaUrl != null) " • ✅ تأییدشده برای کودک" else "",
+                            style = MaterialTheme.typography.labelMedium,
+                        )
+                        if (!RatingsFilter.isPending(item)) {
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                RatingPill("خشونت", item.rating.violence)
+                                RatingPill("ترس", item.rating.fear)
+                                RatingPill("آموزندگی", item.rating.educational, positive = true)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+private fun ago(millis: Long): String {
+    val min = ((System.currentTimeMillis() - millis) / 60_000).coerceAtLeast(0)
+    return when {
+        min < 1 -> "همین الان"
+        min < 60 -> "${min.toInt().fa()} دقیقه پیش"
+        min < 24 * 60 -> "${(min / 60).toInt().fa()} ساعت پیش"
+        else -> "${(min / (24 * 60)).toInt().fa()} روز پیش"
     }
 }
 

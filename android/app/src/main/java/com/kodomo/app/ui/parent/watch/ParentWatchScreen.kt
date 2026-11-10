@@ -61,8 +61,8 @@ enum class WatchService(val label: String, val emoji: String, val url: String, v
     FILIMO("فیلیمو", "🎞️", "https://www.filimo.com/", com.kodomo.app.ui.kids.video.ContentProvider.FILIMO),
     NAMAVA("نماوا", "🍿", "https://www.namava.ir/", com.kodomo.app.ui.kids.video.ContentProvider.NAMAVA),
     FILMNET("فیلم‌نت", "🎬", "https://filmnet.ir/", com.kodomo.app.ui.kids.video.ContentProvider.FILMNET),
-    APARAT("آپارات", "▶️", "https://www.aparat.com/", com.kodomo.app.ui.kids.video.ContentProvider.APARAT_KIDS),
     SHEYDA("شیدا", "🌈", "https://www.sheyda.com/", com.kodomo.app.ui.kids.video.ContentProvider.SHEYDA),
+    APARAT("آپارات", "▶️", "https://www.aparat.com/", com.kodomo.app.ui.kids.video.ContentProvider.APARAT_KIDS),
     TAAGHCHE("طاقچه", "📗", "https://taaghche.com/", com.kodomo.app.ui.kids.video.ContentProvider.TAAGHCHE),
     FIDIBO("فیدیبو", "📘", "https://fidibo.com/", com.kodomo.app.ui.kids.video.ContentProvider.FIDIBO),
 }

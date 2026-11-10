@@ -27,8 +27,8 @@ class KodomoApp : Application() {
         com.kodomo.app.core.CrashReporter.install(this)
         startupScope.launch {
             runCatching { catalogSeeder.seedIfEmpty() }.onFailure { Log.e("KodomoApp", "Catalog seeding failed", it) }
-            // Refresh age ratings & reviews from kodoumo.ir (reachable from Iranian networks) at most twice a day.
-            runCatching { kodoumoImporter.syncIfStale(60 * 60_000L) }.onFailure { Log.w("KodomoApp", "kodoumo.ir sync skipped", it) }
+            // Refresh age ratings & reviews from kodoumo.ir (reachable from Iranian networks) quietly, at most twice a day.
+            kodoumoImporter.syncInBackground(12 * 3_600_000L)
             runCatching { reviewRequests.flush() }
         }
     }

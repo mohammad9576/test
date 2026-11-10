@@ -126,7 +126,15 @@ class KidsLauncherActivity : ComponentActivity(), KioskController {
         applyImmersive(true)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         lifecycleScope.launch {
-            if (session.current().kioskEnabled) deviceOwnerManager.enterLockTask(this@KidsLauncherActivity, allowedApps)
+            if (session.current().kioskEnabled) {
+                // Coming back after «خروج از کدومو»: Kodomo is the Home app again while a child uses the phone.
+                if (!deviceOwnerManager.isHomeEnabled) {
+                    deviceOwnerManager.setHomeEnabled(true)
+                    if (deviceOwnerManager.isDeviceOwner) deviceOwnerManager.applyKioskPolicies(allowedApps)
+                    else if (com.kodomo.app.core.demo.DemoMode.route == null) requestDefaultHome()
+                }
+                deviceOwnerManager.enterLockTask(this@KidsLauncherActivity, allowedApps)
+            }
         }
     }
 
@@ -159,6 +167,7 @@ class KidsLauncherActivity : ComponentActivity(), KioskController {
     }
 
     override fun requestDefaultHome() {
+        deviceOwnerManager.setHomeEnabled(true)
         if (deviceOwnerManager.isDefaultHome) return
         val intent = deviceOwnerManager.defaultHomeIntent()
         if (intent.action == android.provider.Settings.ACTION_HOME_SETTINGS) {
@@ -170,6 +179,10 @@ class KidsLauncherActivity : ComponentActivity(), KioskController {
 
     override fun exitToPhone() {
         exitKidSpace()
+        // Leaving Kodomo means leaving it completely: it stops being the Home app, so the phone's own launcher answers
+        // Home and starts after a reboot, without the parent visiting any settings page.
+        if (deviceOwnerManager.isDeviceOwner) deviceOwnerManager.clearKioskPolicies()
+        deviceOwnerManager.setHomeEnabled(false)
         val home = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
         val other = packageManager.queryIntentActivities(home, 0)
             .map { it.activityInfo }

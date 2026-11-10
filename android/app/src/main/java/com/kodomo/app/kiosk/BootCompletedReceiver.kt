@@ -17,7 +17,7 @@ class BootCompletedReceiver : BroadcastReceiver() {
                 if (!manager.isDeviceOwner) {
                     // Without Device Owner, Android shows the default Home app after boot. If Kodomo is that app it starts
                     // on its own; otherwise try to open it (allowed on many ROMs right after boot, ignored where blocked).
-                    if (!manager.isDefaultHome && intent.action == Intent.ACTION_BOOT_COMPLETED) {
+                    if (manager.isHomeEnabled && !manager.isDefaultHome && intent.action == Intent.ACTION_BOOT_COMPLETED) {
                         runCatching {
                             context.startActivity(Intent(context, KidsLauncherActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
                         }
@@ -28,7 +28,7 @@ class BootCompletedReceiver : BroadcastReceiver() {
                 CoroutineScope(Dispatchers.IO).launch {
                     try {
                         val state = SessionPreferences(context.applicationContext).current()
-                        if (state.kioskEnabled) manager.applyKioskPolicies(state.allowedApps)
+                        if (state.kioskEnabled && manager.isHomeEnabled) manager.applyKioskPolicies(state.allowedApps)
                     } finally {
                         pending.finish()
                     }

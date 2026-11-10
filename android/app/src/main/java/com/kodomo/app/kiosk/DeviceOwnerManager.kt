@@ -85,7 +85,7 @@ class DeviceOwnerManager @Inject constructor(@ApplicationContext private val con
                 addCategory(Intent.CATEGORY_HOME)
                 addCategory(Intent.CATEGORY_DEFAULT)
             }
-            dpm.addPersistentPreferredActivity(adminComponent, homeFilter, ComponentName(context, KidsLauncherActivity::class.java))
+            dpm.addPersistentPreferredActivity(adminComponent, homeFilter, homeAlias)
 
             listOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO).forEach { permission ->
                 dpm.setPermissionGrantState(adminComponent, context.packageName, permission, DevicePolicyManager.PERMISSION_GRANT_STATE_GRANTED)
@@ -119,6 +119,27 @@ class DeviceOwnerManager @Inject constructor(@ApplicationContext private val con
     fun exitLockTask(activity: Activity) {
         if (!isInLockTask) return
         runCatching { activity.stopLockTask() }.onFailure { Log.w(TAG, "stopLockTask failed", it) }
+    }
+
+    /** Kodomo's Home entry (an activity-alias of the launcher) that can be switched off without touching settings. */
+    val homeAlias: ComponentName get() = ComponentName(context.packageName, "com.kodomo.app.kiosk.KodomoHome")
+
+    val isHomeEnabled: Boolean
+        get() = context.packageManager.getComponentEnabledSetting(homeAlias) != android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_DISABLED
+
+    /**
+     * Switches Kodomo's Home role on or off. Off: Android forgets Kodomo as the default launcher and the phone's own
+     * launcher answers the Home button again (with several launchers installed Android may ask once which one).
+     */
+    fun setHomeEnabled(on: Boolean) {
+        if (on == isHomeEnabled) return
+        runCatching {
+            context.packageManager.setComponentEnabledSetting(
+                homeAlias,
+                if (on) android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_DEFAULT else android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+                android.content.pm.PackageManager.DONT_KILL_APP,
+            )
+        }.onFailure { Log.w(TAG, "home alias switch failed", it) }
     }
 
     /** True when Kodomo is the launcher Android starts after boot / when Home is pressed. */

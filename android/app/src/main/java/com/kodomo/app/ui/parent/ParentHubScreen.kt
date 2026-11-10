@@ -28,6 +28,8 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -74,6 +76,8 @@ fun ParentHubScreen(
     var tab by rememberSaveable { mutableTabState() }
     val family by viewModel.family.collectAsStateWithLifecycle()
     BackHandler(onBack = onExit)
+    var exitSheet by remember { mutableStateOf(false) }
+    if (exitSheet) com.kodomo.app.ui.parent.exit.ExitChoiceSheet(onDismiss = { exitSheet = false }, onBackToKids = onExit)
 
     Scaffold(
         topBar = {
@@ -82,7 +86,10 @@ fun ParentHubScreen(
                     Text(family?.let { "پنل والدین • ${it.familyName}" } ?: "پنل والدین", style = MaterialTheme.typography.titleLarge)
                 },
                 actions = {
-                    IconButton(onClick = onExit) { Icon(Icons.AutoMirrored.Rounded.Logout, contentDescription = "خروج از پنل والدین") }
+                    androidx.compose.material3.TextButton(onClick = { exitSheet = true }) {
+                        Icon(Icons.AutoMirrored.Rounded.Logout, contentDescription = null)
+                        Text(" خروج")
+                    }
                 },
             )
         },
@@ -110,7 +117,10 @@ fun ParentHubScreen(
     }
 }
 
-private fun mutableTabState() = androidx.compose.runtime.mutableIntStateOf(0)
+private fun mutableTabState() = androidx.compose.runtime.mutableIntStateOf(
+    // Smoke test only: «parent#2» opens a given tab.
+    com.kodomo.app.core.demo.DemoMode.route?.substringAfter('#', "")?.toIntOrNull()?.coerceIn(0, HubTab.entries.lastIndex) ?: 0,
+)
 
 /** Horizontal child switcher shown at the top of per-child parent tabs. */
 @Composable

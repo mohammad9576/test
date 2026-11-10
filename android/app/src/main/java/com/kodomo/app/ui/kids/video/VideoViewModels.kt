@@ -42,8 +42,12 @@ class VideoListViewModel @Inject constructor(
     val query = MutableStateFlow("")
     val category = MutableStateFlow<String?>(null)
 
+    // Only real, parent-picked episodes (never foreign-language trailers or sample clips), Telewebion first.
     private val allowed = contentRepository.observeAllowedForChild(childId, ContentType.VIDEO)
-        .map { list -> list.filter { it.playableUrl != null } }
+        .map { list ->
+            list.filter { it.mediaUrl != null && !it.id.startsWith("video_") }
+                .sortedBy { ContentProvider.rank(it.mediaUrl.orEmpty()) }
+        }
 
     val categories: StateFlow<List<String>> = combine(allowed, query) { items, _ -> items.map { it.category }.distinct() }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())

@@ -27,6 +27,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
@@ -34,6 +36,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+@OptIn(kotlinx.coroutines.FlowPreview::class, kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class ParentHubViewModel @Inject constructor(
     private val familyRepository: FamilyRepository,
@@ -120,16 +123,20 @@ class ParentHubViewModel @Inject constructor(
                 ContentType.VIDEO, ContentType.BOOK, ContentType.MUSIC, ContentType.LEARNING,
                 ContentType.BOOK_REVIEW, ContentType.GAME_REVIEW, ContentType.TOY_REVIEW,
             ).map { contentRepository.observeByType(it) },
-        ) { lists -> lists.toList().flatMap { it }.sortedByDescending { it.sourceUrl != null } },
+        ) { lists -> lists.toList().flatMap { it }.sortedByDescending { it.sourceUrl != null } }
+            // A background refresh writes hundreds of rows; redraw the list once it settles, off the main thread.
+            .debounce(700).flowOn(kotlinx.coroutines.Dispatchers.Default),
         emptyList(),
     )
 
     val kodoumoStatus = kodoumo.status
     val kodoumoCount: StateFlow<Int> = stateOf(kodoumo.importedCount, 0)
 
-    fun syncKodoumo() = viewModelScope.launch { kodoumo.sync() }
-    /** Opening the ratings tab keeps the catalogue fresh by itself (at most every 30 minutes). */
-    fun autoSyncKodoumo() = viewModelScope.launch { kodoumo.syncIfStale(30 * 60_000L) }
+    val kodoumoLastSync = kodoumo.lastSyncMillis
+    /** Manual «refresh now»: still runs quietly in the background. */
+    fun syncKodoumo() = kodoumo.syncInBackground(0)
+    /** Keeps the catalogue fresh by itself, in the background, at most every 12 hours. */
+    fun autoSyncKodoumo() = kodoumo.syncInBackground(12 * 3_600_000L)
 
     val articles: StateFlow<List<ContentItem>> = stateOf(contentRepository.observeByType(ContentType.ARTICLE), emptyList())
     val weekendIdeas: StateFlow<List<ContentItem>> = stateOf(contentRepository.observeByType(ContentType.WEEKEND_IDEA), emptyList())

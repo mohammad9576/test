@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
@@ -37,6 +38,22 @@ class KodoumoImporter @Inject constructor(
     val status: StateFlow<Status> = _status.asStateFlow()
     val importedCount: Flow<Int> = db.contentDao().observeImportedCount()
     private val mutex = Mutex()
+    private val background = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.IO)
+    private val _lastSync = MutableStateFlow(0L)
+    /** When the catalogue was last refreshed (0 = never); shown as a quiet «updated … ago» note. */
+    val lastSyncMillis: StateFlow<Long> = _lastSync.asStateFlow()
+
+    init { background.launch { _lastSync.value = session.current().lastKodoumoSyncMillis } }
+
+    /**
+     * Refreshes quietly on a background thread, never tied to a screen: opening the parent area must never wait for
+     * (or stutter because of) the few hundred kodoumo.ir pages this reads.
+     */
+    fun syncInBackground(minIntervalMillis: Long = 12 * 3_600_000L) {
+        background.launch { runCatching { syncIfStale(minIntervalMillis) }.onFailure { Log.w(TAG, "background sync failed", it) } }
+    }
+
+    val isRunning: Boolean get() = mutex.isLocked
 
     /** Runs at most every [minIntervalMillis]; returns immediately if a sync is already running. */
     suspend fun syncIfStale(minIntervalMillis: Long = 12 * 3_600_000L) {
@@ -85,7 +102,9 @@ class KodoumoImporter @Inject constructor(
             if (imported == 0 && failures > 0) {
                 _status.value = Status.Failed("اتصال به kodoumo.ir برقرار نشد. این سایت فقط از اینترنت داخل ایران و بدون فیلترشکن در دسترس است.")
             } else {
-                session.setLastKodoumoSync(System.currentTimeMillis())
+                val now = System.currentTimeMillis()
+                session.setLastKodoumoSync(now)
+                _lastSync.value = now
                 _status.value = Status.Finished(imported)
             }
         } finally {

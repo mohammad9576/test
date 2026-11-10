@@ -19,17 +19,11 @@ enum class ContentProvider(
     val needsAccount: Boolean = true,
 ) {
     TELEWEBION("تلوبیون کودک", "📺", "https://telewebion.ir/kids", listOf("telewebion.ir", "telewebion.com", "twcdn.ir", "telewebion.net"),
-        itemPath = Regex("/(episode|program|series|vod|live)/"), needsAccount = false),
-    APARAT_KIDS("آپارات کودک", "🧸", "https://www.aparatkids.com/", listOf("aparatkids.com", "aparat.com", "aparat.cloud", "aparatcdn.com", "sabaidea.com", "sabaidea.cloud", "abrarvan.net"),
-        itemPath = Regex("/(v|video|play|watch|series|playlist|show)/"), needsAccount = false),
     FILIMO("فیلیمو کودک", "🎞️", "https://www.filimo.com/kids", listOf("filimo.com", "filimo.cloud", "sabaidea.com", "sabaidea.cloud", "filimocdn.com", "abrarvan.net"),
-        itemPath = Regex("/(m|movie|series|play|watch|w)/")),
-    FILMNET("فیلم‌نت کودک", "🎬", "https://filmnet.ir/kids", listOf("filmnet.ir", "filmnet.com", "filmnetcdn.ir", "abrarvan.net"),
-        itemPath = Regex("/(contents|content|movie|series|play|watch|videos?)/")),
-    SHEYDA("شیدا", "🌈", "https://www.sheyda.com/t/Free-Animations", listOf("sheyda.com", "sheyda.ir", "sheydacdn.com", "abrarvan.net"),
-        itemPath = Regex("/(v|video|movie|series|play|watch|title|p)/"), needsAccount = false),
     NAMAVA("نماوا کودک", "🍿", "https://www.namava.ir/kids", listOf("namava.ir", "namava.com", "namavacdn.ir", "abrarvan.net"),
-        itemPath = Regex("/(movie|series|play|watch|episode)/")),
+    FILMNET("فیلم‌نت کودک", "🎬", "https://filmnet.ir/kids", listOf("filmnet.ir", "filmnet.com", "filmnetcdn.ir", "abrarvan.net"),
+    SHEYDA("شیدا", "🌈", "https://www.sheyda.com/t/Free-Animations", listOf("sheyda.com", "sheyda.ir", "sheydacdn.com", "abrarvan.net"),
+    APARAT_KIDS("آپارات کودک", "🧸", "https://www.aparatkids.com/", listOf("aparatkids.com", "aparat.com", "aparat.cloud", "aparatcdn.com", "sabaidea.com", "sabaidea.cloud", "abrarvan.net"),
     TAAGHCHE("طاقچه", "📗", "https://taaghche.com/", listOf("taaghche.com", "taaghche.ir", "taaghchecdn.com", "abrarvan.net"), book = true,
         itemPath = Regex("/(book|audiobook)/")),
     FIDIBO("فیدیبو", "📘", "https://fidibo.com/", listOf("fidibo.com", "fidibo.net", "fidibocdn.com", "abrarvan.net"), book = true,
@@ -44,5 +38,8 @@ enum class ContentProvider(
         val videos = entries.filter { !it.book }
         val books = entries.filter { it.book }
         fun forUrl(url: String): ContentProvider? = entries.firstOrNull { it.owns(url) }
+
+        /** Order of preference for families (Persian-dubbed services first; Aparat Kids is mostly original-language). */
+        fun rank(url: String): Int = forUrl(url)?.ordinal ?: entries.size
     }
 }

@@ -70,12 +70,21 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+        </activity>
+
+        <!-- Kodomo as the phone's Home app. A separate switch: «خروج از کدومو» turns it off (the phone's own launcher
+             comes back, no settings page needed) and opening a child's space turns it on again. -->
+        <activity-alias
+            android:name=".kiosk.KodomoHome"
+            android:targetActivity=".kiosk.KidsLauncherActivity"
+            android:exported="true"
+            android:enabled="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.HOME" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
-        </activity>
+        </activity-alias>
 
         <activity
             android:name=".kiosk.FakeHomeActivity"

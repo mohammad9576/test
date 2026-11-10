@@ -127,37 +127,30 @@ object WebLockRules {
     """.trimIndent()
 
     /**
-     * The child's player looks the same on every site: once a video is on the page, its player box is pinned to fill
-     * the whole view on black and everything around it (menus, banners, footers) is hidden. Pages without a video
-     * (sign-in, subscription) are left untouched.
+     * Child mode: the video always plays full screen. The first time the child taps the page (or the site's own play
+     * button starts a video) the largest video goes into the browser's own fullscreen, which Kodomo shows sideways
+     * over everything (onShowCustomView). The picture fills the screen edge to edge, without black bars. Nothing on
+     * the page is hidden, so pages without a video (sign-in, subscription) still work.
      */
-    const val PLAYER_FOCUS_JS = """
+    const val AUTO_FULLSCREEN_JS = """
 (function(){
-  if (window.__kdFocusTimer) return;
-  var css = '.kd-focus-on, .kd-focus-on body{background:#000!important;overflow:hidden!important}' +
-    '.kd-focus-on body *{visibility:hidden!important}' +
-    '.kd-player, .kd-player *{visibility:visible!important}' +
-    '.kd-player{position:fixed!important;left:0!important;top:0!important;right:0!important;bottom:0!important;width:100vw!important;height:100vh!important;max-width:none!important;max-height:none!important;margin:0!important;z-index:2147483646!important;background:#000!important;transform:none!important}' +
-    '.kd-player video, video.kd-player{object-fit:contain!important;width:100%!important;height:100%!important}';
-  var st = document.createElement('style'); st.textContent = css; (document.head || document.documentElement).appendChild(st);
+  if (window.__kdAutoFull) return; window.__kdAutoFull = true;
+  var st = document.createElement('style');
+  st.textContent = 'video:fullscreen,video:-webkit-full-screen,:fullscreen video,:-webkit-full-screen video{object-fit:cover!important;width:100%!important;height:100%!important;background:#000!important}';
+  (document.head || document.documentElement).appendChild(st);
   function area(e){ var r = e.getBoundingClientRect(); return r.width * r.height; }
-  function pick(){
-    var best = null, bestA = 0;
-    document.querySelectorAll('video, iframe').forEach(function(v){
-      var a = area(v); if (v.tagName === 'VIDEO' || /player|embed|video|live/i.test(v.src || '')) { if (a > bestA) { best = v; bestA = a; } }
-    });
-    if (!best || bestA < 20000) return;
-    var box = best;
-    while (box.parentElement && box.parentElement !== document.body && area(box.parentElement) < bestA * 1.6) box = box.parentElement;
-    if (!box.classList.contains('kd-player')) {
-      document.querySelectorAll('.kd-player').forEach(function(x){ x.classList.remove('kd-player'); });
-      box.classList.add('kd-player');
-      document.documentElement.classList.add('kd-focus-on');
-    }
+  function biggest(){ var best = null, a = 0; document.querySelectorAll('video').forEach(function(v){ var x = area(v); if (x > a) { a = x; best = v; } }); return best; }
+  function isFull(){ return !!(document.fullscreenElement || document.webkitFullscreenElement); }
+  function goFull(v){
+    if (!v || isFull()) return;
+    try { var f = v.requestFullscreen || v.webkitRequestFullscreen || v.webkitEnterFullscreen; if (f) { var p = f.call(v); if (p && p.catch) p.catch(function(){}); } } catch(e) {}
   }
-  var n = 0;
-  window.__kdFocusTimer = setInterval(function(){ pick(); if (++n > 40) clearInterval(window.__kdFocusTimer); }, 1500);
-  pick();
+  document.addEventListener('play', function(e){ if (e.target && e.target.tagName === 'VIDEO') goFull(e.target); }, true);
+  document.addEventListener('touchend', function(){
+    var v = biggest(); if (!v) return;
+    if (v.paused) { try { var p = v.play(); if (p && p.catch) p.catch(function(){}); } catch(e) {} }
+    goFull(v);
+  }, true);
 })();
 """
 
@@ -177,7 +170,7 @@ fun LockedWebPlayer(
     onPageChanged: (url: String, title: String) -> Unit = { _, _ -> },
     onWebView: (WebView) -> Unit = {},
     visible: Boolean = true,
-    /** Child mode: show only the video player, the same way on every site. */
+    /** Child mode: the video jumps to full screen (sideways, edge to edge) as soon as it plays. */
     focusPlayer: Boolean = true,
 ) {
     var fullscreenView by remember { mutableStateOf<View?>(null) }
@@ -267,7 +260,7 @@ fun LockedWebPlayer(
                         override fun onPageFinished(view: WebView, url: String) {
                             if (!url.startsWith("http")) return
                             view.evaluateJavascript(script, null)
-                            if (pinned && focusPlayer) view.evaluateJavascript(WebLockRules.PLAYER_FOCUS_JS, null)
+                            if (pinned && focusPlayer) view.evaluateJavascript(WebLockRules.AUTO_FULLSCREEN_JS, null)
                             onPageChanged(url, view.title.orEmpty())
                         }
 
@@ -368,6 +361,30 @@ fun Landscape() {
         val before = activity?.requestedOrientation
         activity?.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
         onDispose { activity?.requestedOrientation = before ?: android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED }
+    }
+    Immersive()
+}
+
+/** Hides the status and navigation bars (and uses the camera cut-out area) so the video fills the glass edge to edge. */
+@Composable
+fun Immersive() {
+    val view = androidx.compose.ui.platform.LocalView.current
+    val window = (view.parent as? androidx.compose.ui.window.DialogWindowProvider)?.window
+        ?: view.context.findActivity()?.window
+    DisposableEffect(window) {
+        val w = window ?: return@DisposableEffect onDispose {}
+        val controller = androidx.core.view.WindowCompat.getInsetsController(w, w.decorView)
+        val cutoutBefore = if (android.os.Build.VERSION.SDK_INT >= 28) w.attributes.layoutInDisplayCutoutMode else 0
+        if (android.os.Build.VERSION.SDK_INT >= 28) {
+            w.attributes = w.attributes.apply { layoutInDisplayCutoutMode = android.view.WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES }
+        }
+        androidx.core.view.WindowCompat.setDecorFitsSystemWindows(w, false)
+        controller.systemBarsBehavior = androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        controller.hide(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+        onDispose {
+            controller.show(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+            if (android.os.Build.VERSION.SDK_INT >= 28) w.attributes = w.attributes.apply { layoutInDisplayCutoutMode = cutoutBefore }
+        }
     }
 }
 

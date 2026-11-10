@@ -389,31 +389,16 @@ private fun CrashReportCard() {
     }
 }
 
-/** The parent's way out of Kodomo: back to the phone's own launcher, optionally changing the default Home app. */
+/** The parent's way out of Kodomo: one tap, one clear question (see [com.kodomo.app.ui.parent.exit.ExitChoiceSheet]). */
 @Composable
 private fun ExitAppCard() {
-    val kiosk = com.kodomo.app.kiosk.LocalKioskController.current
-    var confirm by remember { mutableStateOf(false) }
-    KodomoCard(Modifier.fillMaxWidth()) {
+    var sheet by remember { mutableStateOf(false) }
+    KodomoCard(Modifier.fillMaxWidth(), onClick = { sheet = true }) {
         Text("🚪 خروج از کدومو", style = MaterialTheme.typography.titleMedium)
-        Text(
-            "برنامه بسته می‌شود و صفحه‌ی اصلی گوشی باز می‌شود. اگر کدومو لانچر پیش‌فرض است و می‌خواهید بعد از خاموش و روشن شدن هم گوشی عادی بالا بیاید، لانچر پیش‌فرض را عوض کنید.",
-            style = MaterialTheme.typography.bodySmall,
-        )
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            androidx.compose.material3.Button(onClick = { confirm = true }, modifier = Modifier.weight(1f)) { Text("خروج از برنامه") }
-            OutlinedButton(onClick = { kiosk.openDefaultHomeSettings() }, modifier = Modifier.weight(1f)) { Text("تغییر لانچر پیش‌فرض") }
-        }
+        Text("برگشت به گوشی معمولی با یک لمس؛ بدون رفتن به تنظیمات گوشی.", style = MaterialTheme.typography.bodySmall)
+        androidx.compose.material3.Button(onClick = { sheet = true }, modifier = Modifier.fillMaxWidth()) { Text("خروج") }
     }
-    if (confirm) {
-        androidx.compose.material3.AlertDialog(
-            onDismissRequest = { confirm = false },
-            title = { Text("خروج از کدومو؟") },
-            text = { Text("محیط امن کودک بسته می‌شود. برای برگشت، آیکون کدومو را بزنید.") },
-            confirmButton = { TextButton(onClick = { confirm = false; kiosk.exitToPhone() }) { Text("خروج") } },
-            dismissButton = { TextButton(onClick = { confirm = false }) { Text("انصراف") } },
-        )
-    }
+    if (sheet) com.kodomo.app.ui.parent.exit.ExitChoiceSheet(onDismiss = { sheet = false }, onBackToKids = null)
 }
 
 

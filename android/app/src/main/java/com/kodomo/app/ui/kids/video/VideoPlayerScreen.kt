@@ -237,7 +237,8 @@ internal fun EmbeddedVideoScreen(
     onFinished: (() -> Unit)?,
     player: @Composable (Modifier) -> Unit,
 ) {
-    var full by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf(false) }
+    // Videos open straight into Kodomo's own fullscreen: sideways, edge to edge, only the player and a back button.
+    var full by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf(true) }
     if (full) {
         // Kodomo's own fullscreen: sideways, nothing but the player and a back button.
         androidx.activity.compose.BackHandler { full = false }

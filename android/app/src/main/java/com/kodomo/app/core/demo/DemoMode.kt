@@ -53,7 +53,7 @@ class DemoSeeder @Inject constructor(
         // Screenshots at any hour: no bedtime lock for the sample child.
         runCatching { settings.saveSettings(settings.getSettings(id).copy(bedtimeEnabled = false)) }
         session.setActiveChild(id)
-        return route.replace("{child}", id.toString())
+        return route.substringBefore("#").replace("{child}", id.toString())
     }
 }
 
