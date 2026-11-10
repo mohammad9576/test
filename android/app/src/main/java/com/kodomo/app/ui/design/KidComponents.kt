@@ -99,9 +99,9 @@ fun ChildTile(title: String, picture: String, color: Color, index: Int, dark: Bo
         verticalArrangement = Arrangement.Center,
     ) {
         Premium3DIcon(picture, color, iconSize, artKey = artKey)
-        Spacer(Modifier.height(8.dp))
-        Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center,
-            style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = if (dark) Color.White else KodomoTokens.Ink))
+        Spacer(Modifier.height(6.dp))
+        Text(title, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center,
+            style = TextStyle(fontSize = if (iconSize < 52.dp) 12.sp else 14.sp, lineHeight = if (iconSize < 52.dp) 15.sp else 18.sp, fontWeight = FontWeight.Bold, color = if (dark) Color.White else KodomoTokens.Ink))
     }
 }
 
