@@ -56,6 +56,7 @@ fun ExitChoiceSheet(onDismiss: () -> Unit, onBackToKids: (() -> Unit)?) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ExitOption(icon: String, title: String, subtitle: String, color: Color, onClick: () -> Unit) {
     Surface(

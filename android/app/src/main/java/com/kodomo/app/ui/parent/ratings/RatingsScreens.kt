@@ -1,6 +1,9 @@
 package com.kodomo.app.ui.parent.ratings
 
 import androidx.compose.foundation.background
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Search
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -127,10 +130,10 @@ fun RatingsTab(viewModel: ParentHubViewModel, onOpen: (String) -> Unit, onOpenTe
                 androidx.compose.material3.OutlinedTextField(
                     value = q.text, onValueChange = { q = q.copy(text = it) }, singleLine = true,
                     placeholder = { Text("جستجو: نام اثر، ژانر، نویسنده…") },
-                    leadingIcon = { androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Rounded.Search, contentDescription = null) },
+                    leadingIcon = { androidx.compose.material3.Icon(Icons.Rounded.Search, contentDescription = null) },
                     trailingIcon = {
                         if (q.text.isNotEmpty()) androidx.compose.material3.IconButton(onClick = { q = q.copy(text = "") }) {
-                            androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Rounded.Close, contentDescription = "پاک کردن")
+                            androidx.compose.material3.Icon(Icons.Rounded.Close, contentDescription = "پاک کردن")
                         }
                     },
                     shape = androidx.compose.foundation.shape.RoundedCornerShape(28.dp),
