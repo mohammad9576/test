@@ -215,7 +215,7 @@ fun LauncherHome(
     val dock = modules.filter { it.key in dockKeys }.sortedBy { dockKeys.indexOf(it.key) }
     val grid = modules.filter { it !in dock }
     Box(Modifier.fillMaxSize()) {
-        com.kodomo.app.ui.design.KidScene(style, night)
+        // the 3D scene is drawn once by KidSpaceFrame behind every kids screen
         LazyVerticalGrid(
             columns = GridCells.Fixed(columns),
             modifier = Modifier.fillMaxSize().statusBarsPadding(),

@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.graphics.graphicsLayer
 import kotlin.math.sin
 
 private data class Palette(
@@ -61,63 +62,72 @@ private fun palette(style: KidStyle, night: Boolean): Palette = when {
 @Composable
 fun KidScene(style: KidStyle, night: Boolean, modifier: Modifier = Modifier, groundHeight: Float = 0.2f) {
     val p = remember(style, night) { palette(style, night) }
-    val t by rememberInfiniteTransition(label = "scene").animateFloat(0f, 1f, infiniteRepeatable(tween(40_000, easing = LinearEasing)), label = "t")
-    val sway by rememberInfiniteTransition(label = "sway").animateFloat(-1f, 1f, infiniteRepeatable(tween(2600), RepeatMode.Reverse), label = "s")
     val dark = night || style == KidStyle.GALAXY
-    Canvas(modifier.fillMaxSize()) {
-        val w = size.width; val h = size.height
-        drawRect(Brush.verticalGradient(p.sky))
-        if (dark) {
-            val rnd = java.util.Random(11)
-            repeat(70) { i ->
-                val c = Offset(rnd.nextFloat() * w, rnd.nextFloat() * h * 0.65f)
-                val a = 0.35f + 0.6f * ((sin((t * 40 + i) * 1.7f) + 1f) / 2f)
-                drawCircle(Color.White.copy(alpha = a), 1.2f + rnd.nextFloat() * 2.4f, c)
-            }
-            // moon / planet with soft glow
-            val mc = Offset(w * 0.2f, h * 0.12f)
-            drawCircle(Brush.radialGradient(listOf(Color(0x55FFF3C4), Color.Transparent), mc, w * 0.22f), w * 0.22f, mc)
-            drawCircle(Brush.radialGradient(listOf(Color(0xFFFFF6D8), Color(0xFFF2D58A)), Offset(mc.x - w * 0.02f, mc.y - w * 0.02f), w * 0.09f), w * 0.07f, mc)
-            if (style == KidStyle.GALAXY) {
-                val pc = Offset(w * 0.82f, h * 0.3f)
-                drawCircle(Brush.radialGradient(listOf(Color(0xFFB08CFF), Color(0xFF5B3FB5)), Offset(pc.x - 10f, pc.y - 10f), w * 0.08f), w * 0.06f, pc)
-                drawOval(Color(0x99E1D4FF), Offset(pc.x - w * 0.1f, pc.y - w * 0.012f), Size(w * 0.2f, w * 0.024f))
-            }
-        } else {
-            // sun with rays and glow
-            val sc = Offset(w * 0.2f, h * 0.1f)
-            drawCircle(Brush.radialGradient(listOf(Color(0x88FFE9A8), Color.Transparent), sc, w * 0.26f), w * 0.26f, sc)
-            rotate(t * 360f, sc) {
-                for (i in 0 until 12) rotate(i * 30f, sc) {
-                    drawRoundRect(Color(0xFFFFC94D), Offset(sc.x - w * 0.008f, sc.y - w * 0.13f), Size(w * 0.016f, w * 0.035f), androidx.compose.ui.geometry.CornerRadius(w * 0.008f))
+    // Moving parts are separate layers moved by the GPU (graphicsLayer), so the detailed scene is drawn only once.
+    val drift by rememberInfiniteTransition(label = "scene").animateFloat(0f, 1f, infiniteRepeatable(tween(60_000, easing = LinearEasing)), label = "t")
+    val spin by rememberInfiniteTransition(label = "sun").animateFloat(0f, 360f, infiniteRepeatable(tween(30_000, easing = LinearEasing)), label = "r")
+    androidx.compose.foundation.layout.Box(modifier.fillMaxSize()) {
+        // static: sky, stars, moon/planet, castle, mountains, hills, grass and flowers
+        Canvas(Modifier.fillMaxSize()) { drawStatic(p, style, dark, groundHeight) }
+        if (!dark) {
+            // rotating sun rays
+            Canvas(Modifier.fillMaxSize().graphicsLayer { rotationZ = spin; transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0.2f, sunY(this.size)) }) {
+                val sc = Offset(size.width * 0.2f, size.width * 0.2f)
+                for (k in 0 until 12) rotate(k * 30f, sc) {
+                    drawRoundRect(Color(0xFFFFC94D), Offset(sc.x - size.width * 0.008f, sc.y - size.width * 0.13f), Size(size.width * 0.016f, size.width * 0.035f), androidx.compose.ui.geometry.CornerRadius(size.width * 0.008f))
                 }
             }
-            drawCircle(Brush.radialGradient(listOf(Color(0xFFFFF4B8), Color(0xFFFFC542), Color(0xFFFFA726)), Offset(sc.x - w * 0.025f, sc.y - w * 0.025f), w * 0.11f), w * 0.075f, sc)
+            Canvas(Modifier.fillMaxSize()) {
+                val sc = Offset(size.width * 0.2f, size.width * 0.2f)
+                drawCircle(Brush.radialGradient(listOf(Color(0xFFFFF4B8), Color(0xFFFFC542), Color(0xFFFFA726)), Offset(sc.x - size.width * 0.025f, sc.y - size.width * 0.025f), size.width * 0.11f), size.width * 0.075f, sc)
+            }
         }
-        // clouds drifting
-        cloud(Offset(((0.1f + t) % 1.3f - 0.15f) * w, h * 0.2f), w * 0.16f, p.cloud, dark)
-        cloud(Offset(((0.7f + t * 0.7f) % 1.3f - 0.15f) * w, h * 0.1f), w * 0.12f, p.cloud, dark)
-        cloud(Offset(((0.45f + t * 0.5f) % 1.3f - 0.15f) * w, h * 0.33f), w * 0.09f, p.cloud, dark)
-        if (style == KidStyle.BLOSSOM && !dark) castle(Offset(w * 0.72f, h * (0.78f - groundHeight)), w * 0.2f)
-        if (dark) mountains(w, h, groundHeight, p)
-        // hills: far, middle, near (soft highlight on top edge for depth)
-        hill(w, h, h * (1f - groundHeight - 0.13f), 0.18f, 0.6f, p.far)
-        hill(w, h, h * (1f - groundHeight - 0.06f), 0.12f, 1.4f, p.mid)
-        hill(w, h, h * (1f - groundHeight), 0.06f, 2.3f, p.near)
-        // grass blades and flowers on the near hill
-        val rnd = java.util.Random(5)
-        val base = h * (1f - groundHeight)
-        repeat(60) {
-            val x = rnd.nextFloat() * w
-            val y = base + rnd.nextFloat() * h * groundHeight * 0.9f + h * 0.02f
-            val len = h * (0.01f + rnd.nextFloat() * 0.015f)
-            drawLine(p.near[0].copy(alpha = 0.9f), Offset(x, y), Offset(x + sway * 3f, y - len), strokeWidth = 3f)
+        // clouds drift across (each its own layer)
+        listOf(Triple(0.1f, 0.2f, 0.16f), Triple(0.7f, 0.1f, 0.12f), Triple(0.45f, 0.33f, 0.09f)).forEachIndexed { i, (x0, y, r) ->
+            Canvas(Modifier.fillMaxSize().graphicsLayer { translationX = (((x0 + drift * (1f - i * 0.25f)) % 1.3f) - 0.15f - x0) * size.width }) {
+                cloud(Offset(size.width * x0, size.height * y), size.width * r, p.cloud, dark)
+            }
         }
-        repeat(22) {
-            val x = rnd.nextFloat() * w
-            val y = base + h * 0.03f + rnd.nextFloat() * h * groundHeight * 0.8f
-            flower(Offset(x + sway * 2f, y), h * (0.007f + rnd.nextFloat() * 0.006f), p.flowers[it % p.flowers.size])
+    }
+}
+
+private fun sunY(size: Size): Float = if (size.height <= 0f) 0f else (size.width * 0.2f) / size.height
+
+private fun DrawScope.drawStatic(p: Palette, style: KidStyle, dark: Boolean, groundHeight: Float) {
+    val w = size.width; val h = size.height
+    drawRect(Brush.verticalGradient(p.sky))
+    if (dark) {
+        val rnd = java.util.Random(11)
+        repeat(70) { drawCircle(Color.White.copy(alpha = 0.35f + rnd.nextFloat() * 0.6f), 1.2f + rnd.nextFloat() * 2.4f, Offset(rnd.nextFloat() * w, rnd.nextFloat() * h * 0.65f)) }
+        val mc = Offset(w * 0.2f, w * 0.22f)
+        drawCircle(Brush.radialGradient(listOf(Color(0x55FFF3C4), Color.Transparent), mc, w * 0.22f), w * 0.22f, mc)
+        drawCircle(Brush.radialGradient(listOf(Color(0xFFFFF6D8), Color(0xFFF2D58A)), Offset(mc.x - w * 0.02f, mc.y - w * 0.02f), w * 0.09f), w * 0.07f, mc)
+        if (style == KidStyle.GALAXY) {
+            val pc = Offset(w * 0.82f, h * 0.3f)
+            drawCircle(Brush.radialGradient(listOf(Color(0xFFB08CFF), Color(0xFF5B3FB5)), Offset(pc.x - 10f, pc.y - 10f), w * 0.08f), w * 0.06f, pc)
+            drawOval(Color(0x99E1D4FF), Offset(pc.x - w * 0.1f, pc.y - w * 0.012f), Size(w * 0.2f, w * 0.024f))
         }
+    } else {
+        val sc = Offset(w * 0.2f, w * 0.2f)
+        drawCircle(Brush.radialGradient(listOf(Color(0x88FFE9A8), Color.Transparent), sc, w * 0.26f), w * 0.26f, sc)
+    }
+    if (style == KidStyle.BLOSSOM && !dark) castle(Offset(w * 0.72f, h * (0.78f - groundHeight)), w * 0.2f)
+    if (dark) mountains(w, h, groundHeight, p)
+    hill(w, h, h * (1f - groundHeight - 0.13f), 0.18f, 0.6f, p.far)
+    hill(w, h, h * (1f - groundHeight - 0.06f), 0.12f, 1.4f, p.mid)
+    hill(w, h, h * (1f - groundHeight), 0.06f, 2.3f, p.near)
+    val rnd = java.util.Random(5)
+    val base = h * (1f - groundHeight)
+    repeat(60) {
+        val x = rnd.nextFloat() * w
+        val y = base + rnd.nextFloat() * h * groundHeight * 0.9f + h * 0.02f
+        val len = h * (0.01f + rnd.nextFloat() * 0.015f)
+        drawLine(p.near[0].copy(alpha = 0.9f), Offset(x, y), Offset(x + 2f, y - len), strokeWidth = 3f)
+    }
+    repeat(22) {
+        val x = rnd.nextFloat() * w
+        val y = base + h * 0.03f + rnd.nextFloat() * h * groundHeight * 0.8f
+        flower(Offset(x, y), h * (0.007f + rnd.nextFloat() * 0.006f), p.flowers[it % p.flowers.size])
     }
 }
 

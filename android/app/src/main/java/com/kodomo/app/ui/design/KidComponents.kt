@@ -82,8 +82,9 @@ fun Premium3DIcon(picture: String, color: Color, size: Dp, modifier: Modifier = 
 /** A child home tile: frosted card, 3D icon and the section name inside (big touch target, pops in, squashes on tap). */
 @Composable
 fun ChildTile(title: String, picture: String, color: Color, index: Int, dark: Boolean, iconSize: Dp = 54.dp, artKey: String? = null, onClick: () -> Unit) {
-    val appear = remember { Animatable(0f) }
-    LaunchedEffect(Unit) { kotlinx.coroutines.delay(index * 45L); appear.animateTo(1f, spring(dampingRatio = 0.55f, stiffness = 360f)) }
+    // A light pop-in that never leaves a tile invisible, even on a slow phone.
+    val appear = remember { Animatable(0.85f) }
+    LaunchedEffect(Unit) { kotlinx.coroutines.delay(index * 30L); appear.animateTo(1f, spring(dampingRatio = 0.5f, stiffness = 420f)) }
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
     Column(
