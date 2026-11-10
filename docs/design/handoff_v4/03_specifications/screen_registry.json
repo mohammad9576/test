@@ -1,0 +1,1459 @@
+[
+  {
+    "id": 1,
+    "name": "راه‌اندازی در ۷ قدم",
+    "family": "child",
+    "suggested_reference_board": "02_ONBOARDING.png",
+    "requirements_from_user_brief": "1. **خوش‌آمد و راه‌اندازی اولیه (Onboarding)**، چند مرحله: معرفی کدومو؛ نام خانواده و نام پدر و مادر؛ ساختن رمز ۴ رقمی والدین (و تکرارش)؛ تعداد فرزندان؛ فرم هر فرزند (نام، تاریخ تولد، جنسیت، آواتار، علاقه‌ها)؛ زمان روزانه‌ی مجاز. نوار پیشرفت «۲ از ۷» دارد.",
+    "original_copy_examples": [
+      "به کدومو خوش آمدید",
+      "فضای امن، مخصوص خانواده‌ی شما",
+      "شروع راه‌اندازی"
+    ],
+    "legacy_layout_category": "setup",
+    "states": [
+      "default",
+      "loading",
+      "empty",
+      "error",
+      "locked",
+      "success"
+    ],
+    "implementation_status": "NOT_IMPLEMENTED",
+    "visual_status": "BOARD_REFERENCE_ONLY",
+    "source_of_truth": "02_requirements/ORIGINAL_USER_BRIEF_FA.md"
+  },
+  {
+    "id": 2,
+    "name": "آماده‌سازی گوشی",
+    "family": "child",
+    "suggested_reference_board": "02_ONBOARDING.png",
+    "requirements_from_user_brief": "2. **آماده‌سازی گوشی (اجازه‌ها)**: لیست مرحله‌به‌مرحله‌ی اجازه‌های اندروید با وضعیت (✅ یا «اجازه»): دوربین، میکروفون، تماس و اعلان؛ «دسترسی استفاده» برای نگهبان برنامه‌ها، همراه با راهنمای «Allow restricted settings» در اندروید ۱۳ به بالا؛ نمایش روی برنامه‌ها؛ بدون محدودیت باتری؛ کدومو به عنوان صفحه‌ی اصلی؛ مدیر دستگاه (جلوگیری از حذف). یک کارت «قفل کامل پیشرفته» با دستور adb هم دارد. باید حس **راه‌اندازی آیفون جدید** بدهد، نه فرم تنظیمات.",
+    "original_copy_examples": [
+      "دسترسی استفاده از برنامه‌ها",
+      "انتخاب کدومو به‌عنوان صفحه اصلی",
+      "دوربین و میکروفون",
+      "اجازه‌ها را بررسی کن"
+    ],
+    "legacy_layout_category": "settings",
+    "states": [
+      "default",
+      "loading",
+      "empty",
+      "error",
+      "locked",
+      "success"
+    ],
+    "implementation_status": "NOT_IMPLEMENTED",
+    "visual_status": "BOARD_REFERENCE_ONLY",
+    "source_of_truth": "02_requirements/ORIGINAL_USER_BRIEF_FA.md"
+  },
+  {
+    "id": 3,
+    "name": "چه کسی وارد می‌شود؟",
+    "family": "child",
+    "suggested_reference_board": "02_ONBOARDING.png",
+    "requirements_from_user_brief": "3. **انتخاب پروفایل («چه کسی از کدومو استفاده می‌کند؟»)**: کارت پدر و مادر (با رمز یا اثر انگشت) و کارت هر کودک با عکس یا آواتار و سن. اگر نگهبان روشن نباشد، دیالوگ هشدار نشان می‌دهد.",
+    "original_copy_examples": [
+      "مامان و بابا",
+      "سارا، ۷ ساله",
+      "آراد، ۱۰ ساله",
+      "انتخاب پروفایل"
+    ],
+    "legacy_layout_category": "profiles",
+    "states": [
+      "default",
+      "loading",
+      "empty",
+      "error",
+      "locked",
+      "success"
+    ],
+    "implementation_status": "NOT_IMPLEMENTED",
+    "visual_status": "BOARD_REFERENCE_ONLY",
+    "source_of_truth": "02_requirements/ORIGINAL_USER_BRIEF_FA.md"
+  },
+  {
+    "id": 4,
+    "name": "ورود مخصوص والدین",
+    "family": "child",
+    "suggested_reference_board": "02_ONBOARDING.png",
+    "requirements_from_user_brief": "4. **دروازه‌ی والدین (Parent Gate)**: پنجره‌ی ورود والدین با رمز ۴ رقمی، یک سؤال ضرب یا جمع (برای اینکه کودک نتواند)، **صفحه‌کلید عددی داخلی اپ** (کیبورد گوشی باز نمی‌شود)، دکمه‌ی «ورود با اثر انگشت یا چهره»، و قفل موقت بعد از تلاش‌های ناموفق.\n\n### ب) فضای کودک (لانچر)",
+    "original_copy_examples": [
+      "رمز چهاررقمی را وارد کنید",
+      "ورود با اثر انگشت",
+      "فراموشی رمز؟"
+    ],
+    "legacy_layout_category": "pin",
+    "states": [
+      "default",
+      "loading",
+      "empty",
+      "error",
+      "locked",
+      "success"
+    ],
+    "implementation_status": "NOT_IMPLEMENTED",
+    "visual_status": "BOARD_REFERENCE_ONLY",
+    "source_of_truth": "02_requirements/ORIGINAL_USER_BRIEF_FA.md"
+  },
+  {
+    "id": 5,
+    "name": "خانه‌ی من",
+    "family": "child",
+    "suggested_reference_board": "03_CHILD_HOME_AND_CATEGORIES.png",
+    "requirements_from_user_brief": "5. **صفحه‌ی اصلی کودک (Launcher Home)**، مهم‌ترین صفحه. مثل صفحه‌ی اصلی iOS یا One UI:\n   - پس‌زمینه‌ی زنده که با ساعت روز عوض می‌شود.\n   - ساعت بزرگ، تاریخ شمسی و «سلام [نام] 👋».\n   - ویجت‌ها: حلقه‌ی دقیقه‌های باقی‌مانده، شخصیت همراه با پیامش، ستاره‌ها و مدال‌ها.\n   - شبکه‌ی آیکون‌ها با اسم زیرشان.\n   - **داک شیشه‌ای** پایین صفحه با ۴ بخش اصلی (فیلم، بازی، کتاب، درس).\n   - دکمه‌ی کوچک 🔒 والدین که فقط با نگه داشتن کار می‌کند.\n   - ردیف «📞 زنگ به مامان / بابا».\n\n   بخش‌های ممکن (والدین برای هر کودک انتخاب می‌کنند کدام‌ها دیده شوند): فیلم و کارتون، بازی، کتاب، درس و تمرین، انگلیسی، شبکه‌ی پویا، موسیقی، تفکر و یادگیری، کاردستی، دوربین من، تماس، برنامه‌ی من، کارهای من، برنامه‌های مجاز، جایزه‌ها، علایق من.",
+    "original_copy_examples": [
+      "فیلم و کارتون",
+      "بازی‌ها",
+      "کتاب‌ها",
+      "درس و تمرین",
+      "موسیقی",
+      "نقاشی",
+      "دوربین",
+      "تماس"
+    ],
+    "legacy_layout_category": "home",
+    "states": [
+      "default",
+      "loading",
+      "empty",
+      "error",
+      "locked",
+      "success"
+    ],
+    "implementation_status": "NOT_IMPLEMENTED",
+    "visual_status": "BOARD_REFERENCE_ONLY",
+    "source_of_truth": "02_requirements/ORIGINAL_USER_BRIEF_FA.md"
+  },
+  {
+    "id": 6,
+    "name": "فیلم و کارتون",
+    "family": "child",
+    "suggested_reference_board": "03_CHILD_HOME_AND_CATEGORIES.png",
+    "requirements_from_user_brief": "6. **فیلم و کارتون**: جستجو، دسته‌ها (بر اساس سرویس: تلوبیون، فیلیمو، نماوا، آپارات کودک…)، کارت هر کارتون با پوستر، رده‌ی سنی و تعداد قسمت. سریال‌ها یک کارت با زیرمجموعه‌ی قسمت‌ها هستند. حالت خالی: «هنوز مامان و بابا کارتونی انتخاب نکرده‌اند» با دکمه‌های «شبکه‌ی پویا (زنده)» و «از مامان و بابا بخواه».",
+    "original_copy_examples": [
+      "کارتون‌های من",
+      "پیشنهادهای تأییدشده",
+      "شبکه پویا",
+      "از مامان و بابا بخواه"
+    ],
+    "legacy_layout_category": "catalog",
+    "states": [
+      "default",
+      "loading",
+      "empty",
+      "error",
+      "locked",
+      "success"
+    ],
+    "implementation_status": "NOT_IMPLEMENTED",
+    "visual_status": "BOARD_REFERENCE_ONLY",
+    "source_of_truth": "02_requirements/ORIGINAL_USER_BRIEF_FA.md"
+  },
+  {
+    "id": 7,
+    "name": "نمایش امن",
+    "family": "child",
+    "suggested_reference_board": "03_CHILD_HOME_AND_CATEGORIES.png",
+    "requirements_from_user_brief": "7. **پخش‌کننده‌ی فیلم**: نوار بالا (برگشت، عنوان، «پخش امن از [سرویس]»، دکمه‌ی تمام صفحه) و پخش‌کننده‌ی سیاه. در تمام صفحه، صفحه افقی می‌شود و دکمه‌ی برگشت شیشه‌ای دارد. فهرست قسمت‌ها با «قسمت بعد» و دکمه‌ی «تماشا تمام شد؛ نظرم را بگویم».",
+    "original_copy_examples": [
+      "در حال پخش",
+      "قسمت بعد",
+      "نظر من درباره‌ی این کارتون"
+    ],
+    "legacy_layout_category": "video",
+    "states": [
+      "default",
+      "loading",
+      "empty",
+      "error",
+      "locked",
+      "success"
+    ],
+    "implementation_status": "NOT_IMPLEMENTED",
+    "visual_status": "BOARD_REFERENCE_ONLY",
+    "source_of_truth": "02_requirements/ORIGINAL_USER_BRIEF_FA.md"
+  },
+  {
+    "id": 8,
+    "name": "نظرت چی بود؟",
+    "family": "child",
+    "suggested_reference_board": "03_CHILD_HOME_AND_CATEGORIES.png",
+    "requirements_from_user_brief": "8. **نظر کودک بعد از تماشا**: آواتار، دو دکمه‌ی بزرگ «دوستش داشتم / دوستش نداشتم» و تشکر.",
+    "original_copy_examples": [
+      "دوستش داشتم",
+      "دوستش نداشتم",
+      "ممنون که گفتی!"
+    ],
+    "legacy_layout_category": "choice",
+    "states": [
+      "default",
+      "loading",
+      "empty",
+      "error",
+      "locked",
+      "success"
+    ],
+    "implementation_status": "NOT_IMPLEMENTED",
+    "visual_status": "BOARD_REFERENCE_ONLY",
+    "source_of_truth": "02_requirements/ORIGINAL_USER_BRIEF_FA.md"
+  },
+  {
+    "id": 9,
+    "name": "شبکه پویا",
+    "family": "child",
+    "suggested_reference_board": "03_CHILD_HOME_AND_CATEGORIES.png",
+    "requirements_from_user_brief": "9. **شبکه‌ی پویا (پخش زنده)**: فقط پخش‌کننده‌ی زنده، بدون منو.",
+    "original_copy_examples": [
+      "پخش زنده",
+      "صدای برنامه",
+      "بازگشت به خانه"
+    ],
+    "legacy_layout_category": "video",
+    "states": [
+      "default",
+      "loading",
+      "empty",
+      "error",
+      "locked",
+      "success"
+    ],
+    "implementation_status": "NOT_IMPLEMENTED",
+    "visual_status": "BOARD_REFERENCE_ONLY",
+    "source_of_truth": "02_requirements/ORIGINAL_USER_BRIEF_FA.md"
+  },
+  {
+    "id": 10,
+    "name": "سرزمین بازی‌ها",
+    "family": "child",
+    "suggested_reference_board": "03_CHILD_HOME_AND_CATEGORIES.png",
+    "requirements_from_user_brief": "10. **بازی‌ها (فهرست)**: گروه‌ها شامل ماجراجویی‌های داستانی با دوربین (۱۰ مرحله)، درس و ریتم با حرکت بدن، بازی‌های ۲ تا ۴ نفره روی یک گوشی، بازی‌های حرکتی با دوربین، ورزشی، فکری و سرعتی، بازی با حسگر گوشی، نقاشی و رنگ‌آمیزی. کارت هر بازی مرحله‌ی فعلی را نشان می‌دهد. نزدیک به ۱۰۰ بازی هست، پس دسته‌بندی و ردیف‌های افقی لازم است (مثل App Store).",
+    "original_copy_examples": [
+      "ماجراجویی با دوربین",
+      "بازی‌های حرکتی",
+      "فکری و سرعتی",
+      "بازی‌های دسته‌جمعی"
+    ],
+    "legacy_layout_category": "catalog",
+    "states": [
+      "default",
+      "loading",
+      "empty",
+      "error",
+      "locked",
+      "success"
+    ],
+    "implementation_status": "NOT_IMPLEMENTED",
+    "visual_status": "BOARD_REFERENCE_ONLY",
+    "source_of_truth": "02_requirements/ORIGINAL_USER_BRIEF_FA.md"
+  },
+  {
+    "id": 11,
+    "name": "وقت بازی!",
+    "family": "child",
+    "suggested_reference_board": "04_CHILD_INTERACTIONS.png",
+    "requirements_from_user_brief": "11. **صفحه‌ی بازی**: نوار بالا (عنوان، 🔊، «مرحله N»)، فضای بازی تمام صفحه (گاهی تصویر دوربین با اسکلت بدن)، HUD امتیاز، زمان و جان. صفحه‌ی پایان: شخصیت، «🎉 مرحله‌ی N باز شد!»، امتیاز، ستاره‌ها، و دکمه‌های «مرحله‌ی بعد»، «دوباره» و انتخاب مرحله.",
+    "original_copy_examples": [
+      "مرحله ۱",
+      "امتیاز ۱۲۰",
+      "۳ جان",
+      "ادامه‌ی بازی"
+    ],
+    "legacy_layout_category": "game",
+    "states": [
+      "default",
+      "loading",
+      "empty",
+      "error",
+      "locked",
+      "success"
+    ],
+    "implementation_status": "NOT_IMPLEMENTED",
+    "visual_status": "BOARD_REFERENCE_ONLY",
+    "source_of_truth": "02_requirements/ORIGINAL_USER_BRIEF_FA.md"
+  },
+  {
+    "id": 12,
+    "name": "سفر به جنگل اسرارآمیز",
+    "family": "child",
+    "suggested_reference_board": "04_CHILD_INTERACTIONS.png",
+    "requirements_from_user_brief": "12. **ماجراجویی داستانی (قبل از شروع)**: نقشه‌ی ۱۰ مرحله با قفل، داستان مرحله، مهارت لازم، هدف و جایزه، و دکمه‌ی «آماده‌ام! شروع».",
+    "original_copy_examples": [
+      "مرحله ۱ از ۱۰",
+      "۸ میوه جمع کن",
+      "جایزه: ۳ ستاره",
+      "آماده‌ام! شروع"
+    ],
+    "legacy_layout_category": "quest",
+    "states": [
+      "default",
+      "loading",
+      "empty",
+      "error",
+      "locked",
+      "success"
+    ],
+    "implementation_status": "NOT_IMPLEMENTED",
+    "visual_status": "BOARD_REFERENCE_ONLY",
+    "source_of_truth": "02_requirements/ORIGINAL_USER_BRIEF_FA.md"
+  },
+  {
+    "id": 13,
+    "name": "نقاشی و رنگ‌آمیزی",
+    "family": "child",
+    "suggested_reference_board": "04_CHILD_INTERACTIONS.png",
+    "requirements_from_user_brief": "13. **رنگ‌آمیزی**: دسته‌ها (حیوانات، طبیعت، وسیله‌ها، فضا، خوراکی، خانه، ماندالا، طرح‌ها)، انتخاب نقاشی، بوم سفید، پالت رنگ، و دکمه‌های «از نو» و «ذخیره».",
+    "original_copy_examples": [
+      "حیوانات",
+      "طبیعت",
+      "فضا",
+      "ذخیره نقاشی"
+    ],
+    "legacy_layout_category": "paint",
+    "states": [
+      "default",
+      "loading",
+      "empty",
+      "error",
+      "locked",
+      "success"
+    ],
+    "implementation_status": "NOT_IMPLEMENTED",
+    "visual_status": "BOARD_REFERENCE_ONLY",
+    "source_of_truth": "02_requirements/ORIGINAL_USER_BRIEF_FA.md"
+  },
+  {
+    "id": 14,
+    "name": "دنیای کتاب",
+    "family": "child",
+    "suggested_reference_board": "03_CHILD_HOME_AND_CATEGORIES.png",
+    "requirements_from_user_brief": "14. **کتاب‌ها**: قفسه‌ی افقی «کتاب‌های مصور واقعی»، جستجو، دسته‌ها و کارت کتاب با سه دکمه (صوتی، برایم بخوان، خودم می‌خوانم). کتاب‌های طاقچه و فیدیبو که والدین تأیید کرده‌اند هم اینجا هستند.",
+    "original_copy_examples": [
+      "کتاب‌های مصور",
+      "کتاب‌های صوتی",
+      "برایم بخوان",
+      "خودم می‌خوانم"
+    ],
+    "legacy_layout_category": "catalog",
+    "states": [
+      "default",
+      "loading",
+      "empty",
+      "error",
+      "locked",
+      "success"
+    ],
+    "implementation_status": "NOT_IMPLEMENTED",
+    "visual_status": "BOARD_REFERENCE_ONLY",
+    "source_of_truth": "02_requirements/ORIGINAL_USER_BRIEF_FA.md"
+  },
+  {
+    "id": 15,
+    "name": "کتاب‌خوان من",
+    "family": "child",
+    "suggested_reference_board": "04_CHILD_INTERACTIONS.png",
+    "requirements_from_user_brief": "15. **کتاب‌خوان**: تصویر بزرگ صفحه، متنی که هنگام خواندن صوتی کلمه‌به‌کلمه رنگ می‌گیرد، «صفحه‌ی قبل / ورق بزن» و شماره‌ی صفحه.",
+    "original_copy_examples": [
+      "قصه‌ی پرنده‌ی کوچک",
+      "صفحه ۳ از ۱۲",
+      "ورق بزن"
+    ],
+    "legacy_layout_category": "reader",
+    "states": [
+      "default",
+      "loading",
+      "empty",
+      "error",
+      "locked",
+      "success"
+    ],
+    "implementation_status": "NOT_IMPLEMENTED",
+    "visual_status": "BOARD_REFERENCE_ONLY",
+    "source_of_truth": "02_requirements/ORIGINAL_USER_BRIEF_FA.md"
+  },
+  {
+    "id": 16,
+    "name": "درس و تمرین",
+    "family": "child",
+    "suggested_reference_board": "03_CHILD_HOME_AND_CATEGORIES.png",
+    "requirements_from_user_brief": "16. **درس و تمرین**: پایه‌ی تحصیلی، نوار جایزه («۱۰ جواب درست = ۱۰ دقیقه بازی بیشتر»)، کارت «انگلیسی از صفر»، دسته‌ی درس‌ها (ریاضی، فارسی، علوم، مطالعات، مهارت‌ها) و کاشی هر درس با ستاره‌هایش. برای هر درس «آزمون جامع» هم هست.",
+    "original_copy_examples": [
+      "ریاضی",
+      "علوم",
+      "فارسی",
+      "انگلیسی",
+      "آزمون جامع"
+    ],
+    "legacy_layout_category": "learning",
+    "states": [
+      "default",
+      "loading",
+      "empty",
+      "error",
+      "locked",
+      "success"
+    ],
+    "implementation_status": "NOT_IMPLEMENTED",
+    "visual_status": "BOARD_REFERENCE_ONLY",
+    "source_of_truth": "02_requirements/ORIGINAL_USER_BRIEF_FA.md"
+  },
+  {
+    "id": 17,
+    "name": "تمرین ریاضی",
+    "family": "child",
+    "suggested_reference_board": "04_CHILD_INTERACTIONS.png",
+    "requirements_from_user_brief": "17. **یک درس**: کارت‌های آموزشی (تصویر و متن کوتاه با صدا)، بعد ۱۰ سؤال چهارگزینه‌ای با بازخورد درست یا غلط و توضیح، و در پایان ستاره‌ها.",
+    "original_copy_examples": [
+      "سؤال ۱ از ۱۰",
+      "۳ + ۵ = ؟",
+      "۶",
+      "۷",
+      "۸",
+      "۹"
+    ],
+    "legacy_layout_category": "quiz",
+    "states": [
+      "default",
+      "loading",
+      "empty",
+      "error",
+      "locked",
+      "success"
+    ],
+    "implementation_status": "NOT_IMPLEMENTED",
+    "visual_status": "BOARD_REFERENCE_ONLY",
+    "source_of_truth": "02_requirements/ORIGINAL_USER_BRIEF_FA.md"
+  },
+  {
+    "id": 18,
+    "name": "انگلیسی از صفر",
+    "family": "child",
+    "suggested_reference_board": "03_CHILD_HOME_AND_CATEGORIES.png",
+    "requirements_from_user_brief": "18. **انگلیسی از صفر**: واحدها (الفبا، اعداد، رنگ‌ها، حیوانات، خانواده…) با تب‌های «یاد بگیر، گوش کن و بخوان، هجی کن». کارت کلمه‌ی بزرگ با تصویر و تلفظ.",
+    "original_copy_examples": [
+      "حروف الفبا",
+      "اعداد",
+      "رنگ‌ها",
+      "حیوانات",
+      "گوش کن و بگو"
+    ],
+    "legacy_layout_category": "learning",
+    "states": [
+      "default",
+      "loading",
+      "empty",
+      "error",
+      "locked",
+      "success"
+    ],
+    "implementation_status": "NOT_IMPLEMENTED",
+    "visual_status": "BOARD_REFERENCE_ONLY",
+    "source_of_truth": "02_requirements/ORIGINAL_USER_BRIEF_FA.md"
+  },
+  {
+    "id": 19,
+    "name": "تفکر و یادگیری",
+    "family": "child",
+    "suggested_reference_board": "03_CHILD_HOME_AND_CATEGORIES.png",
+    "requirements_from_user_brief": "19. **تفکر و یادگیری**: سه دروازه‌ی بزرگ: مهارت‌های زندگی، دانستنی‌های شگفت‌انگیز، دانشنامه و سایت‌های امن.",
+    "original_copy_examples": [
+      "مهارت‌های زندگی",
+      "دانستنی‌های تازه",
+      "دانشنامه امن"
+    ],
+    "legacy_layout_category": "catalog",
+    "states": [
+      "default",
+      "loading",
+      "empty",
+      "error",
+      "locked",
+      "success"
+    ],
+    "implementation_status": "NOT_IMPLEMENTED",
+    "visual_status": "BOARD_REFERENCE_ONLY",
+    "source_of_truth": "02_requirements/ORIGINAL_USER_BRIEF_FA.md"
+  },
+  {
+    "id": 20,
+    "name": "مهارت‌های زندگی",
+    "family": "child",
+    "suggested_reference_board": "03_CHILD_HOME_AND_CATEGORIES.png",
+    "requirements_from_user_brief": "20. **مهارت‌های زندگی / آموزش**: لیست درس‌ها با دسته (ایمنی، احساسات، علوم و آزمایش…) و صفحه‌ی هر درس قدم‌به‌قدم.",
+    "original_copy_examples": [
+      "ایمنی در خانه",
+      "احساسات من",
+      "آزمایش ساده",
+      "قدم بعدی"
+    ],
+    "legacy_layout_category": "learning",
+    "states": [
+      "default",
+      "loading",
+      "empty",
+      "error",
+      "locked",
+      "success"
+    ],
+    "implementation_status": "NOT_IMPLEMENTED",
+    "visual_status": "BOARD_REFERENCE_ONLY",
+    "source_of_truth": "02_requirements/ORIGINAL_USER_BRIEF_FA.md"
+  },
+  {
+    "id": 21,
+    "name": "دانستنی امروز",
+    "family": "child",
+    "suggested_reference_board": "03_CHILD_HOME_AND_CATEGORIES.png",
+    "requirements_from_user_brief": "21. **دانستنی‌ها**: کارت روز، و کارت‌هایی مثل کارت‌های اینستاگرام با «برایم بخوان» و قلب.",
+    "original_copy_examples": [
+      "آیا می‌دانستی؟",
+      "اختاپوس سه قلب دارد!",
+      "برایم بخوان",
+      "دوست داشتم"
+    ],
+    "legacy_layout_category": "fact",
+    "states": [
+      "default",
+      "loading",
+      "empty",
+      "error",
+      "locked",
+      "success"
+    ],
+    "implementation_status": "NOT_IMPLEMENTED",
+    "visual_status": "BOARD_REFERENCE_ONLY",
+    "source_of_truth": "02_requirements/ORIGINAL_USER_BRIEF_FA.md"
+  },
+  {
+    "id": 22,
+    "name": "سایت‌های امن",
+    "family": "child",
+    "suggested_reference_board": "03_CHILD_HOME_AND_CATEGORIES.png",
+    "requirements_from_user_brief": "22. **دانشنامه و سایت‌های امن**: ظاهری شبیه مرورگر (نوار آدرس، برگشت، خانه) که فقط سایت‌های تأییدشده و دانشنامه‌ی کودک را باز می‌کند، و پیشنهاد موضوع‌ها.",
+    "original_copy_examples": [
+      "جستجو در دنیای امن",
+      "دانشنامه کودک",
+      "طبیعت",
+      "حیوانات"
+    ],
+    "legacy_layout_category": "browser",
+    "states": [
+      "default",
+      "loading",
+      "empty",
+      "error",
+      "locked",
+      "success"
+    ],
+    "implementation_status": "NOT_IMPLEMENTED",
+    "visual_status": "BOARD_REFERENCE_ONLY",
+    "source_of_truth": "02_requirements/ORIGINAL_USER_BRIEF_FA.md"
+  },
+  {
+    "id": 23,
+    "name": "کاردستی",
+    "family": "child",
+    "suggested_reference_board": "03_CHILD_HOME_AND_CATEGORIES.png",
+    "requirements_from_user_brief": "23. **کاردستی و اوریگامی**: کارت «پروژه‌های من ➕»، دسته‌ها (اوریگامی، بازیافتی، کاغذ و قیچی، رنگ و خمیر، ساختنی علمی) و کارت آموزش‌ها (تعداد مرحله، زمان، «با کمک بزرگ‌تر»).",
+    "original_copy_examples": [
+      "اوریگامی",
+      "کاغذ و قیچی",
+      "بازیافتی",
+      "ساختنی علمی"
+    ],
+    "legacy_layout_category": "catalog",
+    "states": [
+      "default",
+      "loading",
+      "empty",
+      "error",
+      "locked",
+      "success"
+    ],
+    "implementation_status": "NOT_IMPLEMENTED",
+    "visual_status": "BOARD_REFERENCE_ONLY",
+    "source_of_truth": "02_requirements/ORIGINAL_USER_BRIEF_FA.md"
+  },
+  {
+    "id": 24,
+    "name": "با هم بسازیم",
+    "family": "child",
+    "suggested_reference_board": "03_CHILD_HOME_AND_CATEGORIES.png",
+    "requirements_from_user_brief": "24. **آموزش قدم‌به‌قدم کاردستی**: وسایل لازم، هر مرحله با شماره‌ی بزرگ و تصویر مرحله (این‌ها را باید ماکاپ یا تصویرسازی کنی)، صدا، و در پایان «آفرین! از کارت عکس بگیر».",
+    "original_copy_examples": [
+      "قایق کاغذی",
+      "وسایل: یک برگ A4",
+      "مرحله ۱ از ۵",
+      "شروع"
+    ],
+    "legacy_layout_category": "craft",
+    "states": [
+      "default",
+      "loading",
+      "empty",
+      "error",
+      "locked",
+      "success"
+    ],
+    "implementation_status": "NOT_IMPLEMENTED",
+    "visual_status": "BOARD_REFERENCE_ONLY",
+    "source_of_truth": "02_requirements/ORIGINAL_USER_BRIEF_FA.md"
+  },
+  {
+    "id": 25,
+    "name": "پروژه‌های من",
+    "family": "child",
+    "suggested_reference_board": "03_CHILD_HOME_AND_CATEGORIES.png",
+    "requirements_from_user_brief": "25. **پروژه‌های من**: پروژه‌های ۵ مرحله‌ای کودک با عکس‌هایش.",
+    "original_copy_examples": [
+      "درخت دست‌های من",
+      "شیر مقوایی",
+      "قایق کاغذی",
+      "پروژه جدید"
+    ],
+    "legacy_layout_category": "gallery",
+    "states": [
+      "default",
+      "loading",
+      "empty",
+      "error",
+      "locked",
+      "success"
+    ],
+    "implementation_status": "NOT_IMPLEMENTED",
+    "visual_status": "BOARD_REFERENCE_ONLY",
+    "source_of_truth": "02_requirements/ORIGINAL_USER_BRIEF_FA.md"
+  },
+  {
+    "id": 26,
+    "name": "دوربین من",
+    "family": "child",
+    "suggested_reference_board": "04_CHILD_INTERACTIONS.png",
+    "requirements_from_user_brief": "26. **دوربین من**: پیش‌نمایش تمام صفحه، انتخاب «عکس / فیلم»، دکمه‌ی شاتر بزرگ (قرمز برای فیلم، با شمارنده‌ی ۶۰ ثانیه)، چرخاندن دوربین، و تصویر کوچک گالری.",
+    "original_copy_examples": [
+      "عکس",
+      "فیلم",
+      "چرخاندن دوربین"
+    ],
+    "legacy_layout_category": "camera",
+    "states": [
+      "default",
+      "loading",
+      "empty",
+      "error",
+      "locked",
+      "success"
+    ],
+    "implementation_status": "NOT_IMPLEMENTED",
+    "visual_status": "BOARD_REFERENCE_ONLY",
+    "source_of_truth": "02_requirements/ORIGINAL_USER_BRIEF_FA.md"
+  },
+  {
+    "id": 27,
+    "name": "گالری خاطرات من",
+    "family": "child",
+    "suggested_reference_board": "04_CHILD_INTERACTIONS.png",
+    "requirements_from_user_brief": "27. **گالری من**: شبکه‌ی عکس‌ها و فیلم‌ها، و نمایش تمام صفحه.",
+    "original_copy_examples": [
+      "عکس‌ها",
+      "فیلم‌ها",
+      "آلبوم‌های من"
+    ],
+    "legacy_layout_category": "gallery",
+    "states": [
+      "default",
+      "loading",
+      "empty",
+      "error",
+      "locked",
+      "success"
+    ],
+    "implementation_status": "NOT_IMPLEMENTED",
+    "visual_status": "BOARD_REFERENCE_ONLY",
+    "source_of_truth": "02_requirements/ORIGINAL_USER_BRIEF_FA.md"
+  },
+  {
+    "id": 28,
+    "name": "تماس با خانواده",
+    "family": "child",
+    "suggested_reference_board": "03_CHILD_HOME_AND_CATEGORIES.png",
+    "requirements_from_user_brief": "28. **تماس**: کارت بزرگ هر نفر (مامان، بابا، مادربزرگ، خاله…) با آواتار سه‌بعدی و دکمه‌ی «زنگ بزن»؛ فقط مخاطبانی که والدین تأیید کرده‌اند.",
+    "original_copy_examples": [
+      "مامان",
+      "بابا",
+      "مادربزرگ",
+      "زنگ بزن"
+    ],
+    "legacy_layout_category": "contacts",
+    "states": [
+      "default",
+      "loading",
+      "empty",
+      "error",
+      "locked",
+      "success"
+    ],
+    "implementation_status": "NOT_IMPLEMENTED",
+    "visual_status": "BOARD_REFERENCE_ONLY",
+    "source_of_truth": "02_requirements/ORIGINAL_USER_BRIEF_FA.md"
+  },
+  {
+    "id": 29,
+    "name": "برنامه‌ی من",
+    "family": "child",
+    "suggested_reference_board": "03_CHILD_HOME_AND_CATEGORIES.png",
+    "requirements_from_user_brief": "29. **برنامه‌ی من**: تب‌های امروز، هفتگی، تکالیف، امتحان و پروژه. «امروز» کاشی‌های «الان، بعدی، تکالیف، امتحان»، تایمر تمرکز ۲۰ دقیقه‌ای و برنامه‌ی روزانه با تیک دارد.",
+    "original_copy_examples": [
+      "امروز",
+      "هفتگی",
+      "تکالیف",
+      "امتحان",
+      "زمان تمرکز"
+    ],
+    "legacy_layout_category": "planner",
+    "states": [
+      "default",
+      "loading",
+      "empty",
+      "error",
+      "locked",
+      "success"
+    ],
+    "implementation_status": "NOT_IMPLEMENTED",
+    "visual_status": "BOARD_REFERENCE_ONLY",
+    "source_of_truth": "02_requirements/ORIGINAL_USER_BRIEF_FA.md"
+  },
+  {
+    "id": 30,
+    "name": "کارهای خوب من",
+    "family": "child",
+    "suggested_reference_board": "03_CHILD_HOME_AND_CATEGORIES.png",
+    "requirements_from_user_brief": "30. **کارهای من**: وضعیت امروز («۱۵ دقیقه وقت بیشتر گرفتی» یا «۱۰ دقیقه کم شد»)، یادداشت‌های والدین درباره‌ی کار نادرست همراه با راه جبران (لحن مهربان، نه شرم‌آور)، و لیست کارهای خوب (ستاره + ۵ دقیقه، «انجامش دادم؟»).",
+    "original_copy_examples": [
+      "آب دادن به گل‌ها",
+      "مرتب کردن وسایل",
+      "کمک در چیدن سفره",
+      "انجامش دادم"
+    ],
+    "legacy_layout_category": "tasks",
+    "states": [
+      "default",
+      "loading",
+      "empty",
+      "error",
+      "locked",
+      "success"
+    ],
+    "implementation_status": "NOT_IMPLEMENTED",
+    "visual_status": "BOARD_REFERENCE_ONLY",
+    "source_of_truth": "02_requirements/ORIGINAL_USER_BRIEF_FA.md"
+  },
+  {
+    "id": 31,
+    "name": "جایزه‌های من",
+    "family": "child",
+    "suggested_reference_board": "03_CHILD_HOME_AND_CATEGORIES.png",
+    "requirements_from_user_brief": "31. **جایزه‌ها**: مدال‌های افتخار (قفل یا باز) و جایزه‌های خانوادگی که با ستاره خریده می‌شوند.",
+    "original_copy_examples": [
+      "ستاره‌های من",
+      "مدال افتخار",
+      "جایزه خانوادگی",
+      "باز کردن جایزه"
+    ],
+    "legacy_layout_category": "rewards",
+    "states": [
+      "default",
+      "loading",
+      "empty",
+      "error",
+      "locked",
+      "success"
+    ],
+    "implementation_status": "NOT_IMPLEMENTED",
+    "visual_status": "BOARD_REFERENCE_ONLY",
+    "source_of_truth": "02_requirements/ORIGINAL_USER_BRIEF_FA.md"
+  },
+  {
+    "id": 32,
+    "name": "من چی دوست دارم؟",
+    "family": "child",
+    "suggested_reference_board": "03_CHILD_HOME_AND_CATEGORIES.png",
+    "requirements_from_user_brief": "32. **علایق من**: انتخاب علاقه‌ها با کاشی‌های تیک‌دار و پیشنهادهای مخصوص.",
+    "original_copy_examples": [
+      "ورزش",
+      "هنر و خلاقیت",
+      "حیوانات",
+      "علم و تجربه",
+      "ذخیره علاقه‌ها"
+    ],
+    "legacy_layout_category": "interests",
+    "states": [
+      "default",
+      "loading",
+      "empty",
+      "error",
+      "locked",
+      "success"
+    ],
+    "implementation_status": "NOT_IMPLEMENTED",
+    "visual_status": "BOARD_REFERENCE_ONLY",
+    "source_of_truth": "02_requirements/ORIGINAL_USER_BRIEF_FA.md"
+  },
+  {
+    "id": 33,
+    "name": "برنامه‌های مجاز",
+    "family": "child",
+    "suggested_reference_board": "03_CHILD_HOME_AND_CATEGORIES.png",
+    "requirements_from_user_brief": "33. **برنامه‌های مجاز**: آیکون اپ‌هایی که والدین اجازه داده‌اند. روی این اپ‌ها یک **حباب شناور کدومو** با زمان باقی‌مانده و «برگشت به کدومو» دیده می‌شود؛ این حباب را هم طراحی کن.",
+    "original_copy_examples": [
+      "برنامه‌های انتخاب‌شده",
+      "بازگشت به کدومو",
+      "زمان باقی‌مانده"
+    ],
+    "legacy_layout_category": "apps",
+    "states": [
+      "default",
+      "loading",
+      "empty",
+      "error",
+      "locked",
+      "success"
+    ],
+    "implementation_status": "NOT_IMPLEMENTED",
+    "visual_status": "BOARD_REFERENCE_ONLY",
+    "source_of_truth": "02_requirements/ORIGINAL_USER_BRIEF_FA.md"
+  },
+  {
+    "id": 34,
+    "name": "جعبه‌ی موسیقی",
+    "family": "child",
+    "suggested_reference_board": "03_CHILD_HOME_AND_CATEGORIES.png",
+    "requirements_from_user_brief": "34. **موسیقی**: جعبه‌ی موسیقی (آهنگ‌های جهانی کودکانه با صدای جعبه‌موسیقی، فلوت یا زایلوفون)، «لالایی ۱۰ / ۲۰ دقیقه»، **زایلوفون آموزشی** (۸ میله‌ی رنگی که میله‌ی بعدی می‌درخشد) و نوار «در حال پخش».",
+    "original_copy_examples": [
+      "لالایی ۱۰ دقیقه",
+      "لالایی ۲۰ دقیقه",
+      "زایلوفون",
+      "آهنگ‌های آرام"
+    ],
+    "legacy_layout_category": "music",
+    "states": [
+      "default",
+      "loading",
+      "empty",
+      "error",
+      "locked",
+      "success"
+    ],
+    "implementation_status": "NOT_IMPLEMENTED",
+    "visual_status": "BOARD_REFERENCE_ONLY",
+    "source_of_truth": "02_requirements/ORIGINAL_USER_BRIEF_FA.md"
+  },
+  {
+    "id": 35,
+    "name": "زمان استراحت",
+    "family": "child",
+    "suggested_reference_board": "04_CHILD_INTERACTIONS.png",
+    "requirements_from_user_brief": "35. **صفحه‌های قفل**، هر کدام با حال‌وهوای خودش:\n    - وقت روزانه تمام شد (درخت و طبیعت).\n    - وقت خواب (ماه و ستاره، تاریک).\n    - ساعت مدرسه (🏫).\n    - بیرون از نوبت‌های استفاده (⏰ «نوبت بعدی ساعت ۱۴:۳۰»).\n    - اینترنت امروز تمام شد (📶).\n\n    همه دکمه‌ی «ورود والدین برای ۱۵ دقیقه‌ی بیشتر» و «خروج والدین» دارند و دکمه‌ی «زنگ به مامان / بابا» نشان داده می‌شود.",
+    "original_copy_examples": [
+      "امروز به اندازه کافی بازی کردی",
+      "زنگ به خانواده",
+      "ورود والدین"
+    ],
+    "legacy_layout_category": "lock",
+    "states": [
+      "default",
+      "loading",
+      "empty",
+      "error",
+      "locked",
+      "success"
+    ],
+    "implementation_status": "NOT_IMPLEMENTED",
+    "visual_status": "BOARD_REFERENCE_ONLY",
+    "source_of_truth": "02_requirements/ORIGINAL_USER_BRIEF_FA.md"
+  },
+  {
+    "id": 36,
+    "name": "استراحت چشم",
+    "family": "child",
+    "suggested_reference_board": "04_CHILD_INTERACTIONS.png",
+    "requirements_from_user_brief": "36. **استراحت چشم**: تمام صفحه، ۲۰ ثانیه شمارش معکوس، ۴ نکته‌ی «به دور نگاه کن، پلک بزن، کش بیا، آب بنوش».",
+    "original_copy_examples": [
+      "۲۰ ثانیه",
+      "به دور نگاه کن",
+      "پلک بزن",
+      "آب بنوش"
+    ],
+    "legacy_layout_category": "rest",
+    "states": [
+      "default",
+      "loading",
+      "empty",
+      "error",
+      "locked",
+      "success"
+    ],
+    "implementation_status": "NOT_IMPLEMENTED",
+    "visual_status": "BOARD_REFERENCE_ONLY",
+    "source_of_truth": "02_requirements/ORIGINAL_USER_BRIEF_FA.md"
+  },
+  {
+    "id": 37,
+    "name": "اول درس، بعد بازی",
+    "family": "child",
+    "suggested_reference_board": "04_CHILD_INTERACTIONS.png",
+    "requirements_from_user_brief": "37. **«اول درس، بعد بازی»**: «امروز ۵ تمرین درست حل کن تا بازی‌ها باز شوند» با ستاره‌های پیشرفت.",
+    "original_copy_examples": [
+      "۵ تمرین درست حل کن",
+      "۲ تمرین انجام‌شده",
+      "شروع تمرین"
+    ],
+    "legacy_layout_category": "lock",
+    "states": [
+      "default",
+      "loading",
+      "empty",
+      "error",
+      "locked",
+      "success"
+    ],
+    "implementation_status": "NOT_IMPLEMENTED",
+    "visual_status": "BOARD_REFERENCE_ONLY",
+    "source_of_truth": "02_requirements/ORIGINAL_USER_BRIEF_FA.md"
+  },
+  {
+    "id": 38,
+    "name": "دوست همراه من",
+    "family": "child",
+    "suggested_reference_board": "03_CHILD_HOME_AND_CATEGORIES.png",
+    "requirements_from_user_brief": "38. **انتخاب شخصیت همراه**: ربات، پاندا، بره (ببعی)، دلفین، شیر، اژدها، جغد و… هر کدام با صدا و رنگ خودش.",
+    "original_copy_examples": [
+      "ربات کدومو",
+      "پاندا",
+      "دلفین",
+      "انتخاب همراه"
+    ],
+    "legacy_layout_category": "mascot",
+    "states": [
+      "default",
+      "loading",
+      "empty",
+      "error",
+      "locked",
+      "success"
+    ],
+    "implementation_status": "NOT_IMPLEMENTED",
+    "visual_status": "BOARD_REFERENCE_ONLY",
+    "source_of_truth": "02_requirements/ORIGINAL_USER_BRIEF_FA.md"
+  },
+  {
+    "id": 39,
+    "name": "پنج دقیقه مانده!",
+    "family": "child",
+    "suggested_reference_board": "04_CHILD_INTERACTIONS.png",
+    "requirements_from_user_brief": "39. **هشدار ۵ دقیقه‌ای**: دیالوگ مهربان شخصیت همراه.\n\n### ج) پنل والدین (شبیه تنظیمات iOS و One UI)",
+    "original_copy_examples": [
+      "تا پایان زمان بازی ۵ دقیقه مانده",
+      "تمام کردن بازی",
+      "به خانه برگرد"
+    ],
+    "legacy_layout_category": "rest",
+    "states": [
+      "default",
+      "loading",
+      "empty",
+      "error",
+      "locked",
+      "success"
+    ],
+    "implementation_status": "NOT_IMPLEMENTED",
+    "visual_status": "BOARD_REFERENCE_ONLY",
+    "source_of_truth": "02_requirements/ORIGINAL_USER_BRIEF_FA.md"
+  },
+  {
+    "id": 40,
+    "name": "پنل والدین",
+    "family": "parent",
+    "suggested_reference_board": "05_PARENT_DASHBOARD_AND_SETTINGS.png",
+    "requirements_from_user_brief": "40. **پوسته‌ی پنل**: تب‌بار پایین (داشبورد، گزارش، ارزیابی، جامعه، خانواده)، انتخاب‌گر فرزند بالای صفحه (chip با عکس) و دکمه‌ی خروج.",
+    "original_copy_examples": [
+      "داشبورد",
+      "گزارش‌ها",
+      "ارزیابی",
+      "جامعه",
+      "خانواده"
+    ],
+    "legacy_layout_category": "parent",
+    "states": [
+      "default",
+      "loading",
+      "empty",
+      "error",
+      "locked",
+      "success"
+    ],
+    "implementation_status": "NOT_IMPLEMENTED",
+    "visual_status": "BOARD_REFERENCE_ONLY",
+    "source_of_truth": "02_requirements/ORIGINAL_USER_BRIEF_FA.md"
+  },
+  {
+    "id": 41,
+    "name": "داشبورد خانواده",
+    "family": "parent",
+    "suggested_reference_board": "05_PARENT_DASHBOARD_AND_SETTINGS.png",
+    "requirements_from_user_brief": "41. **داشبورد**:\n    - کارت «راه‌اندازی امن ۲ از ۴» با تیک‌ها.\n    - «کارهای خانه که بچه‌ها انجام داده‌اند» با دکمه‌های «تأیید / نه».\n    - «رفتار امروز» و ثبت کار نادرست با chipها و دیالوگ تأیید.\n    - «درس و تمرین» و قانون جایزه.\n    - مصرف امروز (دقیقه از سقف، با نوار).\n    - سقف روزانه (اسلایدر)، ساعت خواب، و پایش زنده.",
+    "original_copy_examples": [
+      "راه‌اندازی امن ۲ از ۴",
+      "مصرف امروز: ۴۵ دقیقه",
+      "کارهای خانه",
+      "قوانین زمان"
+    ],
+    "legacy_layout_category": "dashboard",
+    "states": [
+      "default",
+      "loading",
+      "empty",
+      "error",
+      "locked",
+      "success"
+    ],
+    "implementation_status": "NOT_IMPLEMENTED",
+    "visual_status": "BOARD_REFERENCE_ONLY",
+    "source_of_truth": "02_requirements/ORIGINAL_USER_BRIEF_FA.md"
+  },
+  {
+    "id": 42,
+    "name": "گزارش مصرف",
+    "family": "parent",
+    "suggested_reference_board": "05_PARENT_DASHBOARD_AND_SETTINGS.png",
+    "requirements_from_user_brief": "42. **گزارش‌ها**: نمودار هفتگی مصرف، میانگین روزانه، تفکیک دسته‌ها (فیلم، بازی، کتاب…) و خط زمانی فعالیت‌ها. حالت خالی هم لازم است.",
+    "original_copy_examples": [
+      "میانگین روزانه",
+      "فیلم و کارتون",
+      "بازی",
+      "کتاب و درس"
+    ],
+    "legacy_layout_category": "report",
+    "states": [
+      "default",
+      "loading",
+      "empty",
+      "error",
+      "locked",
+      "success"
+    ],
+    "implementation_status": "NOT_IMPLEMENTED",
+    "visual_status": "BOARD_REFERENCE_ONLY",
+    "source_of_truth": "02_requirements/ORIGINAL_USER_BRIEF_FA.md"
+  },
+  {
+    "id": 43,
+    "name": "ارزیابی محتوا",
+    "family": "parent",
+    "suggested_reference_board": "05_PARENT_DASHBOARD_AND_SETTINGS.png",
+    "requirements_from_user_brief": "43. **ارزیابی**:\n    - کارت «🍿 تماشا برای والدین».\n    - کارت «افزودن کارتون و کتاب از سرویس‌ها».\n    - انتخاب «فقط انتخاب‌های من / همه‌ی تأییدشده‌های کدومو».\n    - وضعیت به‌روزرسانی خودکار کدومو.\n    - جستجو، فیلتر نوع، و لیست آثار (پوستر، سن، شاخص‌ها؛ «⏳ در حال ارزیابی» برای آثار ناتمام).",
+    "original_copy_examples": [
+      "فقط انتخاب‌های من",
+      "آثار تأییدشده",
+      "در حال ارزیابی",
+      "افزودن محتوا"
+    ],
+    "legacy_layout_category": "catalog",
+    "states": [
+      "default",
+      "loading",
+      "empty",
+      "error",
+      "locked",
+      "success"
+    ],
+    "implementation_status": "NOT_IMPLEMENTED",
+    "visual_status": "BOARD_REFERENCE_ONLY",
+    "source_of_truth": "02_requirements/ORIGINAL_USER_BRIEF_FA.md"
+  },
+  {
+    "id": 44,
+    "name": "شناسنامه‌ی اثر",
+    "family": "parent",
+    "suggested_reference_board": "05_PARENT_DASHBOARD_AND_SETTINGS.png",
+    "requirements_from_user_brief": "44. **شناسنامه‌ی اثر (جزئیات ارزیابی)**: پوستر، سن پیشنهادی، نمودار میله‌ای شاخص‌ها (خشونت، ترس، ناهنجاری اجتماعی، پیام مثبت، الگوی مثبت، آموزشی)، «آنچه والدین باید بدانند»، «با فرزندان صحبت کنید درباره‌ی…»، داستان، نظر کارشناس، و نظر بچه‌های دیگر (پسندیدم / نپسندیدم).",
+    "original_copy_examples": [
+      "رده‌ی سنی پیشنهادی: ۷+",
+      "ترس",
+      "خشونت",
+      "پیام مثبت",
+      "آنچه والدین باید بدانند"
+    ],
+    "legacy_layout_category": "review",
+    "states": [
+      "default",
+      "loading",
+      "empty",
+      "error",
+      "locked",
+      "success"
+    ],
+    "implementation_status": "NOT_IMPLEMENTED",
+    "visual_status": "BOARD_REFERENCE_ONLY",
+    "source_of_truth": "02_requirements/ORIGINAL_USER_BRIEF_FA.md"
+  },
+  {
+    "id": 45,
+    "name": "سرویس‌های محتوا",
+    "family": "parent",
+    "suggested_reference_board": "05_PARENT_DASHBOARD_AND_SETTINGS.png",
+    "requirements_from_user_brief": "45. **سرویس‌ها (هاب)**: لیست تلوبیون، آپارات کودک، فیلیمو، فیلم‌نت، شیدا، نماوا (فیلم) و طاقچه، فیدیبو (کتاب)، با برچسب «نیاز به حساب کاربری / رایگان».",
+    "original_copy_examples": [
+      "تلوبیون",
+      "فیلیمو",
+      "نماوا",
+      "آپارات کودک",
+      "طاقچه",
+      "فیدیبو"
+    ],
+    "legacy_layout_category": "services",
+    "states": [
+      "default",
+      "loading",
+      "empty",
+      "error",
+      "locked",
+      "success"
+    ],
+    "implementation_status": "NOT_IMPLEMENTED",
+    "visual_status": "BOARD_REFERENCE_ONLY",
+    "source_of_truth": "02_requirements/ORIGINAL_USER_BRIEF_FA.md"
+  },
+  {
+    "id": 46,
+    "name": "افزودن به کدومو",
+    "family": "parent",
+    "suggested_reference_board": "05_PARENT_DASHBOARD_AND_SETTINGS.png",
+    "requirements_from_user_brief": "46. **انتخاب‌گر محتوای سرویس**: مرورگر سایت (والدین می‌توانند وارد حساب خود شوند)، دکمه‌ی «بررسی در کدومو و افزودن برای کودک»، و پنل بررسی شامل:\n    - پوستر صفحه کنار پوستر نتیجه‌های کدومو.\n    - برچسب «✨ احتمالاً همین است».\n    - **«برای کدام فرزندان؟»** با chipهای تیک‌دار برای هر کودک.\n    - کارت «تأیید با مسئولیت من» وقتی اثر در کدومو نیست: اسلایدر سن، یادداشت، و تیک «این کارتون را دیده‌ام» یا «این کتاب را خوانده‌ام».\n    - نوار افقی «افزوده‌شده‌ها» که با زدن روی هر کدام بچه‌ها را انتخاب یا اثر را حذف می‌کنید.\n    - صفحه‌ی «صفحه باز نشد» با کد خطا و «تلاش دوباره».",
+    "original_copy_examples": [
+      "بررسی در کدومو",
+      "برای کدام فرزندان؟",
+      "تأیید با مسئولیت من",
+      "افزودن برای کودک"
+    ],
+    "legacy_layout_category": "review",
+    "states": [
+      "default",
+      "loading",
+      "empty",
+      "error",
+      "locked",
+      "success"
+    ],
+    "implementation_status": "NOT_IMPLEMENTED",
+    "visual_status": "BOARD_REFERENCE_ONLY",
+    "source_of_truth": "02_requirements/ORIGINAL_USER_BRIEF_FA.md"
+  },
+  {
+    "id": 47,
+    "name": "تماشای والدین",
+    "family": "parent",
+    "suggested_reference_board": "05_PARENT_DASHBOARD_AND_SETTINGS.png",
+    "requirements_from_user_brief": "47. **تماشا برای والدین**: شبکه‌ی ۸ سرویس (نسخه‌ی کامل، بدون محدودیت). مرورگر هر سرویس نوار پایین دارد: «⭐ ارزیابی کدومو»، «📺 تلویزیون (Smart View / Cast)»، «↗ باز کردن در برنامه» و «➕ بچه‌ها». بیشتر شبیه **Apple TV app / Netflix** باشد. Bottom sheet ارزیابی هم سن، شاخص‌ها و نکات والدین را نشان می‌دهد.",
+    "original_copy_examples": [
+      "تلوبیون",
+      "آپارات",
+      "فیلیمو",
+      "نماوا",
+      "نمایش روی تلویزیون"
+    ],
+    "legacy_layout_category": "services",
+    "states": [
+      "default",
+      "loading",
+      "empty",
+      "error",
+      "locked",
+      "success"
+    ],
+    "implementation_status": "NOT_IMPLEMENTED",
+    "visual_status": "BOARD_REFERENCE_ONLY",
+    "source_of_truth": "02_requirements/ORIGINAL_USER_BRIEF_FA.md"
+  },
+  {
+    "id": 48,
+    "name": "جامعه‌ی والدین",
+    "family": "parent",
+    "suggested_reference_board": "05_PARENT_DASHBOARD_AND_SETTINGS.png",
+    "requirements_from_user_brief": "48. **جامعه**: بنر «جامعه‌ی والدین کدومو» با شمارنده‌ها، «💡 نکته‌ی امروز»، سه کاشی (مقاله‌ها، گفتگوی والدین، دورهمی خانواده)، لیست مقاله‌ها، تالار پرسش و پاسخ با کارشناس (و ایجاد تاپیک)، و ایده‌های دورهمی بدون صفحه‌نمایش.",
+    "original_copy_examples": [
+      "نکته‌ی امروز",
+      "مقاله‌ها",
+      "گفتگوی والدین",
+      "دورهمی خانوادگی"
+    ],
+    "legacy_layout_category": "community",
+    "states": [
+      "default",
+      "loading",
+      "empty",
+      "error",
+      "locked",
+      "success"
+    ],
+    "implementation_status": "NOT_IMPLEMENTED",
+    "visual_status": "BOARD_REFERENCE_ONLY",
+    "source_of_truth": "02_requirements/ORIGINAL_USER_BRIEF_FA.md"
+  },
+  {
+    "id": 49,
+    "name": "آگاهی برای خانواده",
+    "family": "parent",
+    "suggested_reference_board": "05_PARENT_DASHBOARD_AND_SETTINGS.png",
+    "requirements_from_user_brief": "49. **مقاله / تاپیک**: صفحه‌ی خواندن مقاله؛ صفحه‌ی تاپیک با پاسخ‌ها و نشان کارشناس تأییدشده.",
+    "original_copy_examples": [
+      "چطور درباره‌ی زمان صفحه گفت‌وگو کنیم؟",
+      "نظرات والدین",
+      "پاسخ کارشناس"
+    ],
+    "legacy_layout_category": "article",
+    "states": [
+      "default",
+      "loading",
+      "empty",
+      "error",
+      "locked",
+      "success"
+    ],
+    "implementation_status": "NOT_IMPLEMENTED",
+    "visual_status": "BOARD_REFERENCE_ONLY",
+    "source_of_truth": "02_requirements/ORIGINAL_USER_BRIEF_FA.md"
+  },
+  {
+    "id": 50,
+    "name": "خانواده و تنظیمات",
+    "family": "parent",
+    "suggested_reference_board": "05_PARENT_DASHBOARD_AND_SETTINGS.png",
+    "requirements_from_user_brief": "50. **خانواده**: کارت خانواده (پدر و مادر با عکس از گالری)، تغییر رمز، لیست فرزندان، و ردیف‌های تنظیمات:\n    - مخاطبان تماس کودک.\n    - بخش‌های محیط کودک.\n    - سلامت و ایمنی کودک.\n    - سایت‌های مجاز مرورگر.\n    - برنامه‌های مجاز.\n    - گالری خاطرات.\n    - حساب ابری.\n    - خروج از کدومو و برگشت به لانچر گوشی.\n\n    مثل صفحه‌ی اصلی Settings در iOS.",
+    "original_copy_examples": [
+      "مدیریت فرزندان",
+      "سلامت و ایمنی",
+      "بخش‌های محیط کودک",
+      "سایت‌های مجاز",
+      "حساب ابری"
+    ],
+    "legacy_layout_category": "settings",
+    "states": [
+      "default",
+      "loading",
+      "empty",
+      "error",
+      "locked",
+      "success"
+    ],
+    "implementation_status": "NOT_IMPLEMENTED",
+    "visual_status": "BOARD_REFERENCE_ONLY",
+    "source_of_truth": "02_requirements/ORIGINAL_USER_BRIEF_FA.md"
+  },
+  {
+    "id": 51,
+    "name": "مشخصات فرزند",
+    "family": "parent",
+    "suggested_reference_board": "05_PARENT_DASHBOARD_AND_SETTINGS.png",
+    "requirements_from_user_brief": "51. **ویرایش یا افزودن فرزند**: عکس بزرگ با دکمه‌ی «انتخاب عکس از گالری» یا آواتارهای آماده، نام، تاریخ تولد (شمسی)، جنسیت، علاقه‌ها، و حذف پروفایل.",
+    "original_copy_examples": [
+      "نام فرزند",
+      "تاریخ تولد شمسی",
+      "آواتار",
+      "علایق",
+      "ذخیره"
+    ],
+    "legacy_layout_category": "profile-edit",
+    "states": [
+      "default",
+      "loading",
+      "empty",
+      "error",
+      "locked",
+      "success"
+    ],
+    "implementation_status": "NOT_IMPLEMENTED",
+    "visual_status": "BOARD_REFERENCE_ONLY",
+    "source_of_truth": "02_requirements/ORIGINAL_USER_BRIEF_FA.md"
+  },
+  {
+    "id": 52,
+    "name": "سلامت و ایمنی",
+    "family": "parent",
+    "suggested_reference_board": "05_PARENT_DASHBOARD_AND_SETTINGS.png",
+    "requirements_from_user_brief": "52. **سلامت و ایمنی کودک**، فهرست گروهی شبیه Screen Time در iOS:\n    - استراحت چشم (۱۵ / ۲۰ / ۳۰ دقیقه).\n    - محافظت از شنوایی (اسلایدر سقف صدا).\n    - اول درس، بعد بازی.\n    - نوبت‌های استفاده (مثلاً ۱۳:۰۰ تا ۱۳:۱۵).\n    - آخر هفته و قفل ساعت مدرسه.\n    - اینترنت: خاموش کردن اینترنت برنامه‌های غیرمجاز و حجم روزانه (۳۰۰ مگ تا ۲ گیگ، مصرف امروز، «+۱۰۰ مگ»).\n    - نور صفحه.\n    - تماس اضطراری.\n    - ورود با اثر انگشت یا چهره.\n    - حالت شب (خودکار، روشن، شب).\n    - «همیشه فعال» (فهرست محافظت‌ها).",
+    "original_copy_examples": [
+      "استراحت چشم",
+      "سقف صدا",
+      "ساعت خواب",
+      "اول درس بعد بازی",
+      "حالت شب",
+      "تماس اضطراری"
+    ],
+    "legacy_layout_category": "settings",
+    "states": [
+      "default",
+      "loading",
+      "empty",
+      "error",
+      "locked",
+      "success"
+    ],
+    "implementation_status": "NOT_IMPLEMENTED",
+    "visual_status": "BOARD_REFERENCE_ONLY",
+    "source_of_truth": "02_requirements/ORIGINAL_USER_BRIEF_FA.md"
+  },
+  {
+    "id": 53,
+    "name": "بخش‌های محیط کودک",
+    "family": "parent",
+    "suggested_reference_board": "05_PARENT_DASHBOARD_AND_SETTINGS.png",
+    "requirements_from_user_brief": "53. **بخش‌های محیط کودک**: انتخاب فرزند، و برای هر بخش یک ردیف با آیکون سه‌بعدی، توضیح و سوییچ (مثل Home Screen customization).",
+    "original_copy_examples": [
+      "فیلم و کارتون",
+      "بازی‌ها",
+      "کتاب‌ها",
+      "درس و تمرین",
+      "موسیقی",
+      "دوربین"
+    ],
+    "legacy_layout_category": "settings",
+    "states": [
+      "default",
+      "loading",
+      "empty",
+      "error",
+      "locked",
+      "success"
+    ],
+    "implementation_status": "NOT_IMPLEMENTED",
+    "visual_status": "BOARD_REFERENCE_ONLY",
+    "source_of_truth": "02_requirements/ORIGINAL_USER_BRIEF_FA.md"
+  },
+  {
+    "id": 54,
+    "name": "مخاطبان کودک",
+    "family": "parent",
+    "suggested_reference_board": "05_PARENT_DASHBOARD_AND_SETTINGS.png",
+    "requirements_from_user_brief": "54. **مخاطبان تماس**: chipهای نسبت (مامان، بابا، خواهر، برادر، مادربزرگ، پدربزرگ، عمو، عمه، خاله، دایی…)، نام، شماره، «📇 از دفترچه تلفن»، «✅ تأیید و افزودن» و لیست مخاطبان.",
+    "original_copy_examples": [
+      "نام مخاطب",
+      "نسبت خانوادگی",
+      "شماره تلفن",
+      "افزودن مخاطب"
+    ],
+    "legacy_layout_category": "contacts-edit",
+    "states": [
+      "default",
+      "loading",
+      "empty",
+      "error",
+      "locked",
+      "success"
+    ],
+    "implementation_status": "NOT_IMPLEMENTED",
+    "visual_status": "BOARD_REFERENCE_ONLY",
+    "source_of_truth": "02_requirements/ORIGINAL_USER_BRIEF_FA.md"
+  },
+  {
+    "id": 55,
+    "name": "سایت‌های مجاز",
+    "family": "parent",
+    "suggested_reference_board": "05_PARENT_DASHBOARD_AND_SETTINGS.png",
+    "requirements_from_user_brief": "55. **سایت‌های مجاز مرورگر**: افزودن سایت، پیشنهادها و درخواست‌های کودک.",
+    "original_copy_examples": [
+      "افزودن آدرس",
+      "دانشنامه کودک",
+      "پیشنهادهای کدومو",
+      "درخواست‌های کودک"
+    ],
+    "legacy_layout_category": "settings",
+    "states": [
+      "default",
+      "loading",
+      "empty",
+      "error",
+      "locked",
+      "success"
+    ],
+    "implementation_status": "NOT_IMPLEMENTED",
+    "visual_status": "BOARD_REFERENCE_ONLY",
+    "source_of_truth": "02_requirements/ORIGINAL_USER_BRIEF_FA.md"
+  },
+  {
+    "id": 56,
+    "name": "برنامه‌های مجاز",
+    "family": "parent",
+    "suggested_reference_board": "05_PARENT_DASHBOARD_AND_SETTINGS.png",
+    "requirements_from_user_brief": "56. **برنامه‌های مجاز**: لیست اپ‌های نصب‌شده با سوییچ.",
+    "original_copy_examples": [
+      "فهرست برنامه‌های نصب‌شده",
+      "اجازه استفاده",
+      "زمان مجاز",
+      "حذف دسترسی"
+    ],
+    "legacy_layout_category": "settings",
+    "states": [
+      "default",
+      "loading",
+      "empty",
+      "error",
+      "locked",
+      "success"
+    ],
+    "implementation_status": "NOT_IMPLEMENTED",
+    "visual_status": "BOARD_REFERENCE_ONLY",
+    "source_of_truth": "02_requirements/ORIGINAL_USER_BRIEF_FA.md"
+  },
+  {
+    "id": 57,
+    "name": "گالری خاطرات",
+    "family": "parent",
+    "suggested_reference_board": "05_PARENT_DASHBOARD_AND_SETTINGS.png",
+    "requirements_from_user_brief": "57. **گالری خاطرات**: نقاشی‌ها و عکس‌های ذخیره‌شده‌ی بچه‌ها.",
+    "original_copy_examples": [
+      "نقاشی‌ها",
+      "عکس‌ها",
+      "فیلم‌ها",
+      "نمایش خاطره"
+    ],
+    "legacy_layout_category": "gallery",
+    "states": [
+      "default",
+      "loading",
+      "empty",
+      "error",
+      "locked",
+      "success"
+    ],
+    "implementation_status": "NOT_IMPLEMENTED",
+    "visual_status": "BOARD_REFERENCE_ONLY",
+    "source_of_truth": "02_requirements/ORIGINAL_USER_BRIEF_FA.md"
+  },
+  {
+    "id": 58,
+    "name": "حساب ابری",
+    "family": "parent",
+    "suggested_reference_board": "05_PARENT_DASHBOARD_AND_SETTINGS.png",
+    "requirements_from_user_brief": "58. **حساب ابری**: ورود با شماره موبایل، همگام‌سازی، و پایش از راه دور.\n\n---",
+    "original_copy_examples": [
+      "ورود با شماره موبایل",
+      "همگام‌سازی امن",
+      "گزارش از راه دور",
+      "مدیریت دستگاه‌ها"
+    ],
+    "legacy_layout_category": "settings",
+    "states": [
+      "default",
+      "loading",
+      "empty",
+      "error",
+      "locked",
+      "success"
+    ],
+    "implementation_status": "NOT_IMPLEMENTED",
+    "visual_status": "BOARD_REFERENCE_ONLY",
+    "source_of_truth": "02_requirements/ORIGINAL_USER_BRIEF_FA.md"
+  }
+]

@@ -187,8 +187,9 @@ fun LauncherIcon(module: HomeModule, iconSize: Dp, index: Int, showLabel: Boolea
 }
 
 /**
- * The kids launcher: wallpaper, big clock, widgets (time left, companion, stars), an icon grid and a glass dock with
- * the four favourite sections — designed to feel like a real phone home screen rather than a list of cards.
+ * The kids launcher in the approved Kodomo style (docs/design/handoff_v4): a living 3D scene (sky, sun or moon,
+ * clouds, hills, flowers; castle or galaxy by style), big clock with Persian date and greeting, the child's own
+ * character, glass widgets, frosted tiles with glossy 3D icons and a glass dock.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -201,54 +202,67 @@ fun LauncherHome(
     stars: Int,
     medals: Int,
     night: Boolean,
+    style: com.kodomo.app.ui.design.KidStyle = com.kodomo.app.ui.design.KidStyle.MEADOW,
+    character: com.kodomo.app.ui.design.CharacterKind = com.kodomo.app.ui.design.CharacterKind.BOY,
     buddy: @Composable (Modifier) -> Unit,
     extras: @Composable () -> Unit,
     onParentLongPress: () -> Unit,
     onOpen: (HomeModule) -> Unit,
 ) {
-    val dockKeys = listOf("videos", "games", "books", "study")
+    val dark = night || style == com.kodomo.app.ui.design.KidStyle.GALAXY
+    val ink = if (dark) Color.White else com.kodomo.app.ui.design.KodomoTokens.Ink
+    val dockKeys = listOf("camera", "call", "rewards")
     val dock = modules.filter { it.key in dockKeys }.sortedBy { dockKeys.indexOf(it.key) }
     val grid = modules.filter { it !in dock }
-    val iconSize = if (columns <= 3) 76.dp else 62.dp
     Box(Modifier.fillMaxSize()) {
-        LauncherWallpaper(night)
+        com.kodomo.app.ui.design.KidScene(style, night)
         LazyVerticalGrid(
             columns = GridCells.Fixed(columns),
             modifier = Modifier.fillMaxSize().statusBarsPadding(),
-            contentPadding = PaddingValues(start = 18.dp, end = 18.dp, top = 8.dp, bottom = 130.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-            verticalArrangement = Arrangement.spacedBy(18.dp),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 120.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             item(span = { GridItemSpan(maxLineSpan) }) {
-                Box(Modifier.fillMaxWidth()) {
-                    ClockHeader(name)
-                    // Parents: long-press the small lock (children cannot open it with a tap).
-                    Box(
-                        Modifier.align(Alignment.TopStart).size(38.dp).glass(19.dp).combinedClickable(onClick = {}, onLongClick = onParentLongPress),
-                        contentAlignment = Alignment.Center,
-                    ) { Text("🔒", fontSize = 16.sp) }
+                var now by remember { mutableStateOf(LocalTime.now()) }
+                LaunchedEffect(Unit) { while (true) { kotlinx.coroutines.delay(15_000); now = LocalTime.now() } }
+                val today = LocalDate.now()
+                val j = PersianCalendar.toJalali(today)
+                Row(Modifier.fillMaxWidth().padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text("%d:%02d".format(now.hour, now.minute).fa(), style = TextStyle(fontSize = 58.sp, fontWeight = FontWeight.Black, color = ink, shadow = if (dark) textShadow else null))
+                        Text("${PersianCalendar.dayName(today.dayOfWeek)} ${j.day.fa()} ${PersianCalendar.monthName(j.month)}", style = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Medium, color = ink))
+                        Text("سلام $name!", style = TextStyle(fontSize = 20.sp, fontWeight = FontWeight.Black, color = ink))
+                    }
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        com.kodomo.app.ui.design.CharacterAvatar(character, 78.dp)
+                        Spacer(Modifier.height(6.dp))
+                        // Parents: long-press (a tap does nothing, so children cannot open it).
+                        Box(
+                            Modifier.size(40.dp).glass(20.dp).combinedClickable(onClick = {}, onLongClick = onParentLongPress),
+                            contentAlignment = Alignment.Center,
+                        ) { Text("🔒", fontSize = 16.sp) }
+                    }
                 }
             }
             item(span = { GridItemSpan(maxLineSpan) }) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    if (remainingSeconds != null) TimeWidget(remainingSeconds, progress, Modifier.weight(1f))
-                    buddy(Modifier.weight(1.6f))
-                    StarsWidget(stars, medals, Modifier.weight(1f))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                    if (remainingSeconds != null) com.kodomo.app.ui.design.ProgressRing(1f - progress, (remainingSeconds / 60).toInt().fa(), "دقیقه مانده", dark, Modifier.weight(1f))
+                    buddy(Modifier.weight(1.7f))
+                    com.kodomo.app.ui.design.RewardBadge(stars, medals, dark, Modifier.weight(1f))
                 }
             }
             items(grid.size, key = { grid[it].key }) { i ->
-                Box(contentAlignment = Alignment.TopCenter) { LauncherIcon(grid[i], iconSize, i) { onOpen(grid[i]) } }
+                val m = grid[i]
+                com.kodomo.app.ui.design.ChildTile(m.title, m.emoji, Color(m.colors.second), i, dark, iconSize = if (columns <= 3) 58.dp else 48.dp) { onOpen(m) }
             }
             item(span = { GridItemSpan(maxLineSpan) }) { extras() }
         }
         if (dock.isNotEmpty()) {
-            Row(
-                Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(horizontal = 18.dp, vertical = 14.dp)
-                    .fillMaxWidth().glass(34.dp).padding(horizontal = 12.dp, vertical = 12.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-            ) {
-                dock.forEachIndexed { i, m -> LauncherIcon(m, 60.dp, i, showLabel = false) { onOpen(m) } }
-            }
+            com.kodomo.app.ui.design.ChildDock(
+                dock.map { Triple(it.title, it.emoji, Color(it.colors.second)) }, dark,
+                Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(horizontal = 18.dp, vertical = 12.dp),
+            ) { i -> onOpen(dock[i]) }
         }
     }
 }

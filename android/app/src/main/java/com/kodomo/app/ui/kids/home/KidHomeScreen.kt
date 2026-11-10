@@ -127,13 +127,15 @@ fun KidHomeScreen(onOpen: (String) -> Unit, childId: Long, viewModel: KidHomeVie
     LauncherHome(
         name = child.name,
         modules = modules,
-        columns = if (spec.group == AgeGroup.TODDLER) 3 else 4,
+        columns = com.kodomo.app.ui.design.AgeBand.of(child.ageYears()).columns,
         remainingSeconds = if (time.child?.id == childId) time.remainingSeconds else null,
         progress = time.progress,
         stars = child.stars,
         medals = achievements.count { it.earnedAt != null },
         night = night,
-        buddy = { m -> BuddyWidget(greeting.text, m) },
+        style = com.kodomo.app.ui.design.KidStyle.default(child.ageYears(), child.gender == com.kodomo.app.domain.model.Gender.GIRL),
+        character = com.kodomo.app.ui.design.CharacterKind.forChild(child.ageYears(), child.gender == com.kodomo.app.domain.model.Gender.GIRL),
+        buddy = { m -> BuddyWidget(greeting.text, m, night) },
         extras = { com.kodomo.app.ui.kids.wellbeing.CallParentsRow(com.kodomo.app.ui.kids.LocalWellbeing.current, space.callParent) },
         onParentLongPress = space.requestParentExit,
         onOpen = { module -> space.guide(module.title); onOpen(module.route) },
@@ -154,20 +156,13 @@ internal object GreetingMemory {
 
 /** The companion as a home-screen widget: it says hello; tapping it lets the child pick another character. */
 @Composable
-private fun BuddyWidget(greeting: String, modifier: Modifier = Modifier) {
+private fun BuddyWidget(greeting: String, modifier: Modifier = Modifier, night: Boolean = false) {
     val space = LocalKidSpace.current
     val buddy = com.kodomo.app.ui.mascot.LocalBuddy.current
     var picking by remember { mutableStateOf(false) }
-    Row(
-        modifier.glass().bouncyClick { picking = true }.padding(10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        com.kodomo.app.ui.mascot.BuddyMascot(buddy, MascotMood.HAPPY, size = 58.dp)
-        Spacer(Modifier.width(6.dp))
-        Column(Modifier.weight(1f)) {
-            Text(buddy.title, style = MaterialTheme.typography.labelLarge, color = Color.White, fontWeight = FontWeight.Bold, maxLines = 1)
-            Text(greeting, style = MaterialTheme.typography.labelSmall, color = Color.White, maxLines = 3, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
-        }
+    val dark = night || space.child.ageYears() >= 10
+    com.kodomo.app.ui.design.MascotBubble(greeting, dark, modifier.bouncyClick { picking = true }) {
+        com.kodomo.app.ui.mascot.BuddyMascot(buddy, MascotMood.HAPPY, size = 54.dp)
     }
     if (picking) {
         androidx.compose.material3.AlertDialog(
