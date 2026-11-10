@@ -62,7 +62,9 @@ fun Modifier.frosted(corner: Dp = KodomoTokens.RadiusCard, dark: Boolean = false
 
 /** A glossy colour "clay" icon: rounded square in the section colour with a top highlight and the 3D picture. */
 @Composable
-fun Premium3DIcon(picture: String, color: Color, size: Dp, modifier: Modifier = Modifier) {
+fun Premium3DIcon(picture: String, color: Color, size: Dp, modifier: Modifier = Modifier, artKey: String? = null) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    if (artKey != null && ArtAssets.has(context, "icons/$artKey")) { Art("icons/$artKey", size, modifier) {}; return }
     Box(
         modifier.size(size)
             .shadow(8.dp, RoundedCornerShape(size * 0.32f), ambientColor = color, spotColor = color)
@@ -79,7 +81,7 @@ fun Premium3DIcon(picture: String, color: Color, size: Dp, modifier: Modifier = 
 
 /** A child home tile: frosted card, 3D icon and the section name inside (big touch target, pops in, squashes on tap). */
 @Composable
-fun ChildTile(title: String, picture: String, color: Color, index: Int, dark: Boolean, iconSize: Dp = 54.dp, onClick: () -> Unit) {
+fun ChildTile(title: String, picture: String, color: Color, index: Int, dark: Boolean, iconSize: Dp = 54.dp, artKey: String? = null, onClick: () -> Unit) {
     val appear = remember { Animatable(0f) }
     LaunchedEffect(Unit) { kotlinx.coroutines.delay(index * 45L); appear.animateTo(1f, spring(dampingRatio = 0.55f, stiffness = 360f)) }
     val interaction = remember { MutableInteractionSource() }
@@ -95,7 +97,7 @@ fun ChildTile(title: String, picture: String, color: Color, index: Int, dark: Bo
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Premium3DIcon(picture, color, iconSize)
+        Premium3DIcon(picture, color, iconSize, artKey = artKey)
         Spacer(Modifier.height(8.dp))
         Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center,
             style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = if (dark) Color.White else KodomoTokens.Ink))
@@ -156,7 +158,7 @@ fun CharacterAvatar(kind: CharacterKind, size: Dp, modifier: Modifier = Modifier
         modifier.size(size).shadow(8.dp, CircleShape).clip(CircleShape)
             .background(Brush.verticalGradient(listOf(Color(0xFFFFF7FB), Color(0xFFE9F6FF)))).border(3.dp, Color.White, CircleShape),
         contentAlignment = Alignment.BottomCenter,
-    ) { KidCharacter(kind, size * 0.96f) }
+    ) { Art("characters/" + kind.name.lowercase(), size * 0.96f) { KidCharacter(kind, size * 0.96f) } }
 }
 
 val HeaderShadow = Shadow(Color(0x55000000), Offset(0f, 2f), 8f)

@@ -254,7 +254,7 @@ fun LauncherHome(
             }
             items(grid.size, key = { grid[it].key }) { i ->
                 val m = grid[i]
-                com.kodomo.app.ui.design.ChildTile(m.title, m.emoji, Color(m.colors.second), i, dark, iconSize = if (columns <= 3) 58.dp else 48.dp) { onOpen(m) }
+                com.kodomo.app.ui.design.ChildTile(m.title, m.emoji, Color(m.colors.second), i, dark, iconSize = if (columns <= 3) 58.dp else 48.dp, artKey = m.key) { onOpen(m) }
             }
             item(span = { GridItemSpan(maxLineSpan) }) { extras() }
         }
