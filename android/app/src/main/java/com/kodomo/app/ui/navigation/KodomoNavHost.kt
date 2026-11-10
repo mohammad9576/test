@@ -229,7 +229,7 @@ fun KodomoNavHost(navController: NavHostController, startDestination: String) {
             com.kodomo.app.ui.parent.ratings.TelewebionPickerScreen(onBack = back, provider = p)
         }
         composable(Routes.PARENT_CONTENT, arguments = listOf(stringArg(Routes.ARG_ID))) { entry ->
-            ContentPassportScreen(contentId = entry.stringArg(Routes.ARG_ID), onBack = back)
+            ContentPassportScreen(contentId = entry.stringArg(Routes.ARG_ID), onBack = back, onFindOn = { p -> navController.navigate(Routes.parentProvider(p.name)) })
         }
         composable(Routes.PARENT_ARTICLE, arguments = listOf(stringArg(Routes.ARG_ID))) { entry ->
             ParentArticleScreen(contentId = entry.stringArg(Routes.ARG_ID), onBack = back)

@@ -70,8 +70,37 @@ internal fun cleanTelewebionTitle(title: String): String {
     return t.replace(Regex("""[\-–—:«»"]+"""), " ").replace(Regex("""\s+"""), " ").trim()
 }
 
+/**
+ * A kodoumo title the parent wants to find on a service (from its rating page): the service opens, and when the
+ * parent checks a page the search starts with this name instead of the page title.
+ */
+object PendingKodoumoPick {
+    @Volatile var title: String? = null
+}
+
+/** The page's own name and poster: og:title / the main heading beat document.title, which SPA sites rarely update. */
+internal const val PAGE_INFO_JS = """
+(function(){
+  function meta(q){ var m = document.querySelector(q); return m ? (m.content || '').trim() : ''; }
+  var h = document.querySelector('h1'); var h1 = h ? (h.innerText || '').trim() : '';
+  var t = meta('meta[property="og:title"]') || meta('meta[name="twitter:title"]') || h1 || document.title || '';
+  var img = meta('meta[property="og:image"]') || meta('meta[name="twitter:image"]');
+  return JSON.stringify({t: t.slice(0, 160), h: h1.slice(0, 160), i: img});
+})()
+"""
+
+internal data class PageInfo(val title: String, val heading: String, val poster: String?)
+
+internal fun parsePageInfo(raw: String?): PageInfo? = runCatching {
+    val inner = kotlinx.serialization.json.Json.parseToJsonElement(raw ?: "null")
+    val text = (inner as? kotlinx.serialization.json.JsonPrimitive)?.content ?: return null
+    val o = kotlinx.serialization.json.Json.parseToJsonElement(text) as kotlinx.serialization.json.JsonObject
+    fun f(k: String) = (o[k] as? kotlinx.serialization.json.JsonPrimitive)?.content.orEmpty()
+    PageInfo(f("t"), f("h"), f("i").takeIf { it.startsWith("http") })
+}.getOrNull()
+
 /** Collects every episode link visible on a Telewebion series / program page. */
-private const val COLLECT_EPISODES_JS = """
+internal const val COLLECT_EPISODES_JS = """
 (function(){
   var out = [], seen = {};
   document.querySelectorAll('a[href]').forEach(function(a){
@@ -147,8 +176,15 @@ class TelewebionPickerViewModel @Inject constructor(
      * Titles on Telewebion / Filimo… rarely match kodoumo's exactly, so several shorter forms of the name are searched
      * on kodoumo.ir and in the full kodoumo catalogue stored on the phone, and the closest titles come first.
      */
-    fun search(query: String) = viewModelScope.launch {
-        if (query.isBlank()) return@launch
+    private var searchJob: kotlinx.coroutines.Job? = null
+
+    fun search(query: String) {
+        searchJob?.cancel()
+        searchJob = viewModelScope.launch { runSearch(query) }
+    }
+
+    private suspend fun runSearch(query: String) {
+        if (query.isBlank()) return
         _state.update { it.copy(searching = true, error = null, results = emptyList(), selected = null, review = null, saved = null) }
         val found = linkedMapOf<String, KodoumoListItem>()
         var reached = false
@@ -270,8 +306,15 @@ fun TelewebionPickerScreen(
                     val isListing = android.net.Uri.parse(provider.startUrl).path.orEmpty().trimEnd('/') == android.net.Uri.parse(pageUrl).path.orEmpty().trimEnd('/') || !provider.owns(pageUrl)
                     Button(
                         onClick = {
-                            query = cleanTelewebionTitle(pageTitle)
+                            query = PendingKodoumoPick.title ?: cleanTelewebionTitle(pageTitle)
                             val current = pageUrl
+                            webView?.evaluateJavascript(PAGE_INFO_JS) { raw ->
+                                val info = parsePageInfo(raw)
+                                if (PendingKodoumoPick.title == null && info != null) {
+                                    val better = cleanTelewebionTitle(info.title).ifBlank { cleanTelewebionTitle(info.heading) }
+                                    if (better.isNotBlank() && better != query) { query = better; viewModel.search(better) }
+                                }
+                            }
                             // Remember every episode of the series shown on this page, so the child can pick between them.
                             webView?.evaluateJavascript(COLLECT_EPISODES_JS) { raw ->
                                 val found = if (provider.book) emptyList() else parseEpisodeLinks(raw, provider)
@@ -298,10 +341,11 @@ fun TelewebionPickerScreen(
                     onSelect = viewModel::select,
                     onClear = viewModel::clearSelection,
                     episodes = episodes,
-                    onApprove = { viewModel.approve(pageUrl, episodes); checking = false },
+                    onApprove = { viewModel.approve(pageUrl, episodes); checking = false; PendingKodoumoPick.title = null },
                     onApproveWithoutRating = { minAge, note ->
                         viewModel.approveWithoutRating(query.ifBlank { cleanTelewebionTitle(pageTitle) }, pageUrl, minAge, note, episodes)
                         checking = false
+                        PendingKodoumoPick.title = null
                     },
                     modifier = Modifier.fillMaxWidth().weight(1f).background(MaterialTheme.colorScheme.background),
                     pagePoster = pagePoster,
@@ -318,7 +362,7 @@ fun TelewebionPickerScreen(
 }
 
 @Composable
-private fun CheckPanel(
+internal fun CheckPanel(
     state: TelewebionPickerViewModel.State,
     pageUrl: String,
     pageTitle: String,
@@ -362,13 +406,16 @@ private fun CheckPanel(
             if (state.searched && !state.searching && state.results.isEmpty() && state.error == null) {
                 item {
                     Text(
-                        "این اثر در کدومو پیدا نشد. تا وقتی کدومو آن را ارزیابی نکرده، امکان افزودن برای کودک وجود ندارد. نام را کوتاه‌تر یا به شکل دیگری بنویسید.",
+                        "این اثر در کدومو پیدا نشد. نام را کوتاه‌تر یا به شکل دیگری بنویسید، یا اگر خودتان آن را مناسب می‌دانید با تأیید خودتان اضافه کنید.",
                         color = KodomoColors.Danger,
                     )
                 }
             }
             if (state.searched && !state.searching && (state.results.isEmpty() || state.error != null)) {
                 item { ParentOnlyApprovalCard(onApproveWithoutRating, book) }
+            }
+            if (state.results.isNotEmpty()) {
+                item { Text("کدام‌یک همین اثر است؟ پوستر و نام را مقایسه کنید:", style = MaterialTheme.typography.labelLarge) }
             }
             items(state.results, key = { it.slug }) { item ->
                 KodomoCard(Modifier.fillMaxWidth(), onClick = { onSelect(item) }) {
@@ -389,6 +436,18 @@ private fun CheckPanel(
                                 style = MaterialTheme.typography.labelMedium,
                             )
                         }
+                    }
+                }
+            }
+            if (state.results.isNotEmpty() && state.error == null) {
+                item {
+                    var open by remember { mutableStateOf(false) }
+                    if (!open) {
+                        OutlinedButton(onClick = { open = true }, modifier = Modifier.fillMaxWidth()) {
+                            Text(if (book) "هیچ‌کدام همین کتاب نیست؛ با تأیید خودم" else "هیچ‌کدام همین فیلم نیست؛ با تأیید خودم")
+                        }
+                    } else {
+                        ParentOnlyApprovalCard(onApproveWithoutRating, book)
                     }
                 }
             }
@@ -432,7 +491,7 @@ private fun CheckPanel(
                     } else {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Checkbox(checked = confirmed, onCheckedChange = { confirmed = it })
-                            Text("نکات و شاخص‌های کدومو را خواندم و این کارتون با همین صفحه‌ی تلوبیون مطابقت دارد.", style = MaterialTheme.typography.bodySmall)
+                            Text(if (book) "نکات و شاخص‌های کدومو را خواندم و این کتاب با همین صفحه مطابقت دارد." else "نکات و شاخص‌های کدومو را خواندم و این اثر با همین صفحه مطابقت دارد.", style = MaterialTheme.typography.bodySmall)
                         }
                         Text(
                             "پس از افزودن، کارتون فقط برای کودکانی نمایش داده می‌شود که سن و حد مجاز خشونت/ترس/ناهنجاری آن‌ها با این ارزیابی بخواند.",
@@ -569,7 +628,7 @@ internal object TitleMatch {
 /** «برای کدام فرزندان؟» — tick the children this title is for. */
 @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
-private fun KidsChooser(kids: List<com.kodomo.app.domain.model.Child>, chosen: Set<Long>, onToggle: (Long) -> Unit) {
+internal fun KidsChooser(kids: List<com.kodomo.app.domain.model.Child>, chosen: Set<Long>, onToggle: (Long) -> Unit) {
     if (kids.isEmpty()) return
     KodomoCard(Modifier.fillMaxWidth()) {
         Text("👨‍👩‍👧 برای کدام فرزندان؟", style = MaterialTheme.typography.titleSmall)

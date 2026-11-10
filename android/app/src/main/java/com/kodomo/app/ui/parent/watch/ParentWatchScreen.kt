@@ -14,6 +14,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.runtime.LaunchedEffect
+import com.kodomo.app.ui.parent.ratings.TitleMatch
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -105,12 +108,43 @@ fun ParentWatchScreen(onBack: () -> Unit, onAddForKids: (com.kodomo.app.ui.kids.
 private fun WatchBrowser(service: WatchService, onClose: () -> Unit, onAddForKids: () -> Unit) {
     val context = LocalContext.current
     val vm: TelewebionPickerViewModel = hiltViewModel()
+    vm.provider = service.kids
     val state by vm.state.collectAsStateWithLifecycle()
     var web by remember { mutableStateOf<WebView?>(null) }
     var url by remember { mutableStateOf(service.url) }
     var title by remember { mutableStateOf("") }
+    var query by remember { mutableStateOf("") }
+    var poster by remember { mutableStateOf<String?>(null) }
+    var episodes by remember { mutableStateOf<List<com.kodomo.app.domain.model.Episode>>(emptyList()) }
     var sheet by remember { mutableStateOf(false) }
+    var savedNote by remember { mutableStateOf<String?>(null) }
     val lock = remember(service) { WebLock.SameSite(service.url, service.kids.hosts, anyHost = true) }
+    val onItem = service.kids.isItem(url)
+
+    /** Reads the page's real name (og:title / heading), its poster and episode links, then searches kodoumo. */
+    fun check(open: Boolean) {
+        val page = url
+        val w = web
+        if (w == null) { query = cleanTelewebionTitle(title); vm.search(query); if (open) sheet = true; return }
+        w.evaluateJavascript(com.kodomo.app.ui.parent.ratings.PAGE_INFO_JS) { raw ->
+            val info = com.kodomo.app.ui.parent.ratings.parsePageInfo(raw)
+            poster = info?.poster
+            query = listOf(info?.title, info?.heading, title).map { cleanTelewebionTitle(it.orEmpty()) }.firstOrNull { it.length >= 2 } ?: title
+            vm.search(query)
+        }
+        w.evaluateJavascript(com.kodomo.app.ui.parent.ratings.COLLECT_EPISODES_JS) { raw ->
+            val found = com.kodomo.app.ui.parent.ratings.parseEpisodeLinks(raw, service.kids)
+            episodes = if (found.none { com.kodomo.app.ui.kids.video.WebLockRules.samePage(it.url, page) }) listOf(com.kodomo.app.domain.model.Episode(page, title)) + found else found
+        }
+        if (open) sheet = true
+    }
+
+    // Opening a film or series page checks kodoumo by itself; the result shows on the bar below without a tap.
+    androidx.compose.runtime.LaunchedEffect(url, onItem) {
+        if (onItem) { kotlinx.coroutines.delay(1_500); vm.reset(); check(open = false) } else vm.reset()
+    }
+    LaunchedEffect(state.saved) { state.saved?.let { savedNote = it; sheet = false } }
+
     BackHandler { if (sheet) sheet = false else if (web?.canGoBack() == true) web?.goBack() else onClose() }
     Scaffold(topBar = {
         TopAppBar(
@@ -118,11 +152,37 @@ private fun WatchBrowser(service: WatchService, onClose: () -> Unit, onAddForKid
             navigationIcon = { IconButton(onClick = onClose) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "برگشت") } },
         )
     }, bottomBar = {
-        Row(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface).padding(horizontal = 8.dp, vertical = 6.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
-            TextButton(onClick = { sheet = true; vm.search(cleanTelewebionTitle(title).ifBlank { title }) }) { Text("⭐ ارزیابی کدومو") }
-            TextButton(onClick = { openCast(context) }) { Text("📺 تلویزیون") }
-            TextButton(onClick = { runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) } }) { Text("↗ برنامه") }
-            TextButton(onClick = onAddForKids) { Text("➕ بچه‌ها") }
+        Column(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface)) {
+            if (onItem) {
+                // The kodoumo verdict for the film that is open, always visible.
+                val best = state.results.firstOrNull()?.takeIf { TitleMatch.score(query, it.title) >= 0.5 }
+                Card(onClick = { if (state.results.isEmpty() && !state.searching) check(open = true) else sheet = true }, modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp)) {
+                    Row(Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                        if (best?.image != null) AsyncImage(best.image, contentDescription = null, modifier = Modifier.size(36.dp, 50.dp))
+                        Column(Modifier.weight(1f).padding(start = 8.dp)) {
+                            Text(
+                                when {
+                                    state.searching -> "در حال یافتن ارزیابی کدومو…"
+                                    best != null -> "کدومو: «${best.title}» • " + (best.age?.let { "مناسب ${it.fa()}+ سال" } ?: "در حال ارزیابی")
+                                    state.results.isNotEmpty() -> "چند اثر مشابه در کدومو پیدا شد؛ برای انتخاب بزنید"
+                                    state.searched -> "این اثر در کدومو پیدا نشد"
+                                    else -> "ارزیابی کدومو"
+                                },
+                                style = MaterialTheme.typography.titleSmall,
+                            )
+                            Text("برای جزئیات و نمایش برای فرزندتان بزنید", style = MaterialTheme.typography.labelSmall)
+                        }
+                        if (state.searching) androidx.compose.material3.CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+                    }
+                }
+            }
+            savedNote?.let { Text(it, color = Color(0xFF2E7D32), style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(horizontal = 12.dp)) }
+            Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
+                TextButton(onClick = { check(open = true) }) { Text("⭐ ارزیابی و افزودن") }
+                TextButton(onClick = { openCast(context) }) { Text("📺 تلویزیون") }
+                TextButton(onClick = { runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) } }) { Text("↗ برنامه") }
+                TextButton(onClick = onAddForKids) { Text("🧸 بخش کودک") }
+            }
         }
     }) { pad ->
         LockedWebPlayer(
@@ -131,41 +191,31 @@ private fun WatchBrowser(service: WatchService, onClose: () -> Unit, onAddForKid
         )
     }
     if (sheet) {
-        ModalBottomSheet(onDismissRequest = { sheet = false }) {
-            LazyColumn(Modifier.fillMaxWidth(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                item { Text("ارزیابی کدومو برای «${cleanTelewebionTitle(title).ifBlank { title }}»", style = MaterialTheme.typography.titleMedium) }
-                if (state.searching || state.loadingReview) item { LinearProgressIndicator(Modifier.fillMaxWidth()) }
-                state.error?.let { e -> item { Text("⚠️ $e", color = MaterialTheme.colorScheme.error) } }
-                val r = state.review
-                if (r != null) {
-                    item {
-                        Text(r.title, style = MaterialTheme.typography.titleLarge)
-                        Text(if (r.underEvaluation || r.age == null) "⏳ در حال ارزیابی" else "سن مناسب از نظر کدومو: ${r.age.fa()}+ سال", color = Color(0xFF2E7D32), style = MaterialTheme.typography.titleSmall)
-                    }
-                    items(r.indicators.filter { it.rate > 0 || it.text.isNotBlank() }) { ind ->
-                        Column {
-                            Text("${if (ind.negative) "⚠️" else "✅"} ${ind.label}: ${"●".repeat(ind.rate)}${"○".repeat((5 - ind.rate).coerceAtLeast(0))}", style = MaterialTheme.typography.labelLarge)
-                            if (ind.text.isNotBlank()) Text(ind.text, style = MaterialTheme.typography.bodySmall)
-                        }
-                    }
-                    if (r.parentShouldKnow.isNotBlank()) item { Text("آنچه والدین باید بدانند:\n${r.parentShouldKnow}", style = MaterialTheme.typography.bodyMedium) }
-                    item { TextButton(onClick = vm::clearSelection) { Text("◀ نتیجه‌های دیگر") } }
-                } else {
-                    if (state.searched && state.results.isEmpty() && !state.searching) item { Text("این اثر در کدومو پیدا نشد.", style = MaterialTheme.typography.bodyMedium) }
-                    items(state.results, key = { it.slug }) { item ->
-                        Card(onClick = { vm.select(item) }, modifier = Modifier.fillMaxWidth()) {
-                            Row(Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                                if (item.image != null) AsyncImage(item.image, contentDescription = null, modifier = Modifier.size(48.dp, 66.dp))
-                                Column(Modifier.padding(start = 10.dp)) {
-                                    Text(item.title, style = MaterialTheme.typography.titleSmall)
-                                    Text(item.age?.let { "${it.fa()}+ سال" } ?: "در حال ارزیابی", style = MaterialTheme.typography.labelMedium)
-                                }
-                            }
-                        }
-                    }
-                }
-                item { androidx.compose.foundation.layout.Spacer(Modifier.height(24.dp)) }
-            }
+        ModalBottomSheet(onDismissRequest = { sheet = false }, sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
+            Text("ارزیابی کدومو و نمایش برای فرزندان", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(horizontal = 16.dp))
+            com.kodomo.app.ui.parent.ratings.CheckPanel(
+                state = state,
+                pageUrl = url,
+                pageTitle = title,
+                query = query,
+                onQuery = { query = it },
+                onSearch = { vm.search(query) },
+                onSelect = vm::select,
+                onClear = vm::clearSelection,
+                episodes = episodes.ifEmpty { listOf(com.kodomo.app.domain.model.Episode(url, title)) },
+                onApprove = { vm.approve(url, episodes.ifEmpty { listOf(com.kodomo.app.domain.model.Episode(url, title)) }) },
+                onApproveWithoutRating = { minAge, note ->
+                    vm.approveWithoutRating(query.ifBlank { cleanTelewebionTitle(title) }, url, minAge, note, episodes.ifEmpty { listOf(com.kodomo.app.domain.model.Episode(url, title)) })
+                },
+                modifier = Modifier.fillMaxWidth().heightIn(max = 640.dp),
+                pagePoster = poster,
+                book = service.kids.book,
+                kidsChooser = {
+                    val kids by vm.children.collectAsStateWithLifecycle()
+                    val chosen by vm.chosen.collectAsStateWithLifecycle()
+                    com.kodomo.app.ui.parent.ratings.KidsChooser(kids, chosen ?: kids.map { it.id }.toSet(), vm::toggleChild)
+                },
+            )
         }
     }
 }

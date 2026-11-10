@@ -269,7 +269,12 @@ class ContentPassportViewModel @Inject constructor(
 
 /** «شناسنامه‌ی تربیتی» of a content item with the Kodomo radar of positive & negative indicators. */
 @Composable
-fun ContentPassportScreen(contentId: String, onBack: () -> Unit, viewModel: ContentPassportViewModel = hiltViewModel()) {
+fun ContentPassportScreen(
+    contentId: String,
+    onBack: () -> Unit,
+    onFindOn: (com.kodomo.app.ui.kids.video.ContentProvider) -> Unit = {},
+    viewModel: ContentPassportViewModel = hiltViewModel(),
+) {
     val item by viewModel.item.collectAsStateWithLifecycle()
     val opinion by viewModel.opinion.collectAsStateWithLifecycle()
     KidScreenScaffold(title = "شناسنامه‌ی تربیتی", onBack = onBack) { padding ->
@@ -299,7 +304,7 @@ fun ContentPassportScreen(contentId: String, onBack: () -> Unit, viewModel: Cont
                     runCatching { context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url)).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)) }
                 }) { Text("مشاهده‌ی نقد کامل در kodoumo.ir ↗") }
             }
-            if (i.type == ContentType.VIDEO) VideoApprovalCard(i, viewModel)
+            if (i.type == ContentType.VIDEO) VideoApprovalCard(i, viewModel, onFindOn)
             KodomoCard(Modifier.fillMaxWidth()) {
                 SectionTitle("رادار شاخص‌ها")
                 Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -359,49 +364,44 @@ fun ContentPassportScreen(contentId: String, onBack: () -> Unit, viewModel: Cont
 
 /** Lets the parent attach the full, approved video (Aparat search or a pasted Aparat/YouTube/Telewebion link). */
 @Composable
-private fun VideoApprovalCard(item: ContentItem, viewModel: ContentPassportViewModel) {
-    val results by viewModel.results.collectAsStateWithLifecycle()
-    val searching by viewModel.searching.collectAsStateWithLifecycle()
-    val error by viewModel.searchError.collectAsStateWithLifecycle()
-    var query by remember(item.id) { mutableStateOf(item.title) }
+private fun VideoApprovalCard(item: ContentItem, viewModel: ContentPassportViewModel, onFindOn: (com.kodomo.app.ui.kids.video.ContentProvider) -> Unit) {
     var link by remember(item.id) { mutableStateOf(item.mediaUrl.orEmpty()) }
+    val context = androidx.compose.ui.platform.LocalContext.current
     KodomoCard(Modifier.fillMaxWidth()) {
-        SectionTitle("ویدیوی قابل پخش برای کودک")
+        SectionTitle("نمایش برای کودک")
         Text(
             when {
-                item.mediaUrl != null -> "✅ ویدیوی تأییدشده‌ی شما: ${item.mediaUrl}"
-                item.trailerUrl != null -> "فعلاً فقط پیش‌نمایش رسمی (آپارات) پخش می‌شود. می‌توانید نسخه‌ی کامل را انتخاب کنید."
-                else -> "هنوز ویدیویی برای این اثر انتخاب نشده و در فهرست کودک نمایش داده نمی‌شود."
+                item.mediaUrl != null -> "✅ نسخه‌ی کامل تأیید شده است: ${item.mediaUrl}"
+                else -> "نسخه‌ی کامل این اثر هنوز انتخاب نشده و به کودک نشان داده نمی‌شود. آن را در یکی از سرویس‌های زیر پیدا کنید (نسخه‌ی دوبله‌ی فارسی)، صفحه‌اش را باز کنید و «بررسی در کدومو و افزودن برای کودک» را بزنید."
             },
             style = MaterialTheme.typography.bodySmall,
         )
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            com.kodomo.app.ui.kids.video.ContentProvider.videos.forEach { p ->
+                androidx.compose.material3.AssistChip(
+                    onClick = {
+                        // The service opens; the name is ready in the clipboard for its search box, and the check
+                        // there starts with this kodoumo title.
+                        PendingKodoumoPick.title = item.title
+                        runCatching {
+                            (context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager)
+                                .setPrimaryClip(android.content.ClipData.newPlainText("title", item.title))
+                        }
+                        android.widget.Toast.makeText(context, "نام «${item.title}» کپی شد؛ در جستجوی ${p.label} بچسبانید", android.widget.Toast.LENGTH_LONG).show()
+                        onFindOn(p)
+                    },
+                    label = { Text(p.label) },
+                )
+            }
+        }
+        Spacer(Modifier.height(8.dp))
         androidx.compose.material3.OutlinedTextField(
             value = link, onValueChange = { link = it }, singleLine = true, modifier = Modifier.fillMaxWidth(),
-            label = { Text("لینک آپارات، یوتیوب یا تلوبیون") },
+            label = { Text("یا لینک صفحه‌ی فیلم را بچسبانید") },
         )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             androidx.compose.material3.Button(onClick = { viewModel.setVideo(link) }, enabled = link.startsWith("http")) { Text("تأیید لینک") }
             if (item.mediaUrl != null) androidx.compose.material3.TextButton(onClick = { viewModel.setVideo(null); link = "" }) { Text("حذف") }
-        }
-        Spacer(Modifier.height(8.dp))
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            androidx.compose.material3.OutlinedTextField(value = query, onValueChange = { query = it }, singleLine = true, modifier = Modifier.weight(1f), label = { Text("جستجو در آپارات") })
-            androidx.compose.material3.FilledTonalButton(onClick = { viewModel.search(query) }, enabled = query.isNotBlank() && !searching) { Text(if (searching) "…" else "جستجو") }
-        }
-        error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelSmall) }
-        results.forEach { v ->
-            Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                coil.compose.AsyncImage(model = v.poster, contentDescription = null, modifier = Modifier.size(width = 96.dp, height = 56.dp))
-                Spacer(Modifier.width(8.dp))
-                Column(Modifier.weight(1f)) {
-                    Text(v.title, style = MaterialTheme.typography.bodySmall, maxLines = 2)
-                    Text("${v.channel} • ${(v.durationSeconds / 60).fa()} دقیقه", style = MaterialTheme.typography.labelSmall)
-                }
-                androidx.compose.material3.TextButton(onClick = {
-                    link = v.pageUrl
-                    viewModel.setVideo(v.pageUrl)
-                }) { Text("انتخاب") }
-            }
         }
     }
 }
