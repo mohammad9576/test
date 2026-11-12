@@ -24,7 +24,7 @@ object ArtAssets {
 
     private fun files(context: Context): Set<String> = index ?: synchronized(this) {
         index ?: buildSet {
-            listOf("characters", "robot", "buddies", "icons", "scenes", "games", "quests", "play", "states", "crafts").forEach { dir ->
+            listOf("characters", "robot", "buddies", "icons", "scenes", "games", "quests", "play", "states", "crafts", "heroes", "onboarding", "parent").forEach { dir ->
                 runCatching { context.assets.list("art/$dir") }.getOrNull()?.forEach { add("$dir/${it.substringBeforeLast('.')}") }
             }
         }.also { index = it }

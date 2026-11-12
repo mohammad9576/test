@@ -1,0 +1,121 @@
+path,size,background,subject_en
+characters/girl.png,1024x1024,alpha,"a cheerful Iranian girl aged 7, pink hijab fully covering hair, lilac long-sleeve top, small flower in hand; half-body portrait, facing viewer, warm smile"
+characters/girl_wave.png,1024x1024,alpha,"a cheerful Iranian girl aged 7, pink hijab fully covering hair, lilac long-sleeve top, small flower in hand; half-body, waving hello with one hand"
+characters/girl_happy.png,1024x1024,alpha,"a cheerful Iranian girl aged 7, pink hijab fully covering hair, lilac long-sleeve top, small flower in hand; full body, jumping happily"
+characters/girl_sleep.png,1024x1024,alpha,"a cheerful Iranian girl aged 7, pink hijab fully covering hair, lilac long-sleeve top, small flower in hand; sleeping peacefully hugging a soft yellow star, eyes closed"
+characters/boy.png,1024x1024,alpha,"a cheerful Iranian boy aged 7, green cap, yellow hoodie, small backpack; half-body portrait, facing viewer, warm smile"
+characters/boy_wave.png,1024x1024,alpha,"a cheerful Iranian boy aged 7, green cap, yellow hoodie, small backpack; half-body, waving hello with one hand"
+characters/boy_happy.png,1024x1024,alpha,"a cheerful Iranian boy aged 7, green cap, yellow hoodie, small backpack; full body, jumping happily"
+characters/boy_sleep.png,1024x1024,alpha,"a cheerful Iranian boy aged 7, green cap, yellow hoodie, small backpack; sleeping peacefully hugging a soft yellow star, eyes closed"
+characters/little_girl.png,1024x1024,alpha,"a round-faced Iranian girl aged 4, soft pink hijab fully covering hair, holding a plush star; half-body portrait, facing viewer, warm smile"
+characters/little_girl_wave.png,1024x1024,alpha,"a round-faced Iranian girl aged 4, soft pink hijab fully covering hair, holding a plush star; half-body, waving hello with one hand"
+characters/little_girl_happy.png,1024x1024,alpha,"a round-faced Iranian girl aged 4, soft pink hijab fully covering hair, holding a plush star; full body, jumping happily"
+characters/little_girl_sleep.png,1024x1024,alpha,"a round-faced Iranian girl aged 4, soft pink hijab fully covering hair, holding a plush star; sleeping peacefully hugging a soft yellow star, eyes closed"
+characters/little_boy.png,1024x1024,alpha,"a round-faced Iranian boy aged 4, light blue overalls, holding a toy car; half-body portrait, facing viewer, warm smile"
+characters/little_boy_wave.png,1024x1024,alpha,"a round-faced Iranian boy aged 4, light blue overalls, holding a toy car; half-body, waving hello with one hand"
+characters/little_boy_happy.png,1024x1024,alpha,"a round-faced Iranian boy aged 4, light blue overalls, holding a toy car; full body, jumping happily"
+characters/little_boy_sleep.png,1024x1024,alpha,"a round-faced Iranian boy aged 4, light blue overalls, holding a toy car; sleeping peacefully hugging a soft yellow star, eyes closed"
+characters/teen_girl.png,1024x1024,alpha,"an Iranian teenage girl aged 13, purple hijab fully covering hair, modest long cardigan, holding a book; half-body portrait, facing viewer, warm smile"
+characters/teen_girl_wave.png,1024x1024,alpha,"an Iranian teenage girl aged 13, purple hijab fully covering hair, modest long cardigan, holding a book; half-body, waving hello with one hand"
+characters/teen_girl_happy.png,1024x1024,alpha,"an Iranian teenage girl aged 13, purple hijab fully covering hair, modest long cardigan, holding a book; full body, jumping happily"
+characters/teen_girl_sleep.png,1024x1024,alpha,"an Iranian teenage girl aged 13, purple hijab fully covering hair, modest long cardigan, holding a book; sleeping peacefully hugging a soft yellow star, eyes closed"
+characters/teen_boy.png,1024x1024,alpha,"an Iranian teenage boy aged 13, navy hoodie, headphones around neck; half-body portrait, facing viewer, warm smile"
+characters/teen_boy_wave.png,1024x1024,alpha,"an Iranian teenage boy aged 13, navy hoodie, headphones around neck; half-body, waving hello with one hand"
+characters/teen_boy_happy.png,1024x1024,alpha,"an Iranian teenage boy aged 13, navy hoodie, headphones around neck; full body, jumping happily"
+characters/teen_boy_sleep.png,1024x1024,alpha,"an Iranian teenage boy aged 13, navy hoodie, headphones around neck; sleeping peacefully hugging a soft yellow star, eyes closed"
+characters/mother.png,1024x1024,alpha,"a kind Iranian mother, green hijab fully covering hair, modest clothes, holding a phone, smiling"
+characters/father.png,1024x1024,alpha,"a kind Iranian father with short beard, green shirt, smiling"
+robot/happy.png,1024x1024,alpha,"Kodomo mascot robot: round white glossy body, black face screen with green smiling eyes, green headphones, small antenna; smiling"
+robot/wave.png,1024x1024,alpha,"Kodomo mascot robot: round white glossy body, black face screen with green smiling eyes, green headphones, small antenna; waving one hand"
+robot/think.png,1024x1024,alpha,"Kodomo mascot robot: round white glossy body, black face screen with green smiling eyes, green headphones, small antenna; thinking, hand on chin, small light bulb"
+robot/sleep.png,1024x1024,alpha,"Kodomo mascot robot: round white glossy body, black face screen with green smiling eyes, green headphones, small antenna; sleeping, small Zzz"
+robot/cheer.png,1024x1024,alpha,"Kodomo mascot robot: round white glossy body, black face screen with green smiling eyes, green headphones, small antenna; cheering with both arms up, confetti"
+robot/point.png,1024x1024,alpha,"Kodomo mascot robot: round white glossy body, black face screen with green smiling eyes, green headphones, small antenna; pointing to the side helpfully"
+buddies/star_wizard.png,1024x1024,alpha,a yellow star character with a purple wizard hat and big eyes
+buddies/panda.png,1024x1024,alpha,a baby panda
+buddies/lamb.png,1024x1024,alpha,a fluffy lamb
+buddies/dolphin.png,1024x1024,alpha,a blue dolphin
+buddies/lion.png,1024x1024,alpha,a friendly lion cub
+buddies/dragon.png,1024x1024,alpha,a tiny friendly green dragon
+buddies/owl.png,1024x1024,alpha,a wise little owl with glasses
+icons/videos.png,512x512,alpha,"play button on a film strip, 3D clay icon on a glossy rounded-square blue tile"
+icons/games.png,512x512,alpha,"game controller, 3D clay icon on a glossy rounded-square pink tile"
+icons/books.png,512x512,alpha,"open story book, 3D clay icon on a glossy rounded-square orange tile"
+icons/study.png,512x512,alpha,"notebook and pencil, 3D clay icon on a glossy rounded-square yellow tile"
+icons/english.png,512x512,alpha,"letters Aa on a speech bubble, 3D clay icon on a glossy rounded-square purple tile"
+icons/livetv.png,512x512,alpha,"retro TV with antenna, 3D clay icon on a glossy rounded-square teal tile"
+icons/music.png,512x512,alpha,"music notes, 3D clay icon on a glossy rounded-square violet tile"
+icons/discover.png,512x512,alpha,"magnifier with a leaf, 3D clay icon on a glossy rounded-square green tile"
+icons/crafts.png,512x512,alpha,"scissors and origami paper boat, 3D clay icon on a glossy rounded-square coral tile"
+icons/camera.png,512x512,alpha,"camera, 3D clay icon on a glossy rounded-square sky blue tile"
+icons/call.png,512x512,alpha,"phone handset, 3D clay icon on a glossy rounded-square green tile"
+icons/planner.png,512x512,alpha,"calendar with a check, 3D clay icon on a glossy rounded-square indigo tile"
+icons/chores.png,512x512,alpha,"broom with a sparkle star, 3D clay icon on a glossy rounded-square amber tile"
+icons/apps.png,512x512,alpha,"four rounded app squares, 3D clay icon on a glossy rounded-square slate blue tile"
+icons/rewards.png,512x512,alpha,"golden trophy, 3D clay icon on a glossy rounded-square gold tile"
+icons/interests.png,512x512,alpha,"heart with sparkles, 3D clay icon on a glossy rounded-square red tile"
+icons/gallery.png,512x512,alpha,"photo with sun and hills, 3D clay icon on a glossy rounded-square cyan tile"
+icons/lock.png,512x512,alpha,"padlock, 3D clay icon on a glossy rounded-square green tile"
+icons/coloring.png,512x512,alpha,"paint palette and brush, 3D clay icon on a glossy rounded-square rainbow tile"
+icons/school.png,512x512,alpha,"school bag, 3D clay icon on a glossy rounded-square orange tile"
+scenes/meadow_sky.png,1080x2400,full,"background sky layer only: green rolling hills, flowers, sunny sky, soft clouds; no ground objects"
+scenes/meadow_hills.png,1080x2400,alpha,"middle layer: hills/landscape of green rolling hills, flowers, sunny sky, soft clouds; transparent above the horizon"
+scenes/meadow_front.png,1080x2400,alpha,"front layer: grass and flowers along the bottom 15% only of green rolling hills, flowers, sunny sky, soft clouds; rest transparent"
+scenes/blossom_sky.png,1080x2400,full,background sky layer only: pink cherry-blossom hills with a small pastel castle; no ground objects
+scenes/blossom_hills.png,1080x2400,alpha,middle layer: hills/landscape of pink cherry-blossom hills with a small pastel castle; transparent above the horizon
+scenes/blossom_front.png,1080x2400,alpha,front layer: grass and flowers along the bottom 15% only of pink cherry-blossom hills with a small pastel castle; rest transparent
+scenes/sky_sky.png,1080x2400,full,"background sky layer only: light blue sky, floating islands, rainbow; no ground objects"
+scenes/sky_hills.png,1080x2400,alpha,"middle layer: hills/landscape of light blue sky, floating islands, rainbow; transparent above the horizon"
+scenes/sky_front.png,1080x2400,alpha,"front layer: grass and flowers along the bottom 15% only of light blue sky, floating islands, rainbow; rest transparent"
+scenes/galaxy_sky.png,1080x2400,full,"background sky layer only: teen style: twilight purple mountains, stars, calm; no ground objects"
+scenes/galaxy_hills.png,1080x2400,alpha,"middle layer: hills/landscape of teen style: twilight purple mountains, stars, calm; transparent above the horizon"
+scenes/galaxy_front.png,1080x2400,alpha,"front layer: grass and flowers along the bottom 15% only of teen style: twilight purple mountains, stars, calm; rest transparent"
+scenes/night_sky.png,1080x2400,full,"background sky layer only: night meadow, moon, soft stars; no ground objects"
+scenes/night_hills.png,1080x2400,alpha,"middle layer: hills/landscape of night meadow, moon, soft stars; transparent above the horizon"
+scenes/night_front.png,1080x2400,alpha,"front layer: grass and flowers along the bottom 15% only of night meadow, moon, soft stars; rest transparent"
+heroes/videos.png,1080x720,alpha,category header illustration: star wizard with popcorn and film reel
+heroes/games.png,1080x720,alpha,category header illustration: boy playing a handheld console with floating game icons
+heroes/books.png,1080x720,alpha,category header illustration: girl in hijab reading under a tree
+heroes/study.png,1080x720,alpha,category header illustration: boy at a chalkboard with 2+3=?
+heroes/english.png,1080x720,alpha,category header illustration: girl in hijab with headphones and a 'Hello!' speech bubble (only the word Hello)
+heroes/music.png,1080x720,alpha,category header illustration: child with headphones and floating notes
+heroes/discover.png,1080x720,alpha,category header illustration: child with magnifier at a tree house
+heroes/crafts.png,1080x720,alpha,category header illustration: hands folding a paper boat
+heroes/rewards.png,1080x720,alpha,"category header illustration: trophy, coins and stars"
+heroes/planner.png,1080x720,alpha,category header illustration: child with a big friendly calendar
+onboarding/welcome.png,1024x1024,alpha,"robot waving on a green hill, flowers"
+onboarding/why.png,1024x1024,alpha,star wizard presenting with sparkles
+onboarding/family.png,1024x1024,alpha,a small pastel house with a heart on the roof
+onboarding/child.png,1024x1024,alpha,"boy and girl in hijab side by side, waving"
+onboarding/permissions.png,1024x1024,alpha,robot holding a shield and a phone
+onboarding/who.png,1024x1024,alpha,"father with daughter in hijab, and two kids"
+onboarding/gate.png,1024x1024,alpha,golden padlock with a green shield
+states/bedtime.png,1024x1024,alpha,"child sleeping hugging a star under a blanket, moon"
+states/time_up.png,1024x1024,alpha,"girl in hijab hugging a big yellow star, hourglass"
+states/school.png,1024x1024,alpha,"school bag and pencils, morning sun"
+states/no_internet.png,1024x1024,alpha,"robot holding an unplugged cable, calm"
+states/empty_box.png,1024x1024,alpha,empty open cardboard box with a sparkle
+states/success.png,1024x1024,alpha,three big golden stars and confetti
+states/locked.png,1024x1024,alpha,"robot with a padlock, friendly"
+games/quest.png,768x768,alpha,game group cover: adventure map with a castle
+games/body.png,768x768,alpha,"game group cover: child stretching, healthy body"
+games/party.png,768x768,alpha,game group cover: balloons and dancing robot
+games/brain.png,768x768,alpha,game group cover: puzzle pieces and light bulb
+games/art.png,768x768,alpha,game group cover: paint brush and palette
+games/sport.png,768x768,alpha,game group cover: child running with a ball
+quests/forest_map.png,1080x2400,full,"vertical adventure level map: forest path with 10 round level stones, no numbers or text"
+quests/city_map.png,1080x2400,full,"vertical adventure level map: friendly city with 10 level stops, no numbers or text"
+quests/space_map.png,1080x2400,full,"vertical adventure level map: space path with planets as 10 levels, no numbers or text"
+quests/ocean_map.png,1080x2400,full,"vertical adventure level map: underwater path with 10 shell levels, no numbers or text"
+play/boy_run.png,512x512,alpha,boy running side view
+play/girl_run.png,512x512,alpha,girl in hijab running side view
+play/boy_jump.png,512x512,alpha,boy jumping side view
+play/girl_jump.png,512x512,alpha,girl in hijab jumping side view
+play/coin.png,512x512,alpha,gold coin
+play/star.png,512x512,alpha,yellow star
+play/gem.png,512x512,alpha,purple gem
+play/heart.png,512x512,alpha,red heart
+parent/dashboard.png,1024x640,alpha,calm parent-section illustration: father and mother in hijab looking at a phone with the robot
+parent/reports.png,1024x640,alpha,calm parent-section illustration: bar chart and a growing plant
+parent/safety.png,1024x640,alpha,calm parent-section illustration: big green shield with check
+parent/community.png,1024x640,alpha,"calm parent-section illustration: parents talking, speech bubbles"
