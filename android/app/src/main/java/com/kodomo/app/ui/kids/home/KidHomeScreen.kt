@@ -143,7 +143,6 @@ fun KidHomeScreen(onOpen: (String) -> Unit, childId: Long, viewModel: KidHomeVie
         )
     }
 }
-}
 
 /** Remembers when each child was last greeted aloud, so returning from a section stays quiet. */
 internal object GreetingMemory {
