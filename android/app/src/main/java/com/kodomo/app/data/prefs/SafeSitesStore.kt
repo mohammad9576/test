@@ -8,11 +8,31 @@ import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
 
-private val Context.sitesStore: DataStore<Preferences> by preferencesDataStore(name = "kodomo_sites")
+private val Context.sitesDataStore: DataStore<Preferences> by preferencesDataStore(name = "kodomo_sites")
+
+/**
+ * Reads and writes never crash the kids browser: a missing or unreadable file reads as empty, a failed write is
+ * logged and skipped (seen on the emulator when the app's data folder was not ready yet).
+ */
+private class SafeStore(private val store: DataStore<Preferences>) {
+    val data: Flow<Preferences> = store.data.catch { e ->
+        if (e is java.io.IOException) emit(androidx.datastore.preferences.core.emptyPreferences()) else throw e
+    }
+
+    suspend fun edit(block: suspend (androidx.datastore.preferences.core.MutablePreferences) -> Unit) {
+        runCatching { store.edit(block) }.onFailure { e ->
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            android.util.Log.w("SafeSitesStore", "write skipped", e)
+        }
+    }
+}
+
+private val Context.sitesStore: SafeStore get() = SafeStore(sitesDataStore)
 
 /** A website the parent approved for the kids browser. */
 data class SafeSite(val host: String, val title: String, val emoji: String) {
