@@ -85,6 +85,7 @@ import androidx.compose.material.icons.rounded.PhotoLibrary
 import androidx.compose.material.icons.automirrored.rounded.Logout
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.graphics.luminance
 import com.kodomo.app.ui.parent.ParentHubViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -115,7 +116,7 @@ fun FamilyTab(
     var editFamily by remember { mutableStateOf(false) }
     var changePin by remember { mutableStateOf(false) }
 
-    LazyColumn(modifier.background(MaterialTheme.colorScheme.surfaceContainerLow), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
+    LazyColumn(modifier.background(if (MaterialTheme.colorScheme.surface.luminance() > 0.5f) androidx.compose.ui.graphics.Color(0xFFF2F2F7) else androidx.compose.ui.graphics.Color(0xFF111316)), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
         item {
             KodomoCard(Modifier.fillMaxWidth()) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
