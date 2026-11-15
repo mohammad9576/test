@@ -41,6 +41,11 @@ class KidsLauncherActivity : ComponentActivity(), KioskController {
             com.kodomo.app.core.demo.DemoMode.route = intent?.getStringExtra("demo_route")
             com.kodomo.app.core.demo.DemoMode.age = intent?.getIntExtra("demo_age", 7) ?: 7
             com.kodomo.app.core.demo.DemoMode.autoFinish = intent?.getBooleanExtra("demo_finish", false) ?: false
+            if (com.kodomo.app.core.demo.DemoMode.route != null) {
+                // Smoke test: day and night screenshots of the same screen.
+                val night = intent?.getBooleanExtra("demo_night", false) ?: false
+                com.kodomo.app.ui.theme.NightMode.setMode(this, if (night) com.kodomo.app.ui.theme.NightMode.DARK else com.kodomo.app.ui.theme.NightMode.LIGHT)
+            }
         }
         super.onCreate(savedInstanceState)
         // Screenshots are blocked for the children's privacy – except in the debug demo mode used by the smoke test.

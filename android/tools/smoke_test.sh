@@ -18,6 +18,10 @@ SCREENS="
 home_age3|3|kid/{child}/home|8
 home_age7|7|kid/{child}/home|6
 home_age12|12|kid/{child}/home|6
+home_age3_night|3|kid/{child}/home|6|false|true
+home_age6|6|kid/{child}/home|6
+home_age8_night|8|kid/{child}/home|6|false|true
+home_age12_night|12|kid/{child}/home|6|false|true
 videos|7|kid/{child}/videos|5
 games|7|kid/{child}/games|5
 quest_forest|7|kid/{child}/game/FOREST_QUEST|5
@@ -48,6 +52,8 @@ rewards|7|kid/{child}/rewards|4
 apps|7|kid/{child}/apps|4
 school|9|kid/{child}/school|4
 parent_hub|7|parent|6
+parent_family|7|parent#4|6
+parent_family_night|7|parent#4|6|false|true
 parent_ratings|7|parent#2|8
 parent_sites|7|parent/sites|4
 parent_wellbeing|7|parent/wellbeing|4
@@ -68,12 +74,12 @@ end_memory|7|kid/{child}/game/MEMORY_CARDS|13|true
 "
 : > "$OUT/report.txt"
 i=0
-while IFS='|' read -r name age route wait finish <&3; do
+while IFS='|' read -r name age route wait finish night <&3; do
   [ -z "$name" ] && continue
   i=$((i+1))
   adb logcat -c
   adb shell am force-stop $PKG
-  adb shell am start -n $ACT --es demo_route "$route" --ei demo_age "$age" --ez demo_finish "${finish:-false}" >/dev/null
+  adb shell am start -n $ACT --es demo_route "$route" --ei demo_age "$age" --ez demo_finish "${finish:-false}" --ez demo_night "${night:-false}" >/dev/null
   sleep "$wait"
   f=$(printf "%02d_%s.png" "$i" "$name")
   adb exec-out screencap -p > "$OUT/$f"

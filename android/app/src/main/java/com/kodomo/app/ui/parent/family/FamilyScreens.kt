@@ -69,6 +69,22 @@ import com.kodomo.app.ui.components.KodomoAvatar
 import com.kodomo.app.ui.components.KodomoCard
 import com.kodomo.app.ui.components.KodomoPrimaryButton
 import com.kodomo.app.ui.components.SectionTitle
+import com.kodomo.app.ui.components.SettingsColors
+import com.kodomo.app.ui.components.SettingsGroup
+import com.kodomo.app.ui.components.SettingsRow
+import androidx.compose.material.icons.rounded.Apps
+import androidx.compose.material.icons.rounded.Call
+import androidx.compose.material.icons.rounded.Cloud
+import androidx.compose.material.icons.rounded.Dashboard
+import androidx.compose.material.icons.rounded.Favorite
+import androidx.compose.material.icons.rounded.Language
+import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material.icons.rounded.Person
+import androidx.compose.material.icons.rounded.PersonAdd
+import androidx.compose.material.icons.rounded.PhotoLibrary
+import androidx.compose.material.icons.automirrored.rounded.Logout
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.foundation.clickable
 import com.kodomo.app.ui.parent.ParentHubViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -99,7 +115,7 @@ fun FamilyTab(
     var editFamily by remember { mutableStateOf(false) }
     var changePin by remember { mutableStateOf(false) }
 
-    LazyColumn(modifier, contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    LazyColumn(modifier.background(MaterialTheme.colorScheme.surfaceContainerLow), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
         item {
             KodomoCard(Modifier.fillMaxWidth()) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -114,24 +130,56 @@ fun FamilyTab(
                 }
             }
         }
-        item { SectionTitle("اعضای خانواده") }
+        item {
+            SettingsGroup("فرزندان") {
+                children.forEachIndexed { i, child ->
+                    Row(
+                        Modifier.fillMaxWidth().clickable { onEditChild(child.id) }.padding(horizontal = 14.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        KodomoAvatar(child.avatar, size = 40.dp)
+                        Spacer(Modifier.width(12.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(child.name, style = MaterialTheme.typography.bodyLarge)
+                            Text("${child.ageYears().fa()} ساله • ${child.ageGroup().label} • ⭐ ${child.stars.fa()}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Icon(Icons.AutoMirrored.Rounded.KeyboardArrowLeft, contentDescription = null, tint = MaterialTheme.colorScheme.outline)
+                    }
+                    HorizontalDivider(Modifier.padding(start = 66.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                }
+                SettingsRow(Icons.Rounded.PersonAdd, SettingsColors.Green, "افزودن فرزند", divider = false, onClick = onAddChild)
+            }
+        }
         family?.let { f ->
-            if (f.fatherName.isNotBlank()) item { MemberRow(AvatarKind.FATHER, f.fatherName, "والد یا سرپرست اول", null) }
-            if (f.motherName.isNotBlank()) item { MemberRow(AvatarKind.MOTHER, f.motherName, "والد یا سرپرست دوم", null) }
+            val parents = listOfNotNull(f.fatherName.takeIf { it.isNotBlank() }?.let { it to "والد یا سرپرست اول" }, f.motherName.takeIf { it.isNotBlank() }?.let { it to "والد یا سرپرست دوم" })
+            if (parents.isNotEmpty()) item {
+                SettingsGroup("والدین") {
+                    parents.forEachIndexed { i, (n, role) ->
+                        SettingsRow(Icons.Rounded.Person, SettingsColors.Teal, n, subtitle = role, divider = i < parents.lastIndex, onClick = { editFamily = true })
+                    }
+                }
+            }
         }
-        items(children, key = { it.id }) { child ->
-            MemberRow(child.avatar, child.name, "${child.ageYears().fa()} ساله • ${child.ageGroup().label} • ⭐ ${child.stars.fa()}") { onEditChild(child.id) }
+        item {
+            SettingsGroup("محتوا و دسترسی", footer = "فقط چیزهایی که این‌جا اجازه می‌دهید در محیط کودک دیده می‌شوند.") {
+                SettingsRow(Icons.Rounded.Dashboard, SettingsColors.Indigo, "بخش‌های محیط کودک", subtitle = "کدام بخش‌ها روی خانه‌ی کودک باشد", onClick = onOpenModules)
+                SettingsRow(Icons.Rounded.Apps, SettingsColors.Blue, "برنامه‌های مجاز", subtitle = "برنامه‌هایی که از داخل کدومو باز می‌شوند", onClick = onOpenAllowedApps)
+                SettingsRow(Icons.Rounded.Language, SettingsColors.Teal, "سایت‌های مجاز", subtitle = "مرورگر امن و درخواست‌های فرزند", onClick = onOpenSites)
+                SettingsRow(Icons.Rounded.Call, SettingsColors.Green, "مخاطبان تماس", subtitle = "به چه کسانی می‌تواند زنگ بزند", divider = false, onClick = onOpenContacts)
+            }
         }
-        item { OutlinedButton(onClick = onAddChild, modifier = Modifier.fillMaxWidth()) { Text("➕ افزودن فرزند") } }
-        item { SectionTitle("امکانات") }
-        item { MemberRow(AvatarKind.ROBOT, "برنامه‌های مجاز", "بازی‌ها و برنامه‌هایی که کودک اجازه دارد از داخل کدومو باز کند", onOpenAllowedApps) }
-        item { MemberRow(AvatarKind.ROBOT, "مخاطبان تماس کودک", "پدر، مادر، پدربزرگ، خاله، دایی و… که کودک می‌تواند به آن‌ها زنگ بزند", onOpenContacts) }
-        item { MemberRow(AvatarKind.ROBOT, "بخش‌های محیط کودک", "انتخاب کنید فرزندتان کدام بخش‌ها را ببیند", onOpenModules) }
-        item { MemberRow(AvatarKind.ROBOT, "سلامت و ایمنی کودک", "استراحت چشم، محدودیت صدا، اول درس بعد بازی، تماس اضطراری", onOpenWellbeing) }
-        item { MemberRow(AvatarKind.ROBOT, "سایت‌های مجاز مرورگر", "سایت‌هایی که بخش «دانشنامه و سایت‌های امن» اجازه دارد باز کند و درخواست‌های فرزند", onOpenSites) }
-        item { MemberRow(AvatarKind.ROBOT, "گالری محرمانه‌ی خاطرات", "عکس‌های رمزنگاری‌شده‌ی پروژه‌ها و لحظه‌های شاد", onOpenGallery) }
-        item { MemberRow(AvatarKind.ROBOT, "حساب ابری و همگام‌سازی", "ورود با کد یکبارمصرف، پشتیبان پروفایل‌ها و پایش زنده", onOpenCloud) }
-        item { OutlinedButton(onClick = { changePin = true }, modifier = Modifier.fillMaxWidth()) { Text("🔐 تغییر رمز والدین") } }
+        item {
+            SettingsGroup("زمان و سلامت") {
+                SettingsRow(Icons.Rounded.Favorite, SettingsColors.Pink, "سلامت و ایمنی کودک", subtitle = "زمان، استراحت چشم، صدا، اینترنت، حالت شب", divider = false, onClick = onOpenWellbeing)
+            }
+        }
+        item {
+            SettingsGroup("حساب و امنیت") {
+                SettingsRow(Icons.Rounded.Lock, SettingsColors.Orange, "تغییر رمز والدین", onClick = { changePin = true })
+                SettingsRow(Icons.Rounded.Cloud, SettingsColors.Blue, "حساب ابری و همگام‌سازی", onClick = onOpenCloud)
+                SettingsRow(Icons.Rounded.PhotoLibrary, SettingsColors.Purple, "گالری محرمانه‌ی خاطرات", divider = false, onClick = onOpenGallery)
+            }
+        }
         item { CrashReportCard() }
         item { ExitAppCard() }
     }
@@ -393,10 +441,8 @@ private fun CrashReportCard() {
 @Composable
 private fun ExitAppCard() {
     var sheet by remember { mutableStateOf(false) }
-    KodomoCard(Modifier.fillMaxWidth(), onClick = { sheet = true }) {
-        Text("🚪 خروج از کدومو", style = MaterialTheme.typography.titleMedium)
-        Text("برگشت به گوشی معمولی با یک لمس؛ بدون رفتن به تنظیمات گوشی.", style = MaterialTheme.typography.bodySmall)
-        androidx.compose.material3.Button(onClick = { sheet = true }, modifier = Modifier.fillMaxWidth()) { Text("خروج") }
+    SettingsGroup(footer = "برگشت به گوشی معمولی با یک لمس؛ بدون رفتن به تنظیمات گوشی.") {
+        SettingsRow(Icons.AutoMirrored.Rounded.Logout, SettingsColors.Red, "خروج از کدومو", divider = false, danger = true, onClick = { sheet = true })
     }
     if (sheet) com.kodomo.app.ui.parent.exit.ExitChoiceSheet(onDismiss = { sheet = false }, onBackToKids = null)
 }

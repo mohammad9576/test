@@ -181,10 +181,10 @@ private val KidNightScheme = androidx.compose.material3.darkColorScheme(
     secondary = Color(0xFFFFC98A), onSecondary = Color(0xFF2B1A05),
     secondaryContainer = Color(0xFF3A2E22), onSecondaryContainer = Color(0xFFFFE3C2),
     tertiary = Color(0xFFFFD36E),
-    background = Color(0xFF101826), onBackground = Color(0xFFE8EEF5),
-    surface = Color(0xFF172234), onSurface = Color(0xFFE8EEF5),
-    surfaceVariant = Color(0xFF23324A), onSurfaceVariant = Color(0xFFB8C4D6),
-    outline = Color(0xFF52637E), outlineVariant = Color(0xFF2E3C55),
+    background = Color(0xFF1C2126), onBackground = Color(0xFFF2F4F6),
+    surface = Color(0xFF262C33), onSurface = Color(0xFFF2F4F6),
+    surfaceVariant = Color(0xFF30373F), onSurfaceVariant = Color(0xFFA9B1BA),
+    outline = Color(0xFF59626C), outlineVariant = Color(0xFF353C44),
 )
 
 /** App-wide night mode: automatic (phone dark mode or 20:00–06:00), always light, or always dark. */

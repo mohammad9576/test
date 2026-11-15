@@ -124,22 +124,25 @@ fun KidHomeScreen(onOpen: (String) -> Unit, childId: Long, viewModel: KidHomeVie
     val avatarScale by bounce.animateFloat(1f, if (spec.gamified) 1.06f else 1f, infiniteRepeatable(tween(900), RepeatMode.Reverse), label = "s")
 
     val night = child.darkMode || com.kodomo.app.ui.theme.NightMode.isNight()
-    LauncherHome(
-        name = child.name,
-        modules = modules,
-        columns = com.kodomo.app.ui.design.AgeBand.of(child.ageYears()).columns,
-        remainingSeconds = if (time.child?.id == childId) time.remainingSeconds else null,
-        progress = time.progress,
-        stars = child.stars,
-        medals = achievements.count { it.earnedAt != null },
-        night = night,
-        style = com.kodomo.app.ui.design.KidStyle.default(child.ageYears(), child.gender == com.kodomo.app.domain.model.Gender.GIRL),
-        character = com.kodomo.app.ui.design.CharacterKind.forChild(child.ageYears(), child.gender == com.kodomo.app.domain.model.Gender.GIRL),
-        buddy = { m -> BuddyWidget(greeting.text, m, night) },
-        extras = { com.kodomo.app.ui.kids.wellbeing.CallParentsRow(com.kodomo.app.ui.kids.LocalWellbeing.current, space.callParent) },
-        onParentLongPress = space.requestParentExit,
-        onOpen = { module -> space.guide(module.title); onOpen(module.route) },
-    )
+    val band = com.kodomo.app.ui.design.AgeBand.of(child.ageYears())
+    val girl = child.gender == com.kodomo.app.domain.model.Gender.GIRL
+    val remaining = if (time.child?.id == childId) time.remainingSeconds else null
+    val openModule: (HomeModule) -> Unit = { module -> space.guide(module.title); onOpen(module.route) }
+    val callFamily = { onOpen(Routes.kidCall(child.id)) }
+    if (band == com.kodomo.app.ui.design.AgeBand.TEEN) {
+        TeenHome(
+            childId = child.id, name = child.name, modules = modules, remainingSeconds = remaining,
+            usedFraction = time.progress, night = night,
+            onParent = space.requestParentExit, onCallFamily = callFamily, onOpen = openModule,
+        )
+    } else {
+        KidHomeV5(
+            childId = child.id, name = child.name, band = band, girl = girl, modules = modules, remainingSeconds = remaining,
+            night = night, character = com.kodomo.app.ui.design.CharacterKind.forChild(child.ageYears(), girl),
+            onParent = space.requestParentExit, onCallFamily = callFamily, onOpen = openModule,
+        )
+    }
+}
 }
 
 /** Remembers when each child was last greeted aloud, so returning from a section stays quiet. */

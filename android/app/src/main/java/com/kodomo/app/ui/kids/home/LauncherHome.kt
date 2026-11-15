@@ -192,6 +192,10 @@ fun LauncherIcon(module: HomeModule, iconSize: Dp, index: Int, showLabel: Boolea
  * character, glass widgets, frosted tiles with glossy 3D icons and a glass dock.
  */
 @OptIn(ExperimentalFoundationApi::class)
+private fun dockLabel(m: HomeModule) = when (m.key) {
+    "videos" -> "فیلم"; "games" -> "بازی"; "books" -> "کتاب"; "study" -> "درس"; else -> m.title
+}
+
 @Composable
 fun LauncherHome(
     name: String,
@@ -211,7 +215,8 @@ fun LauncherHome(
 ) {
     val dark = night || style == com.kodomo.app.ui.design.KidStyle.GALAXY
     val ink = if (dark) Color.White else com.kodomo.app.ui.design.KodomoTokens.Ink
-    val dockKeys = listOf("camera", "call", "rewards")
+    // The four everyday doors stay in the dock: film, games, books, lessons (whichever the parent allows).
+    val dockKeys = listOf("videos", "games", "books", "study")
     val dock = modules.filter { it.key in dockKeys }.sortedBy { dockKeys.indexOf(it.key) }
     val grid = modules.filter { it !in dock }
     Box(Modifier.fillMaxSize()) {
@@ -260,8 +265,9 @@ fun LauncherHome(
         }
         if (dock.isNotEmpty()) {
             com.kodomo.app.ui.design.ChildDock(
-                dock.map { Triple(it.title, it.emoji, Color(it.colors.second)) }, dark,
+                dock.map { Triple(dockLabel(it), it.emoji, Color(it.colors.second)) }, dark,
                 Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(horizontal = 18.dp, vertical = 12.dp),
+                keys = dock.map { it.key },
             ) { i -> onOpen(dock[i]) }
         }
     }

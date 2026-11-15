@@ -107,11 +107,16 @@ fun ChildTile(title: String, picture: String, color: Color, index: Int, dark: Bo
 
 /** Glass dock at the bottom of the child home (quick sections: camera, gallery, call…). */
 @Composable
-fun ChildDock(items: List<Triple<String, String, Color>>, dark: Boolean, modifier: Modifier = Modifier, onClick: (Int) -> Unit) {
-    Row(modifier.fillMaxWidth().frosted(30.dp, dark).padding(horizontal = 14.dp, vertical = 10.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
+fun ChildDock(items: List<Triple<String, String, Color>>, dark: Boolean, modifier: Modifier = Modifier, keys: List<String?> = emptyList(), onClick: (Int) -> Unit) {
+    val ink = if (dark) Color.White else KodomoTokens.Ink
+    Row(modifier.fillMaxWidth().frosted(30.dp, dark).padding(horizontal = 10.dp, vertical = 8.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
         items.forEachIndexed { i, (title, picture, color) ->
-            Box(Modifier.size(KodomoTokens.TouchChild).clip(RoundedCornerShape(20.dp)).clickable(role = Role.Button) { onClick(i) }.semantics { contentDescription = title }, contentAlignment = Alignment.Center) {
-                Premium3DIcon(picture, color, 56.dp)
+            Column(
+                Modifier.clip(RoundedCornerShape(20.dp)).clickable(role = Role.Button) { onClick(i) }.semantics { contentDescription = title }.padding(4.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Premium3DIcon(picture, color, 52.dp, artKey = keys.getOrNull(i))
+                Text(title, style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Bold, color = ink), maxLines = 1)
             }
         }
     }

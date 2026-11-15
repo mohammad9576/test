@@ -196,12 +196,10 @@ fun KidSpaceFrame(childId: Long, onParentExit: () -> Unit, online: Boolean = fal
     val night = current.darkMode || com.kodomo.app.ui.theme.NightMode.isNight()
     KidsTheme(spec = spec, darkMode = night) {
         CompositionLocalProvider(LocalKidSpace provides scope, com.kodomo.app.ui.mascot.LocalBuddy provides buddy, LocalWellbeing provides wellbeing) {
-            Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-                // The approved 3D world (sky, clouds, hills, flowers) behind every kids screen.
-                com.kodomo.app.ui.design.KidScene(
-                    com.kodomo.app.ui.design.KidStyle.default(current.ageYears(), current.gender == com.kodomo.app.domain.model.Gender.GIRL),
-                    night, groundHeight = 0.12f,
-                )
+            // V5: a plain, calm page behind every kids screen (no sky/hills/flowers); colour lives in icons and content.
+            val teen = com.kodomo.app.ui.design.AgeBand.of(current.ageYears()) == com.kodomo.app.ui.design.AgeBand.TEEN
+            val pageBg = if (teen) com.kodomo.app.ui.kids.home.V5.teen(night).bg else com.kodomo.app.ui.kids.home.V5.kid(night).bg
+            Box(Modifier.fillMaxSize().background(pageBg)) {
                 // Online sections are replaced (so players stop) when today's internet allowance is used up.
                 if (online && quota.exhausted) com.kodomo.app.ui.kids.wellbeing.DataUsedUpOverlay(onBack = { backDispatcher?.onBackPressed() })
                 else content()
