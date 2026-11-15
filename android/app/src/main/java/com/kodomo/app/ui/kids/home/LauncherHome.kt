@@ -191,11 +191,11 @@ fun LauncherIcon(module: HomeModule, iconSize: Dp, index: Int, showLabel: Boolea
  * clouds, hills, flowers; castle or galaxy by style), big clock with Persian date and greeting, the child's own
  * character, glass widgets, frosted tiles with glossy 3D icons and a glass dock.
  */
-@OptIn(ExperimentalFoundationApi::class)
 private fun dockLabel(m: HomeModule) = when (m.key) {
     "videos" -> "فیلم"; "games" -> "بازی"; "books" -> "کتاب"; "study" -> "درس"; else -> m.title
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun LauncherHome(
     name: String,
