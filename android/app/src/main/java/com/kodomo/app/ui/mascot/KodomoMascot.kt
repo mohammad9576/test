@@ -64,6 +64,15 @@ fun KodomoMascot(mood: MascotMood, modifier: Modifier = Modifier, size: Dp = 160
         BuddyMascot(buddy, mood, modifier, size)
         return
     }
+    // V5: the approved 3D robot (one pose per mood), gently floating; the vector robot stays as a fallback.
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val pose = when (mood) { MascotMood.HAPPY -> "robot/wave"; MascotMood.EXCITED -> "robot/trophy"; MascotMood.SLEEPY -> "robot/sleep"; MascotMood.THINKING -> "robot/search" }
+    if (com.kodomo.app.ui.design.ArtAssets.has(context, pose)) {
+        val t = rememberInfiniteTransition(label = "robot3d")
+        val bob by t.animateFloat(0f, 1f, infiniteRepeatable(tween(1800, easing = LinearEasing), androidx.compose.animation.core.RepeatMode.Reverse), label = "bob")
+        com.kodomo.app.ui.design.Art(pose, size, modifier.graphicsLayer { translationY = -bob * size.toPx() * 0.04f }) {}
+        return
+    }
     val transition = rememberInfiniteTransition(label = "mascot")
     val floatPhase by transition.animateFloat(
         initialValue = 0f, targetValue = 1f,

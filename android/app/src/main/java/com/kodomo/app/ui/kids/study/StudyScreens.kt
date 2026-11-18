@@ -171,7 +171,7 @@ fun StudyHomeScreen(onBack: () -> Unit, onOpenUnit: (String) -> Unit, onEnglish:
                 Row(
                     Modifier
                         .fillMaxWidth()
-                        .background(Brush.horizontalGradient(listOf(Color(0xFF7E57C2), Color(0xFF26C6DA))), RoundedCornerShape(22.dp))
+                        .background(Color(0xFF7E57C2).copy(alpha = 0.14f), RoundedCornerShape(22.dp))
                         .bouncyClick(onEnglish)
                         .padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -179,8 +179,8 @@ fun StudyHomeScreen(onBack: () -> Unit, onOpenUnit: (String) -> Unit, onEnglish:
                     Text("🔤", fontSize = 40.sp)
                     Spacer(Modifier.width(12.dp))
                     Column(Modifier.weight(1f)) {
-                        Text("انگلیسی از صفر", style = MaterialTheme.typography.titleLarge, color = Color.White)
-                        Text("Hello! الفبا، اعداد، رنگ‌ها، حیوانات… با تلفظ", style = MaterialTheme.typography.bodySmall, color = Color.White)
+                        Text("انگلیسی از صفر", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurface)
+                        Text("Hello! الفبا، اعداد، رنگ‌ها، حیوانات… با تلفظ", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
@@ -204,7 +204,7 @@ private fun UnitTile(unit: StudyUnit, stars: Int, current: Boolean, onClick: () 
     Column(
         Modifier
             .aspectRatio(1.05f)
-            .background(Brush.verticalGradient(listOf(Color(colors.first), Color(colors.second))), RoundedCornerShape(24.dp))
+            .background(Color(colors.second).copy(alpha = 0.14f), RoundedCornerShape(24.dp))
             .bouncyClick(onClick)
             .padding(12.dp),
         verticalArrangement = Arrangement.SpaceBetween,
@@ -212,10 +212,10 @@ private fun UnitTile(unit: StudyUnit, stars: Int, current: Boolean, onClick: () 
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(unit.emoji, fontSize = 34.sp)
             Spacer(Modifier.weight(1f))
-            Text(if (current) unit.grade.short else "مرور", style = MaterialTheme.typography.labelSmall, color = Color.White, modifier = Modifier.background(Color.White.copy(alpha = 0.25f), RoundedCornerShape(50)).padding(horizontal = 8.dp, vertical = 2.dp))
+            Text(if (current) unit.grade.short else "مرور", style = MaterialTheme.typography.labelSmall, color = Color(colors.second), modifier = Modifier.background(Color(colors.second).copy(alpha = 0.16f), RoundedCornerShape(50)).padding(horizontal = 8.dp, vertical = 2.dp))
         }
-        Text(unit.title, style = MaterialTheme.typography.titleSmall, color = Color.White, fontWeight = FontWeight.Bold)
-        Text("${unit.subject.label}  " + "⭐".repeat(stars) + "☆".repeat(3 - stars), style = MaterialTheme.typography.labelMedium, color = Color.White)
+        Text(unit.title, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
+        Text("${unit.subject.label}  " + "⭐".repeat(stars) + "☆".repeat(3 - stars), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 

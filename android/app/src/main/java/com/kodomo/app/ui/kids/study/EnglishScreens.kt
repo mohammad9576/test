@@ -89,14 +89,14 @@ fun EnglishHomeScreen(onBack: () -> Unit, onOpen: (String) -> Unit, viewModel: S
                 Column(
                     Modifier
                         .aspectRatio(1.1f)
-                        .background(Brush.verticalGradient(listOf(Color(0xFF7E57C2), Color(0xFF26C6DA))), RoundedCornerShape(24.dp))
+                        .background(Color(0xFF7E57C2).copy(alpha = 0.14f), RoundedCornerShape(24.dp))
                         .bouncyClick { onOpen(unit.id) }
                         .padding(12.dp),
                     verticalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Text(unit.emoji, fontSize = 36.sp)
-                    Text(unit.title, style = MaterialTheme.typography.titleSmall, color = Color.White, fontWeight = FontWeight.Bold)
-                    Text("${unit.words.size.fa()} کلمه  " + "⭐".repeat(s) + "☆".repeat(3 - s), style = MaterialTheme.typography.labelMedium, color = Color.White)
+                    Text(unit.title, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
+                    Text("${unit.words.size.fa()} کلمه  " + "⭐".repeat(s) + "☆".repeat(3 - s), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }

@@ -48,14 +48,14 @@ fun DiscoverScreen(onBack: () -> Unit, onLessons: () -> Unit, onFacts: () -> Uni
 @Composable
 private fun Door(emoji: String, title: String, hint: String, from: Color, to: Color, onClick: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().shadow(8.dp, RoundedCornerShape(28.dp), spotColor = to).clip(RoundedCornerShape(28.dp))
-            .background(Brush.linearGradient(listOf(from, to))).clickable(onClick = onClick).padding(18.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp))
+            .background(to.copy(alpha = 0.13f)).clickable(onClick = onClick).padding(18.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Emoji(emoji, 84.dp)
         Column(Modifier.weight(1f).padding(start = 14.dp)) {
-            Text(title, color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Black)
-            Text(hint, color = Color.White.copy(alpha = 0.95f), fontSize = 15.sp)
+            Text(title, color = androidx.compose.material3.MaterialTheme.colorScheme.onSurface, fontSize = 20.sp, fontWeight = FontWeight.Black)
+            Text(hint, color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
         }
     }
 }

@@ -57,10 +57,6 @@ fun DashboardTab(viewModel: ParentHubViewModel, modifier: Modifier = Modifier) {
 
     LazyColumn(modifier, contentPadding = PaddingValues(bottom = 24.dp)) {
         item { ChildSwitcher(children, child, viewModel::selectChild) }
-        item { child?.let { SetupChecklistCard(viewModel, it) } }
-        item { PendingChoresCard(viewModel, children) }
-        item { child?.let { BehaviourCard(viewModel, it) } }
-        item { child?.let { StudyCard(viewModel, it) } }
         val s = settings
         val c = child
         if (c == null || s == null) {
@@ -68,24 +64,39 @@ fun DashboardTab(viewModel: ParentHubViewModel, modifier: Modifier = Modifier) {
             return@LazyColumn
         }
         item {
+            // V5 (D_PARENT): «today» at a glance — the child's own 3D character, minutes used, the day's limit.
+            val usedMin = (used / 60).toInt()
+            val girl = c.gender == com.kodomo.app.domain.model.Gender.GIRL
             KodomoCard(Modifier.fillMaxWidth().padding16()) {
-                Text("مصرف امروز ${c.name}", style = MaterialTheme.typography.titleMedium)
-                Spacer(Modifier.height(6.dp))
-                val usedMin = used / 60
-                Text("${usedMin.fa()} از ${s.dailyLimitMinutes.fa()} دقیقه", style = MaterialTheme.typography.headlineSmall, color = KodomoColors.Green)
-                Spacer(Modifier.height(6.dp))
-                LinearProgressIndicator(progress = { (usedMin.toFloat() / s.dailyLimitMinutes).coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth().height(10.dp))
-                Spacer(Modifier.height(6.dp))
+                Text("امروز ${c.name}", style = MaterialTheme.typography.headlineSmall)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    com.kodomo.app.ui.design.Art(if (girl) "poses/girl_read" else "poses/boy_read", 120.dp) {}
+                    Spacer(Modifier.width(12.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text("مدت استفاده‌ی امروز", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("${usedMin.fa()} دقیقه", style = MaterialTheme.typography.displaySmall, fontWeight = androidx.compose.ui.text.font.FontWeight.Black)
+                        Spacer(Modifier.height(6.dp))
+                        LinearProgressIndicator(
+                            progress = { (usedMin.toFloat() / s.dailyLimitMinutes.coerceAtLeast(1)).coerceIn(0f, 1f) },
+                            modifier = Modifier.fillMaxWidth().height(8.dp), color = KodomoColors.Green,
+                        )
+                        Text("از ${s.dailyLimitMinutes.fa()} دقیقه", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
                 Text(
                     when (live) {
-                        LiveUsageSocket.Status.CONNECTED -> "🟢 پایش زنده‌ی ابری فعال است"
-                        LiveUsageSocket.Status.CONNECTING -> "🟡 در حال اتصال به پایش زنده..."
-                        LiveUsageSocket.Status.OFFLINE -> "⚪ پایش زنده خاموش (حساب ابری متصل نیست)"
+                        LiveUsageSocket.Status.CONNECTED -> "پایش زنده‌ی ابری فعال است"
+                        LiveUsageSocket.Status.CONNECTING -> "در حال اتصال به پایش زنده…"
+                        LiveUsageSocket.Status.OFFLINE -> "پایش زنده خاموش است (حساب ابری متصل نیست)"
                     },
-                    style = MaterialTheme.typography.labelMedium,
+                    style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
+        item { child?.let { SetupChecklistCard(viewModel, it) } }
+        item { PendingChoresCard(viewModel, children) }
+        item { child?.let { BehaviourCard(viewModel, it) } }
+        item { child?.let { StudyCard(viewModel, it) } }
         item {
             KodomoCard(Modifier.fillMaxWidth().padding16()) {
                 SectionTitle("سقف مصرف روزانه")
