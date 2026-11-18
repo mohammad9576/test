@@ -332,7 +332,11 @@ fun TeenHome(
                 Text(clock, style = TextStyle(fontSize = 20.sp, fontWeight = FontWeight.Medium, color = p.ink))
             }
             Spacer(Modifier.height(16.dp))
-            Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(p.accentSoft).padding(14.dp)) {
+            val planner = modules.firstOrNull { it.key == "planner" }
+            Column(
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(p.accentSoft)
+                    .then(if (planner != null) Modifier.clickable { open(planner) } else Modifier).padding(14.dp),
+            ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Outlined.Schedule, contentDescription = null, tint = p.accent, modifier = Modifier.size(22.dp))
                     Spacer(Modifier.width(8.dp))

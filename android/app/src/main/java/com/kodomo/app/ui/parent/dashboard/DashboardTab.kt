@@ -74,7 +74,7 @@ fun DashboardTab(viewModel: ParentHubViewModel, modifier: Modifier = Modifier) {
                     Spacer(Modifier.width(12.dp))
                     Column(Modifier.weight(1f)) {
                         Text("مدت استفاده‌ی امروز", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text("${usedMin.fa()} دقیقه", style = MaterialTheme.typography.displaySmall, fontWeight = androidx.compose.ui.text.font.FontWeight.Black)
+                        Text(if (usedMin == 0) "هنوز استفاده نکرده" else "${usedMin.fa()} دقیقه", style = if (usedMin == 0) MaterialTheme.typography.titleLarge else MaterialTheme.typography.displaySmall, fontWeight = androidx.compose.ui.text.font.FontWeight.Black)
                         Spacer(Modifier.height(6.dp))
                         LinearProgressIndicator(
                             progress = { (usedMin.toFloat() / s.dailyLimitMinutes.coerceAtLeast(1)).coerceIn(0f, 1f) },

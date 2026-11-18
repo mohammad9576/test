@@ -1,5 +1,6 @@
 package com.kodomo.app.ui.kids.video
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -96,21 +97,29 @@ fun VideoListScreen(onBack: () -> Unit, onPlay: (String) -> Unit, onLiveTv: () -
 private fun VideoCard(video: ContentItem, downloaded: Boolean, onClick: () -> Unit) {
     KodomoCard(onClick = onClick) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            ContentCover(video, Modifier.size(width = 110.dp, height = 150.dp), emojiSize = 52)
+            ContentCover(video, Modifier.size(width = 96.dp, height = 128.dp), emojiSize = 48, corner = 16.dp)
             Spacer(Modifier.width(14.dp))
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(video.title, style = MaterialTheme.typography.titleMedium)
-                Text("مدت زمان: ${video.durationMinutes.fa()} دقیقه", style = MaterialTheme.typography.bodySmall)
-                Text("رده سنی: +${video.rating.minAge.fa()} سال", style = MaterialTheme.typography.bodySmall)
-                Text(video.category, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
-                if (video.parentOnly) Text("👨‍👩‍👧 انتخاب پدر و مادر", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.tertiary)
-                if (video.episodes.size > 1) Text("📺 ${video.episodes.size.fa()} قسمت", style = MaterialTheme.typography.labelSmall)
-                if (video.sourceUrl?.startsWith("https://kodoumo.ir") == true) Text("✅ تأییدشده توسط کدومو", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
-                if (video.mediaUrl == null && video.trailerUrl != null) Text("🎞️ پیش‌نمایش", style = MaterialTheme.typography.labelSmall)
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text("👍 ${video.peerLikes.fa()}", style = MaterialTheme.typography.labelMedium)
-                    Text("👎 ${video.peerDislikes.fa()}", style = MaterialTheme.typography.labelMedium)
-                    if (downloaded) Text("📥 آفلاین", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+            // V5: a calm card — the title big, one quiet line of facts, one badge at most.
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(video.title, style = MaterialTheme.typography.titleMedium, maxLines = 2)
+                Text(
+                    listOfNotNull(
+                        "+${video.rating.minAge.fa()} سال",
+                        video.episodes.size.takeIf { it > 1 }?.let { "${it.fa()} قسمت" },
+                        video.durationMinutes.takeIf { it > 0 }?.let { "${it.fa()} دقیقه" },
+                        "آفلاین".takeIf { downloaded },
+                    ).joinToString(" • "),
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                val badge = when {
+                    video.sourceUrl?.startsWith("https://kodoumo.ir") == true -> "تأییدشده‌ی کدومو"
+                    video.parentOnly -> "انتخاب مامان و بابا"
+                    video.mediaUrl == null && video.trailerUrl != null -> "پیش‌نمایش"
+                    else -> null
+                }
+                if (badge != null) {
+                    Text(badge, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.background(MaterialTheme.colorScheme.primary.copy(alpha = 0.10f), RoundedCornerShape(50)).padding(horizontal = 10.dp, vertical = 3.dp))
                 }
             }
         }

@@ -20,6 +20,19 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.material.icons.Icons
+import com.kodomo.app.ui.theme.KodomoColors
+import androidx.compose.material.icons.automirrored.outlined.MenuBook
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Apps
+import androidx.compose.material.icons.outlined.Palette
+import androidx.compose.material.icons.outlined.Language
+import androidx.compose.material.icons.outlined.School
+import androidx.compose.material.icons.outlined.MusicNote
+import androidx.compose.material.icons.outlined.SportsEsports
+import androidx.compose.material.icons.outlined.PlayCircle
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -41,6 +54,18 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 /** Merges consecutive log segments of the same activity into a single timeline entry. */
+private fun categoryIcon(c: ActivityCategory): androidx.compose.ui.graphics.vector.ImageVector = when (c) {
+    ActivityCategory.VIDEO -> androidx.compose.material.icons.Icons.Outlined.PlayCircle
+    ActivityCategory.BOOK -> androidx.compose.material.icons.Icons.AutoMirrored.Outlined.MenuBook
+    ActivityCategory.GAME -> androidx.compose.material.icons.Icons.Outlined.SportsEsports
+    ActivityCategory.MUSIC -> androidx.compose.material.icons.Icons.Outlined.MusicNote
+    ActivityCategory.LEARNING, ActivityCategory.SCHOOL -> androidx.compose.material.icons.Icons.Outlined.School
+    ActivityCategory.EXPLORE, ActivityCategory.BROWSER -> androidx.compose.material.icons.Icons.Outlined.Language
+    ActivityCategory.PROJECT, ActivityCategory.ART -> androidx.compose.material.icons.Icons.Outlined.Palette
+    ActivityCategory.APP -> androidx.compose.material.icons.Icons.Outlined.Apps
+    else -> androidx.compose.material.icons.Icons.Outlined.Home
+}
+
 private fun mergeTimeline(logs: List<ActivityLog>): List<ActivityLog> {
     val result = mutableListOf<ActivityLog>()
     for (log in logs) {
@@ -56,6 +81,7 @@ private fun mergeTimeline(logs: List<ActivityLog>): List<ActivityLog> {
     return result
 }
 
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun ReportsTab(viewModel: ParentHubViewModel, modifier: Modifier = Modifier) {
     val children by viewModel.children.collectAsStateWithLifecycle()
@@ -74,35 +100,67 @@ fun ReportsTab(viewModel: ParentHubViewModel, modifier: Modifier = Modifier) {
         }
         val today = week.lastOrNull()
         item {
-            KodomoCard(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp)) {
-                SectionTitle("مصرف امروز به تفکیک")
-                val slices = today?.byCategory?.filter { it.category != ActivityCategory.HOME }.orEmpty()
-                if (slices.isEmpty()) {
-                    Text("امروز هنوز فعالیتی ثبت نشده است.", style = MaterialTheme.typography.bodyMedium)
-                } else {
-                    DonutChart(
-                        values = slices.map { Triple("${it.category.emoji} ${it.category.label}: ${(it.seconds / 60).fa()} دقیقه", categoryColor(it.category), it.seconds.toFloat()) },
-                        centerLabel = PersianCalendar.formatDuration(slices.sumOf { it.seconds }),
-                    )
+            // V5 (D_PARENT report): one segmented choice, simple bars, two summary numbers, category rows.
+            var weekly by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf(false) }
+            Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp)) {
+                Text("گزارش ${child?.name.orEmpty()}", style = MaterialTheme.typography.headlineSmall)
+                Spacer(Modifier.height(10.dp))
+                androidx.compose.material3.SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                    listOf("امروز", "هفته").forEachIndexed { i, label ->
+                        androidx.compose.material3.SegmentedButton(
+                            selected = weekly == (i == 1), onClick = { weekly = i == 1 },
+                            shape = androidx.compose.material3.SegmentedButtonDefaults.itemShape(i, 2),
+                        ) { Text(label) }
+                    }
                 }
-            }
-        }
-        item {
-            KodomoCard(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp)) {
-                SectionTitle("۷ روز گذشته (دقیقه)")
-                StackedBarChart(
-                    bars = week.map { day ->
-                        StackedBar(
-                            label = PersianCalendar.dayName(day.date.dayOfWeek).take(3),
-                            segments = tracked.map { cat -> categoryColor(cat) to ((day.byCategory.firstOrNull { it.category == cat }?.seconds ?: 0L) / 60f) },
-                        )
-                    },
-                )
-                Spacer(Modifier.height(8.dp))
-                Legend(tracked.map { it.label to categoryColor(it) })
-                val total = week.sumOf { it.totalSeconds }
-                Spacer(Modifier.height(8.dp))
-                Text("میانگین روزانه: ${(total / 60 / week.size.coerceAtLeast(1)).fa()} دقیقه", style = MaterialTheme.typography.titleSmall)
+                Spacer(Modifier.height(12.dp))
+                val days = if (weekly) week else listOfNotNull(today)
+                val byCat = tracked.map { cat -> cat to days.sumOf { d -> d.byCategory.firstOrNull { it.category == cat }?.seconds ?: 0L } }
+                    .filter { it.second > 0 }.sortedByDescending { it.second }
+                KodomoCard(Modifier.fillMaxWidth()) {
+                    if (weekly) {
+                        val maxMin = (week.maxOfOrNull { it.totalSeconds } ?: 0L).coerceAtLeast(60L) / 60f
+                        Row(Modifier.fillMaxWidth().height(150.dp), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.Bottom) {
+                            week.forEachIndexed { i, d ->
+                                val m = d.totalSeconds / 60f
+                                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Bottom, modifier = Modifier.weight(1f).fillMaxHeight()) {
+                                    Box(
+                                        Modifier.width(22.dp).fillMaxHeight((m / maxMin).coerceIn(0.03f, 1f) * 0.8f)
+                                            .background(if (i == week.lastIndex) KodomoColors.Green else KodomoColors.Green.copy(alpha = 0.35f), androidx.compose.foundation.shape.RoundedCornerShape(6.dp)),
+                                    )
+                                    Text(PersianCalendar.dayName(d.date.dayOfWeek).take(3), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+                        }
+                        Spacer(Modifier.height(10.dp))
+                        val total = week.sumOf { it.totalSeconds }
+                        Row(Modifier.fillMaxWidth()) {
+                            Column(Modifier.weight(1f)) {
+                                Text("میانگین روزانه", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("${(total / 60 / week.size.coerceAtLeast(1)).fa()} دقیقه", style = MaterialTheme.typography.titleLarge)
+                            }
+                            Column(Modifier.weight(1f)) {
+                                Text("مجموع هفته", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(PersianCalendar.formatDuration(total), style = MaterialTheme.typography.titleLarge)
+                            }
+                        }
+                    } else {
+                        val total = today?.byCategory?.filter { it.category != ActivityCategory.HOME }?.sumOf { it.seconds } ?: 0L
+                        Text("مجموع امروز", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(if (total == 0L) "هنوز فعالیتی نبوده" else PersianCalendar.formatDuration(total), style = MaterialTheme.typography.headlineMedium)
+                    }
+                }
+                if (byCat.isNotEmpty()) {
+                    Spacer(Modifier.height(12.dp))
+                    com.kodomo.app.ui.components.SettingsGroup {
+                        byCat.forEachIndexed { i, (cat, sec) ->
+                            com.kodomo.app.ui.components.SettingsRow(
+                                icon = categoryIcon(cat), tint = categoryColor(cat), title = cat.label,
+                                value = PersianCalendar.formatDuration(sec), divider = i < byCat.lastIndex,
+                            )
+                        }
+                    }
+                }
             }
         }
         item { SectionTitle("تایم‌لاین فعالیت‌های اخیر", Modifier.padding(horizontal = 16.dp)) }

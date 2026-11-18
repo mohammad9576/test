@@ -1,6 +1,8 @@
 package com.kodomo.app.ui.kids.books
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.material.icons.rounded.Search
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -50,54 +52,51 @@ fun BookListScreen(onBack: () -> Unit, onOpen: (String, ReadingMode) -> Unit, vi
     val shelves = androidx.compose.runtime.remember(books) { books.map { it.category }.distinct() }
     val illustrated = books.filter { it.imageUrl != null }
     val shown = books.filter { (shelf == null || it.category == shelf) && (query.isBlank() || it.title.contains(query.trim())) }
-    KidScreenScaffold(title = "دنیای کتاب", onBack = onBack) { padding ->
-        LazyColumn(
-            Modifier.fillMaxSize().padding(padding),
+    var choose by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<ContentItem?>(null) }
+    KidScreenScaffold(title = "کتاب‌ها", onBack = onBack) { padding ->
+        // V5 (D_CHILD «کتاب‌ها»): search, shelves, big covers in two columns; one tap, then how to read it.
+        androidx.compose.foundation.lazy.grid.LazyVerticalGrid(
+            columns = androidx.compose.foundation.lazy.grid.GridCells.Fixed(2),
+            modifier = Modifier.fillMaxSize().padding(padding),
             contentPadding = PaddingValues(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            if (illustrated.isNotEmpty() && query.isBlank() && shelf == null) {
-                item { Text("📗 کتاب‌های مصور واقعی", style = MaterialTheme.typography.titleLarge) }
-                item {
-                    androidx.compose.foundation.lazy.LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        items(illustrated.size) { i ->
-                            val b = illustrated[i]
-                            Column(
-                                Modifier.width(130.dp).bouncyClick { space.guide(b.title); onOpen(b.id, ReadingMode.AUDIO) },
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                            ) {
-                                ContentCover(b, Modifier.size(width = 130.dp, height = 130.dp), emojiSize = 52, corner = 22.dp)
-                                Text(b.title, style = MaterialTheme.typography.labelLarge, maxLines = 2, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
-                            }
-                        }
-                    }
-                }
-            }
-            item {
+            val full = androidx.compose.foundation.lazy.grid.GridItemSpan(2)
+            item(span = { full }) {
                 androidx.compose.material3.OutlinedTextField(
                     value = query, onValueChange = { query = it.take(40) }, singleLine = true,
-                    placeholder = { Text("دنبال کدام کتاب می‌گردی؟ 🔎") }, shape = RoundedCornerShape(50), modifier = Modifier.fillMaxWidth(),
+                    placeholder = { Text("جستجوی کتاب…") }, shape = RoundedCornerShape(50), modifier = Modifier.fillMaxWidth(),
+                    leadingIcon = { androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Rounded.Search, contentDescription = null) },
                 )
             }
-            item {
+            item(span = { full }) {
                 androidx.compose.foundation.lazy.LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    item { androidx.compose.material3.FilterChip(selected = shelf == null, onClick = { shelf = null }, label = { Text("همه (${books.size.fa()})") }) }
+                    item { androidx.compose.material3.FilterChip(selected = shelf == null, onClick = { shelf = null }, label = { Text("همه") }) }
                     items(shelves.size) { i ->
                         val c = shelves[i]
                         androidx.compose.material3.FilterChip(selected = shelf == c, onClick = { shelf = c }, label = { Text(c) })
                     }
                 }
             }
-            if (shown.isEmpty()) item { EmptyState("کتابی پیدا نشد.") }
-            items(shown, key = { it.id }) { book -> BookCard(book, space.spec.showCardLabels, onOpen) }
+            if (shown.isEmpty()) item(span = { full }) { EmptyState("کتابی پیدا نشد.") }
+            items(shown.size, key = { shown[it].id }) { i ->
+                val b = shown[i]
+                Column(Modifier.bouncyClick { space.guide(b.title); choose = b }) {
+                    ContentCover(b, Modifier.fillMaxWidth().aspectRatio(0.82f), emojiSize = 64, corner = 20.dp)
+                    Spacer(Modifier.height(6.dp))
+                    Text(b.title, style = MaterialTheme.typography.titleSmall, maxLines = 2)
+                    Text("+${b.rating.minAge.fa()} سال", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
             if (printed.isNotEmpty() && query.isBlank()) {
-                item { Text("🛒 کتاب‌های چاپی پیشنهادی (ارزیابی‌شده در کدومو)", style = MaterialTheme.typography.titleLarge) }
-                item {
+                item(span = { full }) { Text("کتاب‌های چاپی پیشنهادی", style = MaterialTheme.typography.titleMedium) }
+                item(span = { full }) {
                     androidx.compose.foundation.lazy.LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         items(printed.size.coerceAtMost(40)) { i ->
                             val b = printed[i]
-                            Column(Modifier.width(120.dp).bouncyClick { printedOpen = b }, horizontalAlignment = Alignment.CenterHorizontally) {
-                                ContentCover(b, Modifier.size(width = 120.dp, height = 160.dp), emojiSize = 48, corner = 16.dp)
+                            Column(Modifier.width(110.dp).bouncyClick { printedOpen = b }, horizontalAlignment = Alignment.CenterHorizontally) {
+                                ContentCover(b, Modifier.size(width = 110.dp, height = 146.dp), emojiSize = 44, corner = 16.dp)
                                 Text(b.title, style = MaterialTheme.typography.labelMedium, maxLines = 2, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
                             }
                         }
@@ -105,6 +104,23 @@ fun BookListScreen(onBack: () -> Unit, onOpen: (String, ReadingMode) -> Unit, vi
                 }
             }
         }
+    }
+    choose?.let { b ->
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { choose = null },
+            title = { Text(b.title) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    ReadingMode.entries.forEach { mode ->
+                        FilledTonalButton(
+                            onClick = { choose = null; onOpen(b.id, mode) },
+                            modifier = Modifier.fillMaxWidth().height(60.dp), shape = RoundedCornerShape(18.dp),
+                        ) { Text("${mode.emoji}  ${mode.label}", style = MaterialTheme.typography.titleMedium) }
+                    }
+                }
+            },
+            confirmButton = { androidx.compose.material3.TextButton(onClick = { choose = null }) { Text("بستن") } },
+        )
     }
     printedOpen?.let { b ->
         androidx.compose.material3.AlertDialog(
