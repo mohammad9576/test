@@ -101,18 +101,12 @@ fun ReportsTab(viewModel: ParentHubViewModel, modifier: Modifier = Modifier) {
         val today = week.lastOrNull()
         item {
             // V5 (D_PARENT report): one segmented choice, simple bars, two summary numbers, category rows.
-            var weekly by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf(false) }
+            val weeklyState = androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf(false) }
+            val weekly = weeklyState.value
             Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp)) {
                 Text("گزارش ${child?.name.orEmpty()}", style = MaterialTheme.typography.headlineSmall)
                 Spacer(Modifier.height(10.dp))
-                androidx.compose.material3.SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-                    listOf("امروز", "هفته").forEachIndexed { i, label ->
-                        androidx.compose.material3.SegmentedButton(
-                            selected = weekly == (i == 1), onClick = { weekly = i == 1 },
-                            shape = androidx.compose.material3.SegmentedButtonDefaults.itemShape(i, 2),
-                        ) { Text(label) }
-                    }
-                }
+                com.kodomo.app.ui.components.SegmentedChoice(listOf("امروز", "هفته"), if (weekly) 1 else 0, { weeklyState.value = it == 1 })
                 Spacer(Modifier.height(12.dp))
                 val days = if (weekly) week else listOfNotNull(today)
                 val byCat = tracked.map { cat -> cat to days.sumOf { d -> d.byCategory.firstOrNull { it.category == cat }?.seconds ?: 0L } }

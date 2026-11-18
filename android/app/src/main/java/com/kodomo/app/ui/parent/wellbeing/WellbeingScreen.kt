@@ -204,15 +204,10 @@ fun WellbeingScreen(onBack: () -> Unit) {
                 var mode by androidx.compose.runtime.remember { androidx.compose.runtime.mutableIntStateOf(com.kodomo.app.ui.theme.NightMode.mode(context)) }
                 Section("ظاهر برنامه", "برای والدین و کودک. «خودکار»: وقتی حالت تاریک گوشی روشن است یا از ساعت ۸ شب تا ۶ صبح. تغییر ظاهر چیزی از تنظیمات و پیشرفت کودک را عوض نمی‌کند.") {
 
-                    androidx.compose.material3.SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-                        val opts = listOf(com.kodomo.app.ui.theme.NightMode.LIGHT to "☀ روز", com.kodomo.app.ui.theme.NightMode.DARK to "☾ شب", com.kodomo.app.ui.theme.NightMode.AUTO to "خودکار")
-                        opts.forEachIndexed { i, (m, label) ->
-                            androidx.compose.material3.SegmentedButton(
-                                selected = mode == m, onClick = { mode = m; com.kodomo.app.ui.theme.NightMode.setMode(context, m) },
-                                shape = androidx.compose.material3.SegmentedButtonDefaults.itemShape(i, opts.size),
-                            ) { Text(label) }
-                        }
-                    }
+                    val opts = listOf(com.kodomo.app.ui.theme.NightMode.LIGHT to "☀ روز", com.kodomo.app.ui.theme.NightMode.DARK to "☾ شب", com.kodomo.app.ui.theme.NightMode.AUTO to "خودکار")
+                    com.kodomo.app.ui.components.SegmentedChoice(opts.map { it.second }, opts.indexOfFirst { it.first == mode }, { i ->
+                        mode = opts[i].first; com.kodomo.app.ui.theme.NightMode.setMode(context, opts[i].first)
+                    })
                 }
             }
             item {
