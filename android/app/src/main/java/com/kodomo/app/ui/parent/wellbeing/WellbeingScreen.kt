@@ -1,3 +1,5 @@
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+
 package com.kodomo.app.ui.parent.wellbeing
 
 import androidx.compose.foundation.layout.Arrangement
@@ -200,9 +202,16 @@ fun WellbeingScreen(onBack: () -> Unit) {
             item {
                 val context = androidx.compose.ui.platform.LocalContext.current
                 var mode by androidx.compose.runtime.remember { androidx.compose.runtime.mutableIntStateOf(com.kodomo.app.ui.theme.NightMode.mode(context)) }
-                Section("🌙 حالت شب", "رنگ‌های تیره و آرام برای چشم در شب، برای والدین و کودک. «خودکار» یعنی وقتی حالت تاریک گوشی روشن است یا از ساعت ۸ شب تا ۶ صبح.") {
-                    Choices(listOf(com.kodomo.app.ui.theme.NightMode.AUTO to "خودکار", com.kodomo.app.ui.theme.NightMode.LIGHT to "همیشه روشن", com.kodomo.app.ui.theme.NightMode.DARK to "همیشه شب"), mode) {
-                        mode = it; com.kodomo.app.ui.theme.NightMode.setMode(context, it)
+                Section("ظاهر برنامه", "برای والدین و کودک. «خودکار»: وقتی حالت تاریک گوشی روشن است یا از ساعت ۸ شب تا ۶ صبح. تغییر ظاهر چیزی از تنظیمات و پیشرفت کودک را عوض نمی‌کند.") {
+
+                    androidx.compose.material3.SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                        val opts = listOf(com.kodomo.app.ui.theme.NightMode.LIGHT to "☀ روز", com.kodomo.app.ui.theme.NightMode.DARK to "☾ شب", com.kodomo.app.ui.theme.NightMode.AUTO to "خودکار")
+                        opts.forEachIndexed { i, (m, label) ->
+                            androidx.compose.material3.SegmentedButton(
+                                selected = mode == m, onClick = { mode = m; com.kodomo.app.ui.theme.NightMode.setMode(context, m) },
+                                shape = androidx.compose.material3.SegmentedButtonDefaults.itemShape(i, opts.size),
+                            ) { Text(label) }
+                        }
                     }
                 }
             }
