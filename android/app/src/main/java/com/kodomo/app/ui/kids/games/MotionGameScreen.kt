@@ -45,6 +45,7 @@ import com.kodomo.app.ui.kids.games.brain.SlidePuzzleGame
 import com.kodomo.app.ui.kids.games.brain.WhackAMoleGame
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.kodomo.app.ui.kids.games.arcade.GoalkeeperGame
@@ -166,16 +167,35 @@ fun MotionGameScreen(game: MotionGame, onBack: () -> Unit, viewModel: MotionGame
                     verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
                 ) {
                     LaunchedEffect(r) { if (r.passed) com.kodomo.app.ui.fx.GameSfx.cheer() else com.kodomo.app.ui.fx.Sfx.success() }
-                    KodomoMascot(if (r.passed) MascotMood.EXCITED else MascotMood.HAPPY, size = 170.dp)
-                    if (leveled) {
-                        Text(
-                            if (r.passed && r.unlockedLevel > r.playedLevel) "🎉 مرحله ${r.unlockedLevel.fa()} باز شد!" else if (r.passed) "🏆 مرحله‌ی ${r.playedLevel.fa()} را بردی!" else "نزدیک بود! یک بار دیگر تلاش کن 💪",
-                            style = MaterialTheme.typography.headlineSmall,
-                            textAlign = TextAlign.Center,
-                        )
+                    // V5 (G8 «نتیجه مرحله»): the child's own character with the robot, one status, one score card,
+                    // one main action, then «play again» and «level map» side by side.
+                    val girl = com.kodomo.app.ui.kids.LocalKidSpace.current.child.gender == com.kodomo.app.domain.model.Gender.GIRL
+                    var mapOpen by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+                    androidx.compose.foundation.layout.Row(verticalAlignment = Alignment.Bottom) {
+                        com.kodomo.app.ui.design.Art(if (r.passed) (if (girl) "poses/girl_cheer" else "poses/boy_cheer") else (if (girl) "poses/girl_wave" else "poses/boy_wave"), 150.dp) {}
+                        com.kodomo.app.ui.design.Art(if (r.passed) "robot/trophy" else "robot/wave", 110.dp) { KodomoMascot(MascotMood.HAPPY, size = 110.dp) }
                     }
-                    Text("امتیاز: ${r.score.fa()}", style = MaterialTheme.typography.titleLarge)
-                    Text("⭐".repeat(r.stars), style = MaterialTheme.typography.displaySmall)
+                    val ok = r.passed
+                    Text(
+                        when {
+                            !leveled -> if (ok) "آفرین! ✓" else "نزدیک بود! یک بار دیگر 💪"
+                            ok && r.unlockedLevel > r.playedLevel -> "مرحله کامل شد ✓  مرحله‌ی ${r.unlockedLevel.fa()} باز شد"
+                            ok -> "مرحله‌ی ${r.playedLevel.fa()} کامل شد ✓"
+                            else -> "نزدیک بود! یک بار دیگر تلاش کن 💪"
+                        },
+                        style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center,
+                        color = if (ok) com.kodomo.app.ui.theme.KodomoColors.GreenDark else MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.fillMaxWidth()
+                            .background((if (ok) com.kodomo.app.ui.theme.KodomoColors.Green else MaterialTheme.colorScheme.outline).copy(alpha = 0.14f), androidx.compose.foundation.shape.RoundedCornerShape(50))
+                            .padding(vertical = 12.dp),
+                    )
+                    androidx.compose.foundation.layout.Row(
+                        Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), androidx.compose.foundation.shape.RoundedCornerShape(18.dp)).padding(horizontal = 18.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text("امتیاز: ${r.score.fa()}", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
+                        Text("⭐".repeat(r.stars) + "☆".repeat((3 - r.stars).coerceAtLeast(0)), style = MaterialTheme.typography.headlineSmall)
+                    }
                     if (r.medal) Text("🏅 مدال «بدن فعال» را گرفتی!", style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
                     if (leveled && r.passed && r.unlockedLevel > r.playedLevel) {
                         KodomoPrimaryButton("مرحله‌ی بعد ▶", onClick = {
@@ -184,20 +204,31 @@ fun MotionGameScreen(game: MotionGame, onBack: () -> Unit, viewModel: MotionGame
                             round++
                         })
                     }
-                    androidx.compose.material3.OutlinedButton(onClick = {
-                        result = null
-                        round++
-                    }, modifier = Modifier.fillMaxWidth()) { Text(if (r.passed) "دوباره همین مرحله" else "دوباره تلاش کن") }
-                    if (leveled && r.unlockedLevel > 1) {
-                        androidx.compose.foundation.lazy.LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            items(r.unlockedLevel) { i ->
-                                androidx.compose.material3.FilterChip(
-                                    selected = level == i + 1,
-                                    onClick = { level = i + 1; result = null; round++ },
-                                    label = { Text((i + 1).fa()) },
-                                )
-                            }
+                    androidx.compose.foundation.layout.Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        androidx.compose.material3.OutlinedButton(onClick = { result = null; round++ }, modifier = Modifier.weight(1f).heightIn(min = 52.dp)) {
+                            Text(if (r.passed) "↻ بازی دوباره" else "↻ دوباره تلاش کن")
                         }
+                        if (leveled && r.unlockedLevel > 1) {
+                            androidx.compose.material3.OutlinedButton(onClick = { mapOpen = true }, modifier = Modifier.weight(1f).heightIn(min = 52.dp)) { Text("🗺 نقشه‌ی مراحل") }
+                        }
+                    }
+                    if (mapOpen) {
+                        androidx.compose.material3.AlertDialog(
+                            onDismissRequest = { mapOpen = false },
+                            title = { Text("کدام مرحله؟") },
+                            text = {
+                                androidx.compose.foundation.lazy.LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    items(r.unlockedLevel) { i ->
+                                        androidx.compose.material3.FilterChip(
+                                            selected = level == i + 1,
+                                            onClick = { mapOpen = false; level = i + 1; result = null; round++ },
+                                            label = { Text("مرحله‌ی ${(i + 1).fa()}") },
+                                        )
+                                    }
+                                }
+                            },
+                            confirmButton = { androidx.compose.material3.TextButton(onClick = { mapOpen = false }) { Text("بستن") } },
+                        )
                     }
                 }
             } else if (lvl == null) {
